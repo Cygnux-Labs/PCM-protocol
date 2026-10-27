@@ -162,24 +162,28 @@ accepted. **[Implemented]**
 
 The examples in this document are real. Unless a section says otherwise, they come from the test vector
 `vectors/accept-approved-by.json`, which the reference implementation's signer produced (agent A is `uid:990101`, agent
-B `uid:990102`, alice `uid:990001`). Regenerating the vectors changes ids, times and signatures.
+B `uid:990102`, alice `uid:990001`). Regenerating the vectors changes ids, times and signatures. In the source of this
+document, the comment `<!-- vector <name> <path> -->` before an example names the vector and the JSON path in it of
+the value the example shows (`@signed`: the bytes a message's signature covers); `...` stands for what the example
+leaves out. The standalone verifier's tests check every such example against its vector.
 
 The message, with its claim and grant shown in sections 6.6 and 7.1:
 
+<!-- vector accept-approved-by input.message -->
 ```json
 {
- "from": {"agent": "uid:990101", "run": "b51de2128d0a77cee8bdf8c3c814458d", "tenant": "default"},
+ "from": {"agent": "uid:990101", "run": "8d0a3180da60ac56d555e03a6440a81e", "tenant": "default"},
  "to": {"agent": "uid:990102"},
  "intent": {"type": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
             "args": {"amount": 12000, "order": 81}},
  "claims": ["... one approved_by claim, section 6.6 ..."],
  "grants": ["... alice's root grant, section 7.1 ..."],
  "pcm": 0,
- "id": "2fc20b5deea10b46385aa081ddd3b499",
- "ts": "2026-10-27T20:35:13.408460Z",
- "nonce": "43887dbc66f4972f5f9bb0a6135095fe",
+ "id": "8efe060740cdfd4ae030913d87a6cdd4",
+ "ts": "2026-10-27T23:28:26.887875Z",
+ "nonce": "88fe06457feb32542fb6470482a3a00f",
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "fm6rejPt7l3jmfZh0uIDaJS1n498+KDipZnDQOg6e6WfbWWFOWyrk49imJb7M9sNtAfeqrezpolzag0mrFM6Ag=="}
+         "sig": "+X/3WttTyGFafxdpe8JY5wxvWVcXZznoGKs4qkZ4emwESR3iKqHfpBr/vypisbSjCDOfaHtzJanBe7OsG92VBA=="}
 }
 ```
 
@@ -210,20 +214,23 @@ member on the wire: both objects are closed, so a `"t"` member makes the envelop
 
 The bytes signed for the message in 3.4 start:
 
+<!-- vector accept-approved-by input.message.@signed -->
 ```
 {"claims":[{"args":{"call":"grant-1","person":"alice"},"evidence":{"checkpoint":"example.com/pcm-test-log\n9\n...
 ```
 
 and further on, in JCS key order:
 
+<!-- vector accept-approved-by input.message.@signed -->
 ```
-..."nonce":"43887dbc66f4972f5f9bb0a6135095fe","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
+..."nonce":"88fe06457feb32542fb6470482a3a00f","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
 ```
 
 The note's line breaks appear as the two characters `\n`: JCS escapes them.
 
 A grant's signature does not verify as a message's. Vector `reject-grant-signature-as-message` is a message body
-signed with the grant tag; the verifier rejects it with "signature: bad signature".
+signed with the grant tag; the verifier rejects it with
+<!-- vector reject-grant-signature-as-message expected.reasons.0 -->`signature: bad signature`.
 
 ### 4.3 Key names
 
@@ -234,7 +241,8 @@ Log keys are pinned as C2SP signed-note verifier keys (vkeys) [C2SP-NOTE]:
 ```
 
 where key id = the first 4 bytes of SHA-256(name || 0x0A || 0x01 || public key). Example, the vectors' test log
-key: `example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C`. Its `sig.key` is
+key: <!-- vector accept-approved-by input.trust.logs.0 -->
+`example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C`. Its `sig.key` is
 `example.com/pcm-test-log+0bb91e66`.
 
 `sig.key` is the vkey without its key part: `<name>+<key id hex>`. `sig.sig` is the base64 of the 64-byte
@@ -512,16 +520,17 @@ The fields each checker reads:
 
 A real `approval` record, as evidence carries it:
 
+<!-- vector accept-approved-by input.message.claims.0.evidence.records.2.event -->
 ```json
-{"schema_version": "tracekit.event.v2", "id": "bd412ff9e2fa862a3cde692ac74c185d", "seq": 5,
- "prev_hash": "sha256:d160efaadaeb378b6904bf2357d4439329d3a11b01163e2dd684cce0b308494a",
- "ts": "2026-10-27T20:35:13.391183Z", "run_id": "b51de2128d0a77cee8bdf8c3c814458d", "agent_id": "main",
+{"schema_version": "tracekit.event.v2", "id": "eec7eb9187d3a0c34acbfb24c9d273bf", "seq": 5,
+ "prev_hash": "sha256:1564e8d44e8ee3949eed187996febf15ad8a91d7706302ab65240fedad9f99a7",
+ "ts": "2026-10-27T23:28:26.870740Z", "run_id": "8d0a3180da60ac56d555e03a6440a81e", "agent_id": "main",
  "parent_id": null, "source": "sdk", "type": "approval",
- "data": {"tool_use_id": "grant-1", "approval_id": "apr-b2b78a98eaef5792490dea71e0f01695", "decision": "approve",
+ "data": {"tool_use_id": "grant-1", "approval_id": "apr-32a3f5bd8ea8787c464c217bdb3d3769", "decision": "approve",
           "approver": "uid:990001", "approver_identity": {"scheme": "uid", "subject": "990001", "attested": true},
           "channel": "rpc", "self_approved": false, "person": "alice"},
- "tenant": "default", "log_id": "42aaf90f74fdd29f4c1db7549ceefa98", "run_seq": 3,
- "run_prev_hash": "sha256:d160efaadaeb378b6904bf2357d4439329d3a11b01163e2dd684cce0b308494a",
+ "tenant": "default", "log_id": "e1917370ece98dc3a3d986ffd93f940a", "run_seq": 3,
+ "run_prev_hash": "sha256:1564e8d44e8ee3949eed187996febf15ad8a91d7706302ab65240fedad9f99a7",
  "request_id": "r4", "tool_call_id": "grant-1"}
 ```
 
@@ -544,8 +553,8 @@ evidence item is:
    `data.tool` and `data.decision_id` (the event schema leaves both optional; a decision without them matches no
    call: vector `reject-claim-decision-without-id`), and where `data.decision != "deny"` (a denied call matches
    nothing, even with a result: vector `reject-claim-tests-passed-denied-call`): `match(data.tool, args)`
-   answers yes, no, or can't tell. Can't tell: candidate `unproven` ("the verifier can't tell whether call …"); next
-   record. No: next record. Yes:
+   answers yes, no, or can't tell. Can't tell: candidate `unproven` ("the verifier can't tell whether call …", and
+   for `reached_host` maybe what the sender can do, 6.6); next record. No: next record. Yes:
    1. If `class` is set and the placement table does not map `data.tool` to `class`: candidate `unproven`; next record.
    2. For each `tool.result` record whose `(data.decision_id, data.tool_use_id)` equals the decision's:
       - `data.ok` is not `true`: candidate `failed` ("… and failed");
@@ -556,21 +565,23 @@ evidence item is:
 From vector `accept-tests-passed-t2`: the evidence for `tests_passed {"suite": "pytest -q tests/test_refund.py"}`
 holds an opened decision and its result, both recorded through an attesting executor:
 
+<!-- vector accept-tests-passed-t2 input.message.claims.1.evidence.records -->
 ```json
 [{"event": {"type": "policy.decision", "seq": 10, "source": "gateway", "tier": "T2", "...": "...",
             "data": {"tool_use_id": "call-9", "tool": "Bash", "decision": "allow",
-                     "decision_id": "dec-750413eaedc678a9ba93cc31306842ca", "via": "mtls:spiffe://example/executor",
-                     "args_commitment": "hmac-sha256:aae21d33330eabc315947887194b0cc200151d0f788657fd8746ea76d1596969",
+                     "decision_id": "dec-23b503a2a0588fcac364ba595d845e41", "via": "mtls:spiffe://example/executor",
+                     "args_commitment": "hmac-sha256:754270005d913d54c8b48a7d15880cf59c4f1cbb9845c9f7702f0049a26c2174",
                      "...": "..."}},
-  "salt": "02230c6b5f9902265504aa82d6f113a212182fb74a82acfb85d816ce6b94253c",
+  "salt": "8cefd72ba99ae14eb6cd570204ceadbc42a984dbfdf7fd131edc8513ab041c5c",
   "args": {"command": "pytest -q tests/test_refund.py"}, "hash": "...", "proof": ["..."]},
  {"event": {"type": "tool.result", "seq": 11, "source": "gateway", "tier": "T2", "...": "...",
-            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-750413eaedc678a9ba93cc31306842ca",
+            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-23b503a2a0588fcac364ba595d845e41",
                      "via": "mtls:spiffe://example/executor", "...": "..."}},
   "hash": "...", "proof": ["..."]}]
 ```
 
-Result: `proven`, "call call-9 ran 'pytest -q tests/test_refund.py', run by mtls:spiffe://example/executor (T2)".
+Result: `proven`, <!-- vector accept-tests-passed-t2 expected.claims.1.detail -->
+`call call-9 ran 'pytest -q tests/test_refund.py', run by mtls:spiffe://example/executor (T2)`.
 The same claim with a result the agent reported itself is `unproven` (`accept-unproven-t1-result`), and so is one
 run through `mcp:ci/run`, a tool the table does not place as `shell` (`accept-unproven-unplaced-tool`).
 
@@ -635,15 +646,17 @@ approval (`reject-claim-approved-by-request-of-another-approval`), a decision of
 `approval` record that meets item 1, in `seq` order:
 
 - If the `approval.request` records of one of them (item 2) name two or more different `data.decision_id`s, the claim
-  is `failed` ("approval seq 7: its approval.request records name 2 decisions"), whether or not those decisions are in
-  the evidence (vector `reject-claim-approved-by-request-names-two-decisions`).
+  is `failed` (<!-- vector reject-claim-approved-by-request-names-two-decisions expected.claims.0.detail -->
+  `approval seq 2: its approval.request records name 2 decisions`), whether or not those decisions are in the
+  evidence (vector `reject-claim-approved-by-request-names-two-decisions`).
 - Else collect, over all of them, the `policy.decision` records that meet item 3, each as its pair of `data.tool` and
   args (as the evidence opens them, 6.3, or null). Two pairs are different when the JCS (4.1) of `[data.tool, args]`
   differs, so args `{"amount": true}` and `{"amount": 1}` differ, though some languages' equality takes them as equal
-  (vector `reject-claim-approved-by-args-true-and-1`). Two or more different pairs: `failed` ("the evidence holds 2
-  different decisions approved as call pay-1 by alice: send the records of one approval"; vector
-  `reject-claim-approved-by-two-decisions`, two approvals of one call id naming two decisions). None: `failed`, as
-  above. One: `proven`, and the detail names the approval with the lowest `seq` that leads to it.
+  (vector `reject-claim-approved-by-args-true-and-1`). Two or more different pairs: `failed`
+  (<!-- vector reject-claim-approved-by-two-decisions expected.claims.0.detail -->
+  `the evidence holds 2 different decisions approved as call pay-1 by alice: send the records of one approval`;
+  vector `reject-claim-approved-by-two-decisions`, two approvals of one call id naming two decisions). None: `failed`,
+  as above. One: `proven`, and the detail names the approval with the lowest `seq` that leads to it.
 
 A record listed twice fails the evidence before any checker reads it (6.2 step 4.2; vector
 `reject-claim-record-listed-twice`), so one decision can't be listed both opened and not. Rationale: an earlier draft
@@ -653,9 +666,12 @@ call id, or one decision once opened and once not, proved whichever the sender p
 **What was approved (decided, 0.1).** The result of a proven claim MUST carry the member `approved`:
 `{"tool": <the decision's data.tool>, "args": <its args as the evidence opens them (6.3), or null>}`. A receiver MUST
 read `approved`, not only `result`. Its `detail` names the same, with the tool as a JSON string and the args in full
-as JCS: `approval seq 5 by alice of "pcm.grant" call grant-1`, or `approval seq 7 by alice of "read_file" call
-refund-81-approved with args {"path":"/etc/motd"}` (vector `accept-approved-by-opened-args`: alice approved a
-`read_file` of `/etc/motd` the agent decided under the call id `pay-1`, and the evidence opens it). Only a proven
+as JCS: <!-- vector accept-approved-by expected.claims.0.detail -->
+`approval seq 5 by alice of "pcm.grant" call grant-1`, or
+<!-- vector accept-approved-by-opened-args expected.claims.0.detail -->
+`approval seq 99 by alice of "read_file" call pay-1 with args {"path":"/etc/motd"}` (vector
+`accept-approved-by-opened-args`: the agent decided two calls under the call id `pay-1`, a pay and then a `read_file`
+of `/etc/motd`; alice approved the `read_file`, and the evidence opens it). Only a proven
 `approved_by` result has `approved`. Rationale: the agent names its calls, so a claim that alice approved
 `refund-81-approved` can be proven by her approval of a `read_file` call the agent named so; only the decision says
 what she saw. `approved` is a conformance field (13.2), so every verifier gives a receiver the same answer;
@@ -676,34 +692,37 @@ signer asked about the decision `approved` names: a call `call` of that tool, wi
 The claim of `accept-approved-by`, with its evidence (the decision, the request and the approval of 6.4; events
 shortened to the fields the checker reads):
 
+<!-- vector accept-approved-by input.message.claims.0 -->
 ```json
 {"type": "approved_by", "args": {"person": "alice", "call": "grant-1"},
  "evidence": {
-  "checkpoint": "example.com/pcm-test-log\n9\n7+cxC9md+nWi8SUPkEqwSIfU+Pi3dU3hu/L1g4zPzG0=\n\n— example.com/pcm-test-log C7keZhR5ekRkqKqdIBAjBnRhjKpSnTHu8um+NvJHIUmjrdbe/r3OPF2okpTcrPDIXmXcoYPeM5u8Dj8zws+NajCNpAg=\n",
+  "checkpoint": "example.com/pcm-test-log\n9\noZGXC7BGncnzjGU+QMPESJqz7rX+fM6hz+irPdaGJz4=\n\n— example.com/pcm-test-log C7keZmuK7FDOcAXOXXWQ6bLykiqilRDqyPG63evZyV+6RrU/Y3OepADlEYNy4F0o2im63ofIDUStc2BI9Cvulxwe8AM=\n",
   "records": [
    {"event": {"type": "policy.decision", "seq": 3, "...": "...",
               "data": {"tool_use_id": "grant-1", "tool": "pcm.grant", "decision": "ask",
-                       "decision_id": "dec-5cdcc1234e5c3e0de1118fdda662405e", "...": "..."}},
-    "hash": "sha256:9c7441521d602496a247e27eddc15bc9ad15571ab94a50fedf7f1fc5c7e8979e",
-    "proof": ["l8NTPJlhD24+JUi0uQMnGXOv95pIMBPW4TzZGlVY41E=", "/ZY68N7KT6ZvxMZOSHvis02lfbRLmNmob4D05Ei3xKo=",
-              "xtKLtfh44/2xkAzlN/+6PNuoMqezkbcE+KwWe4P/VtQ=", "mqcsLLicWhyrk1Lg8gUdE2j9gqrQLeoP8VCKQGeclgo="]},
+                       "decision_id": "dec-c510b59a441653d9d46817fda8ee59af", "...": "..."}},
+    "hash": "sha256:d1b4ae27c3efc41560236d86c0a67a328e53e011374cdc7122b6dab2e44d7841",
+    "proof": ["N61i1Ly7Hi7f/mPDfvLPouCSgpjBad5ApkyB1e+E6IE=", "GER0Sg3UjxPke0zRAaHnGvQtbF3ksmk0u0VYqM9x1S0=",
+              "alDoFKVG5hXzpAPmu4kQitezIa9+2uNxT6t7fUsjkqI=", "brCm/Er+TskRLSwr1boi3+LG1v1d9By3mvVjJ55pzWg="]},
    {"event": {"type": "approval.request", "seq": 4, "...": "...",
-              "data": {"approval_id": "apr-b2b78a98eaef5792490dea71e0f01695",
-                       "decision_id": "dec-5cdcc1234e5c3e0de1118fdda662405e", "...": "..."}},
-    "hash": "sha256:d160efaadaeb378b6904bf2357d4439329d3a11b01163e2dd684cce0b308494a",
-    "proof": ["03m70r6sUVlS5pzbHV8a2ylg/YmTR26QJ27eKiXL86s=", "IQ6jHxOM6THV/kibP2h1IVCWu2Wm966k5gThe8iIk94=",
-              "Qx76D/T7jXm9m9QMXZJoxRF4Ri9py9DBg5p9pbxgGnI=", "mqcsLLicWhyrk1Lg8gUdE2j9gqrQLeoP8VCKQGeclgo="]},
+              "data": {"approval_id": "apr-32a3f5bd8ea8787c464c217bdb3d3769",
+                       "decision_id": "dec-c510b59a441653d9d46817fda8ee59af", "...": "..."}},
+    "hash": "sha256:1564e8d44e8ee3949eed187996febf15ad8a91d7706302ab65240fedad9f99a7",
+    "proof": ["CCtnBriIclbk/rMBc8VdYUT4TOmFXPypQxg+QRKeUNo=", "9NhD5Ji9eR4lsuH1rV5J4PfDDvuGU1o+YrnCnGDDu+8=",
+              "o5C/NAi3g1iwF8XuBoxwzcIXGk2z3PlJslI6WP1EGnE=", "brCm/Er+TskRLSwr1boi3+LG1v1d9By3mvVjJ55pzWg="]},
    {"event": {"...": "the approval record of 6.4"},
-    "hash": "sha256:6b16b139d3756c047b752ef2b35524b7093b31e958756a0bdd4caad4e63f02ea",
-    "proof": ["iRiuuEElCiDO0B+zZocjNJbzWTfE6ISEC/2OGj7oWJU=", "IQ6jHxOM6THV/kibP2h1IVCWu2Wm966k5gThe8iIk94=",
-              "Qx76D/T7jXm9m9QMXZJoxRF4Ri9py9DBg5p9pbxgGnI=", "mqcsLLicWhyrk1Lg8gUdE2j9gqrQLeoP8VCKQGeclgo="]}]}}
+    "hash": "sha256:a1d73c2d401726bd05dc92296936b434c347aeecc44669ee61b35564ac8eb6b5",
+    "proof": ["S1ZSwgAT4oTUmsuKspLjuPgC7m3Fv7QX8f3dIgVEdmo=", "9NhD5Ji9eR4lsuH1rV5J4PfDDvuGU1o+YrnCnGDDu+8=",
+              "o5C/NAi3g1iwF8XuBoxwzcIXGk2z3PlJslI6WP1EGnE=", "brCm/Er+TskRLSwr1boi3+LG1v1d9By3mvVjJ55pzWg="]}]}}
 ```
 
-Result: `{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of \"pcm.grant\" call grant-1",
+Result: <!-- vector accept-approved-by expected.claims.0 -->
+`{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of \"pcm.grant\" call grant-1",
 "approved": {"tool": "pcm.grant", "args": null}}`: alice approved the `pcm.grant` call that asked for the grant of 7.1
 (the evidence does not open its args). The vectors
-show the other outcomes: one hex digit of `hash` changed (`reject-claim-changed-record-hash`: "record 1: hash does not
-match the event"), the proof's last hash cut (`reject-claim-cut-proof`), another person named
+show the other outcomes: one hex digit of `hash` changed (`reject-claim-changed-record-hash`:
+<!-- vector reject-claim-changed-record-hash expected.claims.0.detail -->
+`record 1: hash does not match the event`), the proof's last hash cut (`reject-claim-cut-proof`), another person named
 (`reject-claim-wrong-person`), the approval of another call (`reject-claim-approval-of-another-call`), a proof entry
 that is not canonical base64 (`reject-claim-proof-non-canonical-base64`).
 
@@ -727,6 +746,23 @@ Hosts are compared in the form of 6.7.
    or a URL with no host (6.7 step 4: a scheme other than `http`, `https`, `ws`, `wss` and `ftp`, such as `file:`,
    `mailto:` or `gopher:`, or no host at all): no; a URL whose host won't parse: can't tell; else yes when the URL's
    host has the claim's compared form.
+
+   **What the sender can do (decided, 0.1).** When a URL's host won't parse for one of two causes the sender can fix,
+   the can't-tell detail SHOULD end with `: ` and that cause's sentence, exactly:
+   - the URL is not printable ASCII (6.7 step 1): `its URL is not printable ASCII: send the URL with the host in xn--
+     form and the path and query percent-encoded`;
+   - else, the URL passes the bracket rule (6.7 step 3) and a reading of its host holds a `%` (6.7 steps 4 and 5):
+     `its host has a %: send the URL with the host as plain ASCII, not percent-encoded`.
+
+   Any other cause adds nothing. So vector `accept-unproven-reached-host-idn` (`http://bücher.example/`) gives
+   <!-- vector accept-unproven-reached-host-idn expected.claims.0.detail -->
+   `the verifier can't tell whether call call-305 reached xn--bcher-kva.example: its URL is not printable ASCII: send
+   the URL with the host in xn-- form and the path and query percent-encoded`, and
+   `accept-unproven-reached-host-percent` (`http://%61pi.example.com/`)
+   <!-- vector accept-unproven-reached-host-percent expected.claims.0.detail -->
+   `the verifier can't tell whether call call-377 reached api.example.com: its host has a %: send the URL with the
+   host as plain ASCII, not percent-encoded`. The detail is for people (13.2); an effect's host that won't parse gets
+   no sentence, since the sender did not write it.
 
 Vectors: `accept-reached-host-http` (`https://API.Example.COM:8443/v1` is `api.example.com`),
 `accept-reached-host-claim-port`, `accept-reached-host-trailing-dot`, `accept-reached-host-short-ipv4`,
@@ -824,7 +860,8 @@ no verifier depends on an IDNA or Unicode version, nor on what its URL library s
 `accept-unproven-reached-host-deviation`, `accept-unproven-reached-host-mapped-to-nothing`,
 `accept-unproven-reached-host-tab-in-escape`, `accept-unproven-reached-host-leading-space`,
 `accept-unproven-reached-host-non-ascii-path`, `accept-unproven-reached-host-fullwidth-ipv6`). Unicode hosts are
-future work (Appendix B). Senders SHOULD fetch and claim hosts in ASCII.
+future work (Appendix B). Senders SHOULD fetch and claim hosts in ASCII; a call whose URL breaks this rule gets a
+detail that says how (6.6, `reached_host`).
 
 The intent is the WHATWG URL host parser [WHATWG-URL], in ASCII. The steps below read the host alone and check no
 more than they say, so a URL a browser refuses can still have a host here: one with a port that is not a number from
@@ -842,7 +879,8 @@ refuses it since), so `http://[::ffff:01.2.3.4]/` reached `1.2.3.4` for one veri
 A call's URL is read in these steps; a step that finds the host won't parse, or that the URL has none, ends the
 reading.
 
-1. **Printable ASCII.** If the URL holds a character outside U+0021 to U+007E, its host won't parse.
+1. **Printable ASCII.** If the URL holds a character outside U+0021 to U+007E, its host won't parse ("its URL is not
+   printable ASCII: …", 6.6).
 2. **A scheme.** If the URL does not start with `http:`, `https:`, `ws:`, `wss:`, `ftp:` or `file:` (in any case),
    another scheme (`[A-Za-z][A-Za-z0-9+.-]*` and `:`) not followed by a digit (so `localhost:` at the end is a
    scheme), or two slashes (`/` or `\`), put `http://` in front: `example.com:8080/x` is `http://example.com:8080/x`.
@@ -896,14 +934,14 @@ reading.
    An empty reading counts as none. Neither reading: the URL has no host.
 5. **Canonical form.** If a reading holds a `%`, the host won't parse: a host is never percent-decoded
    (`http://%61pi.example.com/`, vector `accept-unproven-reached-host-percent`; `http://api.example.com%00.evil/`,
-   `accept-unproven-reached-host-nul`). If a reading holds a `:` and, in it, `.0` followed by a digit or `:0`
-   followed by one or more digits and a `.` (a part of an IPv6 address's dotted quad with a leading zero), the host
-   won't parse, also where step 3 found no authority to check (`http:\\[::ffff:01.2.3.4]/`, vector
-   `accept-unproven-reached-host-ipv6-leading-zero-backslash`). Otherwise put each reading in canonical form. First
-   put it in ASCII lower case. Then, if a reading holds a `:`, the host won't parse unless, with every `[` and `]` at
-   the reading's ends removed, the reading is an IPv6 address; such a reading is never left out as an empty one is
-   (`http:\\[::g]/` is `unproven`, not `failed`; vector `accept-unproven-reached-host-not-ipv6`). Otherwise split
-   the reading at `.`, leaving out one empty last part. When the last part is a number (`0x` and zero or more hex
+   `accept-unproven-reached-host-nul`; "its host has a %: …", 6.6). If a reading holds a `:` and, in it, `.0`
+   followed by a digit or `:0` followed by one or more digits and a `.` (a part of an IPv6 address's dotted quad with
+   a leading zero), the host won't parse, also where step 3 found no authority to check (`http:\\[::ffff:01.2.3.4]/`,
+   vector `accept-unproven-reached-host-ipv6-leading-zero-backslash`). Otherwise put each reading in canonical form.
+   First put it in ASCII lower case. Then, if a reading holds a `:`, the host won't parse unless, with every `[` and
+   `]` at the reading's ends removed, the reading is an IPv6 address; such a reading is never left out as an empty
+   one is (`http:\\[::g]/` is `unproven`, not `failed`; vector `accept-unproven-reached-host-not-ipv6`). Otherwise
+   split the reading at `.`, leaving out one empty last part. When the last part is a number (`0x` and zero or more hex
    digits, or one or more decimal digits), the host won't parse unless it is an IPv4 address as `inet_aton` reads
    one: 1 to 4 parts, each `0x` and zero or more hex digits (hexadecimal; `0x` alone is 0), `0` and one or more
    octal digits (octal), or `0` or 1 to 10 decimal digits not starting with `0` (decimal); every part but the last
@@ -998,16 +1036,17 @@ A grant says: this subject may send this intent, within these caveats, until thi
 
 The root grant of `accept-approved-by`, signed after alice approved it:
 
+<!-- vector accept-approved-by input.message.grants.0 -->
 ```json
-{"pcm_grant": 0, "ts": "2026-10-27T20:35:13.392391Z",
- "issuer": {"kind": "person", "id": "uid:990001", "run": "b51de2128d0a77cee8bdf8c3c814458d", "tenant": "default",
-            "approval_id": "apr-b2b78a98eaef5792490dea71e0f01695", "person": "alice"},
+{"pcm_grant": 0, "ts": "2026-10-27T23:28:26.871463Z",
+ "issuer": {"kind": "person", "id": "uid:990001", "run": "8d0a3180da60ac56d555e03a6440a81e", "tenant": "default",
+            "approval_id": "apr-32a3f5bd8ea8787c464c217bdb3d3769", "person": "alice"},
  "subject": "uid:990101",
  "intent": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
  "caveats": [{"field": "amount", "op": "<=", "value": 20000}, {"field": "order", "op": "==", "value": 81}],
- "expires_at": "2026-10-27T21:35:13.390119Z", "delegable": false, "parent": null,
+ "expires_at": "2026-10-28T00:28:26.869425Z", "delegable": false, "parent": null,
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "3TNWnBZ05HNJOzCrRogSPdzHG5uFKCTdHWk/v3lN6z8LDTDbaJKcbuqqFF8omytaZKjbnQZKDteAPSvYHPDPAg=="}}
+         "sig": "Tl6IZLqoKTsJ12b7Oz2LZ04F5VQt27d8Xi9xjepiRAKAggi7+AT654DnMvrvf1GYaGnzVCHBxwSuLxfyf697AA=="}}
 ```
 
 ### 7.2 Caveats
@@ -1134,7 +1173,8 @@ one problem; any problem makes the grants result `failed`. **[Implemented]**
 | subject | the last grant's `subject` equals `from.agent` | `grant-subject-not-sender` |
 
 The result is `{"result": "none" | "ok" | "failed", "steps": <number of grants>, "root": <grant 0's issuer kind, id
-and person> or null, "problems": [...]}`. A problem from the refund example, a $500 refund under a $200 grant:
+and person> or null, "problems": [...]}`. A problem from the refund example, a $500 refund under a $200 grant (vector
+`reject-grant-amount-over-caveat`): <!-- vector reject-grant-amount-over-caveat expected.grants.problems.0 -->
 `grant 0: amount 50000 breaks amount <= 20000`.
 
 The verifier reports the root issuer but does not decide whether the receiver trusts that person. A receiver SHOULD
@@ -1194,6 +1234,7 @@ rests on the agent's word alone.
 
 The expected result of `accept-approved-by` (receiver `uid:990102`, a fresh replay state, 300 s window):
 
+<!-- vector accept-approved-by expected -->
 ```json
 {"signature": {"ok": true, "key": "example.com/pcm-test-log+0bb91e66"},
  "replay": {"ok": true, "detail": "fresh"},
@@ -1206,11 +1247,11 @@ The expected result of `accept-approved-by` (receiver `uid:990102`, a fresh repl
 
 `approved` is in a claim's result only when the claim is a proven `approved_by` (6.6).
 
-Each step stops a different vector: the envelope `reject-envelope-pcm-false` ("envelope: $.pcm: expected integer,
-got bool"), the signature `reject-forged-signature` and `reject-unpinned-key`, replay `reject-replay-duplicate-nonce`,
-the recipient `reject-wrong-recipient`, the schema `reject-schema-bool-as-int`, the grants
-`reject-grant-amount-over-caveat`, a claim `reject-claim-changed-record-hash`, and `strict`
-`reject-strict-required-unproven`.
+Each step stops a different vector: the envelope `reject-envelope-pcm-false`
+(<!-- vector reject-envelope-pcm-false expected.reasons.0 -->`envelope: $.pcm: expected integer, got bool`), the
+signature `reject-forged-signature` and `reject-unpinned-key`, replay `reject-replay-duplicate-nonce`, the recipient
+`reject-wrong-recipient`, the schema `reject-schema-bool-as-int`, the grants `reject-grant-amount-over-caveat`, a
+claim `reject-claim-changed-record-hash`, and `strict` `reject-strict-required-unproven`.
 
 ## 9. Replay and recipient checks
 
@@ -1332,7 +1373,7 @@ policy packs, where adding a pack changed verdicts. **[Implemented]**
 ## 11. Transport bindings
 
 PCM authenticity does not depend on the transport. Confidentiality does: use TLS. Each binding carries the message
-JSON unchanged. All three bindings are **[Draft]**: no implementation carries PCM in them yet.
+JSON unchanged. All three bindings are **[Draft]**: no implementation verifies PCM in them yet.
 
 ### 11.1 A2A
 
@@ -1917,7 +1958,7 @@ with the normative text, that is a bug in one of them: open an issue.
 | 4.3 signatures | `tracekit.pcm.check_sig`; canonical base64 in `tracekit.format.checkpoint._unb64`; Ed25519 in `tracekit.crypto.verify_v2`, the rules of Tracekit's v2 evidence format |
 | 5 schema documents | `tracekit.pcm.SCHEMA_DOC`, `check_schema`; a bad document makes `verify` raise `ValueError` |
 | 6.2 evidence | `tracekit.pcm.claims.evidence`; notes in `tracekit.format.checkpoint.open_note` |
-| 6.6 `approved_by`, `reached_host` | `tracekit.pcm.claims.approved_by`, `reached_host` |
+| 6.6 `approved_by`, `reached_host` | `tracekit.pcm.claims.approved_by`, `reached_host`; what the sender can do in `NOT_ASCII`, `PERCENT` and `_why` |
 | 6.6 paths | `tracekit.pcm.claims._path`, `malformed`, `file_written`; Tracekit's policy rules read paths with `tracekit.policy2.classes.fs_path`, which reads every `\` as `/`, so policy verdicts don't follow 6.6 |
 | 6.7 hosts | `tracekit.pcm.claims._url_host` (steps 1 to 6) and `_host`, on `tracekit.policy2.classes.url_info` (the scheme of step 2 in `with_scheme`, the browser reading in `_whatwg_host`); the bracket rule in `_brackets_ok`; the leading-zero check in `_ZERO_QUAD` |
 | 6.8 test commands | `tracekit.pcm.claims.test_command`, `TEST_RUNNERS`, `NO_TESTS` |
@@ -1965,9 +2006,10 @@ with the normative text, that is a bug in one of them: open an issue.
   and records a call as `ok` when the upstream's HTTP status is under 400. A T2 call of a tool named `Bash` can
   therefore be such an action (6.4, 14.26).
 - **Transports and transfers.** Tracekit's receivers call `tracekit.pcm.verify` themselves; no binding of section 11
-  is built. The transfer record of section 12 is Tracekit work not yet merged, in which the SDK call
-  `RunHandle.transfer` takes the payload bytes, the model ids, the modality, an optional projector and the options
-  `measured` and `keep`.
+  is built. Tracekit's A2A gateway (`tracekit/a2a_gateway.py`) forwards a PCM part like any other part, without
+  verifying it. The SDK call `RunHandle.transfer` records the transfer of 12.2: it takes the payload bytes, the model
+  ids, the modality, an optional projector and the options `measured` and `keep`, and decides the tool
+  `a2a:transfer`. Nothing in Tracekit makes or checks the transfer payload of 12.3.
 - **The demo.** `tracekit pcm demo` runs the refund example of section 1 with a real signer (a separate run from the
   vectors):
 
@@ -1982,7 +2024,7 @@ with the normative text, that is a bug in one of them: open an issue.
   A -> B  refund.request {amount $500.00, order 81} + approved_by(alice)
       B: REJECT           grant: grant 0: amount 50000 breaks amount <= 20000
   A asks the signer to sign as B
-      signer: forbidden: the signer signs only as the calling run's own agent (uid:990101, run 682b33a74fb7e277f59f38d40404dcae, tenant default)
+      signer: forbidden: the signer signs only as the calling run's own agent (uid:990101, run …, tenant default)
   ```
 
 ### C.4 Where it does less than this document asks

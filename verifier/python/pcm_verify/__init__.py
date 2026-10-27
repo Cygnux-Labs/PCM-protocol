@@ -555,16 +555,16 @@ _RANK = {"proven": 0, "unproven": 1, "failed": 2}
 def _ran(recs, match, what, cls=None):
     """(result, detail) of "a call whose opened args match ran and succeeded": proven by a result the signer recorded
     as T2, unproven by the agent's own (T1) result, by a tool the table does not place as `cls`, or by a call `match`
-    can't tell (None)."""
+    can't tell (None, or what the sender can do about it)."""
     best = ("failed", f"no call in the evidence {what}")
     for e, args in recs:
         d = _data(e)
         m = isinstance(args, dict) and type(d.get("tool")) is str and "decision_id" in d \
             and d.get("decision") != "deny" and match(d["tool"], args)
-        if m is None:
-            best = min(("unproven", f"the verifier can't tell whether call {d.get('tool_use_id')} {what}"), best,
-                       key=lambda o: _RANK[o[0]])
-        if not m:
+        if not isinstance(m, bool):
+            best = min(("unproven", f"the verifier can't tell whether call {d.get('tool_use_id')} {what}"
+                        + (f": {m}" if m else "")), best, key=lambda o: _RANK[o[0]])
+        if m is not True:
             continue
         if cls and TOOLS.get(d["tool"]) != cls:
             best = min(("unproven", f"a tool the verifier can't place as a {cls} tool"), best, key=lambda o: _RANK[o[0]])
@@ -673,6 +673,10 @@ SPECIAL = ("http", "https", "ws", "wss", "ftp")
 PRINTABLE = re.compile(r"[!-~]*")
 ZERO_QUAD = re.compile(r"\.0[0-9]|:0[0-9]+\.")   # a leading zero in an IPv6 address's dotted quad: ::ffff:01.2.3.4
 _BAD = object()   # looks like an address and is none
+# SPEC 6.6: what a call's detail tells the sender when its URL's host won't parse for a cause the sender can fix
+NOT_ASCII = ("its URL is not printable ASCII: send the URL with the host in xn-- form and the path and query "
+             "percent-encoded")
+PERCENT = "its host has a %: send the URL with the host as plain ASCII, not percent-encoded"
 
 
 def _whatwg_host(url):
@@ -752,13 +756,18 @@ def _brackets_ok(url):
     return not ZERO_QUAD.search(inside)   # Python before 3.9.5 takes a leading zero, later releases refuse it
 
 
+def _with_scheme(url):
+    """SPEC 6.7 step 2: `url` with http:// in front when it starts with no scheme and no two slashes."""
+    scheme = re.match(r"(?i)(https?|wss?|ftp|file):|[a-z][a-z0-9+.-]*:(?![0-9])|[/\\]{2}", url)
+    return url if scheme else "http://" + url
+
+
 def _url_host(url):
     """The host `url` reaches, in the form SPEC 6.7 compares: "" when it has none (no host, or a scheme without one:
     file:, mailto:), None when it won't parse. The bracket rule comes before any other reading of the URL."""
     if not PRINTABLE.fullmatch(url):
         return None
-    if not re.match(r"(?i)(https?|wss?|ftp|file):|[a-z][a-z0-9+.-]*:(?![0-9])|[/\\]{2}", url):
-        url = "http://" + url
+    url = _with_scheme(url)
     if not _brackets_ok(url):
         return None
     scheme, wh = _whatwg_host(url)
@@ -784,6 +793,19 @@ def _url_host(url):
             return None
     name = h[:-1] if h.endswith(".") else h
     return name if re.fullmatch(r"[a-z0-9_-]{1,63}(\.[a-z0-9_-]{1,63})*", name) else None
+
+
+def _why(url):
+    """SPEC 6.6: NOT_ASCII (6.7 step 1) or PERCENT (step 5) when that is why the host of `url`, which won't parse,
+    won't; else None."""
+    if not PRINTABLE.fullmatch(url):
+        return NOT_ASCII
+    url = _with_scheme(url)
+    try:
+        hosts = (_whatwg_host(url)[1], urlsplit(url).hostname) if _brackets_ok(url) else ()
+    except ValueError:   # as in _url_host
+        return None
+    return PERCENT if any("%" in h for h in hosts if h) else None
 
 
 def _host(host):
@@ -818,7 +840,7 @@ def reached_host(a, recs):
 
     def match(tool, args):
         got = _url_host(args["url"]) if isinstance(args.get("url"), str) else ""   # "": no URL, or no host in it
-        return None if got is None else got == want
+        return _why(args["url"]) if got is None else got == want
     return min(_ran(recs, match, f"reached {a['host']}", "http"), seen, key=lambda o: _RANK[o[0]])
 
 

@@ -43,6 +43,10 @@ DOC = {"pcm_schema": 0, "name": "refund.request", "fields": FIELDS, "claims": ["
 QUOTE = {"pcm_schema": 0, "name": "refund.quote", "fields": FIELDS}   # no grant, no claims: one cause per vector
 PASSED = {"pcm_schema": 0, "name": "refund.passed", "fields": FIELDS, "grant": True}   # for delegated grants
 ARGS = {"amount": 12000, "order": 81}
+# SPEC 6.6: what a call's detail tells the sender when its URL's host won't parse for a cause the sender can fix
+NOT_ASCII = "its URL is not printable ASCII: send the URL with the host in xn-- form and the path and query " \
+            "percent-encoded"
+PERCENT = "its host has a %: send the URL with the host as plain ASCII, not percent-encoded"
 
 
 def cv(field, op, value):
@@ -688,7 +692,7 @@ def cases(s, s2):
              "authority for the bracket rule to refuse: the canonical form refuses it, so a verifier whose IPv6 parser "
              "reads 01 as 1 doesn't prove 1.2.3.4"),
             ("accept-unproven-reached-host-idn", "http://bücher.example/", "xn--bcher-kva.example",
-             "can't tell whether", "IDNA 2003 and UTS 46 both read the name as xn--bcher-kva.example, but hosts are "
+             NOT_ASCII, "IDNA 2003 and UTS 46 both read the name as xn--bcher-kva.example, but hosts are "
              "compared in ASCII only: a URL with a character outside printable ASCII won't parse"),
             ("reject-claim-reached-host-other-host", "https://api.example.com/v1/refunds", "api.example.org",
              "no call in the evidence", "another host"),
@@ -711,24 +715,24 @@ def cases(s, s2):
             ("accept-unproven-reached-host-ambiguous", "http://a.example\\@b.example/", "b.example",
              "can't tell whether", "a browser reads the host a.example and Python's urllib b.example, so it won't "
              "parse"),
-            ("accept-unproven-reached-host-deviation", "http://fa\u00df.example/", "fass.example", "can't tell whether",
+            ("accept-unproven-reached-host-deviation", "http://fa\u00df.example/", "fass.example", NOT_ASCII,
              "IDNA 2003 maps the sharp s to ss, so a verifier that read the name by it would prove fass.example, where "
              "a browser reaches xn--fa-hia.example: a URL with a character outside printable ASCII won't parse"),
             ("accept-unproven-reached-host-mapped-to-nothing", "http://exa\N{MONGOLIAN TODO SOFT HYPHEN}mple.com/",
-             "example.com", "can't tell whether", "IDNA 2003 maps U+1806 to nothing, so a verifier that read the name "
+             "example.com", NOT_ASCII, "IDNA 2003 maps U+1806 to nothing, so a verifier that read the name "
              "by it would prove example.com, where UTS 46 refuses the name: a URL with a character outside printable "
              "ASCII won't parse"),
             ("accept-unproven-reached-host-tab-in-escape", "http://fa%C3\t%9F.example/", "fass.example",
-             "can't tell whether", "a tab inside a percent-escape, which URL readers drop, leaving fa%C3%9F.example, a "
+             NOT_ASCII, "a tab inside a percent-escape, which URL readers drop, leaving fa%C3%9F.example, a "
              "sharp s once decoded: a URL with a character outside printable ASCII won't parse"),
             ("accept-unproven-reached-host-leading-space", " https://api.example.com/v1/refunds", "api.example.com",
-             "can't tell whether", "a leading space, which some URL readers strip and others keep: a URL with a "
+             NOT_ASCII, "a leading space, which some URL readers strip and others keep: a URL with a "
              "character outside printable ASCII won't parse"),
             ("accept-unproven-reached-host-non-ascii-path", "https://api.example.com/café", "api.example.com",
-             "can't tell whether", "a character outside printable ASCII in the path: anywhere in the URL, it makes "
+             NOT_ASCII, "a character outside printable ASCII in the path: anywhere in the URL, it makes "
              "the host one that won't parse"),
             ("accept-unproven-reached-host-fullwidth-ipv6", "http://[::\N{FULLWIDTH DIGIT ONE}]/", "::1",
-             "can't tell whether", "a fullwidth digit one in the brackets, which NFKC makes ::1: a URL with a "
+             NOT_ASCII, "a fullwidth digit one in the brackets, which NFKC makes ::1: a URL with a "
              "character outside printable ASCII won't parse"),
             ("accept-unproven-reached-host-ipv6-leading-zero", "http://[::ffff:01.2.3.4]/", "1.2.3.4",
              "can't tell whether", "a leading zero in the IPv6 address's dotted quad, which some IPv6 parsers read as "
@@ -739,9 +743,9 @@ def cases(s, s2):
             ("reject-claim-reached-host-file-url", "file://api.example.com/x", "api.example.com",
              "no call in the evidence", "a file: URL has no host a browser reads"),
             ("accept-unproven-reached-host-percent", "http://%61pi.example.com/", "api.example.com",
-             "can't tell whether", "%61 is a, but a host is never percent-decoded: a host with a `%` won't parse"),
+             PERCENT, "%61 is a, but a host is never percent-decoded: a host with a `%` won't parse"),
             ("accept-unproven-reached-host-nul", "http://api.example.com%00.evil/", "api.example.com",
-             "can't tell whether", "a host with a `%` won't parse, so the NUL that %00 escapes can't cut it short")):
+             PERCENT, "a host with a `%` won't parse, so the NUL that %00 escapes can't cut it short")):
         claimed(name, f"reached_host {host} by a WebFetch of {url} the executor ran (T2): {what}.",
                 {"type": "reached_host", "args": {"host": host}, "evidence": call("WebFetch", {"url": url})}, want)
     claimed("accept-unproven-reached-host-claim-bad-port", "reached_host of api.example.com:abc with the observed "
