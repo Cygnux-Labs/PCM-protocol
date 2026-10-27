@@ -366,6 +366,12 @@
     "verdict": "reject"
   },
   {
+    "name": "reject-claim-approved-by-args-true-and-1",
+    "file": "reject-claim-approved-by-args-true-and-1.json",
+    "description": "approved_by of call pay-2, which the agent decided twice, a pay of {\"amount\": true} and a pay of {\"amount\": 1}, whose evidence opens both decisions and holds alice's approval of the second with its request, and a second approval by alice of pay-2 with a request naming the first, under a checkpoint the test log key signs offline: the two pairs of tool and args differ in JCS, though Python's == takes them as equal, so the approvals name different decisions and the claim fails.",
+    "verdict": "reject"
+  },
+  {
     "name": "reject-claim-approved-by-request-names-two-decisions",
     "file": "reject-claim-approved-by-request-names-two-decisions.json",
     "description": "approved_by of call pay-1 whose evidence holds alice's approval, its request and the read_file decision, plus a second approval.request of the same approval naming the pay decision (not in the evidence), under a checkpoint the test log key signs offline: requests of one approval that name two decisions fail the claim.",
@@ -640,6 +646,48 @@
     "file": "accept-reached-host-a-label.json",
     "description": "reached_host xn--bcher-kva.example by a WebFetch of https://XN--BCHER-KVA.Example/ the executor ran (T2): an xn-- label is compared as written, in lower case: a name in another script is fetched and claimed in its A-label form.",
     "verdict": "accept"
+  },
+  {
+    "name": "accept-reached-host-ipv4-mapped",
+    "file": "accept-reached-host-ipv4-mapped.json",
+    "description": "reached_host 1.2.3.4 by a WebFetch of http://[::ffff:1.2.3.4]/ the executor ran (T2): an IPv4-mapped IPv6 address is compared as the IPv4 address inside.",
+    "verdict": "accept"
+  },
+  {
+    "name": "accept-reached-host-nat64",
+    "file": "accept-reached-host-nat64.json",
+    "description": "reached_host 1.2.3.4 by a WebFetch of http://[64:ff9b::102:304]/ the executor ran (T2): a NAT64 IPv6 address (64:ff9b::/96) is compared as the IPv4 address inside.",
+    "verdict": "accept"
+  },
+  {
+    "name": "accept-unproven-reached-host-label-character",
+    "file": "accept-unproven-reached-host-label-character.json",
+    "description": "reached_host api.example.com by a WebFetch of http://a*b.example/ the executor ran (T2): a label holds only a-z, 0-9, `_` and `-`, so the host a*b.example won't parse, though a browser reads it: the claim is unproven, not failed.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-two-trailing-dots",
+    "file": "accept-unproven-reached-host-two-trailing-dots.json",
+    "description": "reached_host a.example by a WebFetch of http://a.example../ the executor ran (T2): a host loses one trailing dot only, so a.example. has an empty label and won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-browser-brackets",
+    "file": "accept-unproven-reached-host-browser-brackets.json",
+    "description": "reached_host h.com by a WebFetch of http:\\\\[h.com]/ the executor ran (T2): the URL has no authority, and the browser reading is [h.com], which starts with `[` and is no IPv6 address in brackets, so it won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-not-ipv6",
+    "file": "accept-unproven-reached-host-not-ipv6.json",
+    "description": "reached_host api.example.com by a WebFetch of http:\\\\[::g]/ the executor ran (T2): the browser reading [::g] holds a `:` and is no IPv6 address, so the host won't parse: the reading is not left out, as an empty one is, which would leave no host and fail the claim.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-ipv6-leading-zero-backslash",
+    "file": "accept-unproven-reached-host-ipv6-leading-zero-backslash.json",
+    "description": "reached_host 1.2.3.4 by a WebFetch of http:\\\\[::ffff:01.2.3.4]/ the executor ran (T2): a leading zero in the dotted quad of the browser reading [::ffff:01.2.3.4], and no authority for the bracket rule to refuse: the canonical form refuses it, so a verifier whose IPv6 parser reads 01 as 1 doesn't prove 1.2.3.4.",
+    "verdict": "accept-unproven"
   },
   {
     "name": "accept-unproven-reached-host-idn",

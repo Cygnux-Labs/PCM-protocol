@@ -5,7 +5,7 @@
     "message": {
       "from": {
         "agent": "uid:990101",
-        "run": "a28795bb809ea2a40a85cb398169e520",
+        "run": "9b297e5b4cea3acf986096f61d0136bb",
         "tenant": "default"
       },
       "to": {
@@ -25,16 +25,16 @@
             "host": "api.example.com"
           },
           "evidence": {
-            "checkpoint": "example.com/pcm-test-log\n220\nuBK5xTlQV6H4ayrUQMDNeMCc9G3icTA0QD0k6Ca/Pa8=\n\n— example.com/pcm-test-log C7keZvaClfniAya5ayrx6KRAtexwyJcW2wcIw/J8xOgLfnf1QUBbku/EQp0koWnxTCGVms0W8YMrayEPfe2OBs5v3gQ=\n",
+            "checkpoint": "example.com/pcm-test-log\n225\nSQQih1AU/mUKBzj//gz8xbxyH+y3b5qtVPUZwX8Z8Sc=\n\n— example.com/pcm-test-log C7keZoXwH/cWePijym8n6qXMK3mWcuVNw7lJXmgxEV1YXUgxvfUKSc05NcrX5xRqjjP72ObjH52qCKd0zErbSe4HtAY=\n",
             "records": [
               {
                 "event": {
                   "schema_version": "tracekit.event.v2",
-                  "id": "69226a49b43f5acb173f095493e59cfa",
-                  "seq": 217,
-                  "prev_hash": "sha256:6596f743648ee2bea1281b2538d24d4f24a2fcda76290d1a851e5ed20c34814a",
-                  "ts": "2026-10-27T22:15:35.217051Z",
-                  "run_id": "a28795bb809ea2a40a85cb398169e520",
+                  "id": "e04833a79d3e5c6dc6003fbf693b8df0",
+                  "seq": 222,
+                  "prev_hash": "sha256:15954283fa9805f499228d290d32b896aace79e3f9ccc8197161eff3c3be5b85",
+                  "ts": "2026-10-27T22:58:12.574345Z",
+                  "run_id": "9b297e5b4cea3acf986096f61d0136bb",
                   "agent_id": "main",
                   "parent_id": null,
                   "source": "signer",
@@ -43,7 +43,7 @@
                     "observer": "uid:990201",
                     "sensor": "tetragon",
                     "kind": "connect",
-                    "ts": "2026-10-27T22:15:35.216935Z",
+                    "ts": "2026-10-27T22:58:12.574160Z",
                     "pid": 7,
                     "binary": "/usr/bin/curl",
                     "host": "api.example.com",
@@ -51,18 +51,20 @@
                     "attribution": "token"
                   },
                   "tenant": "default",
-                  "log_id": "4025ae4bf5352fc2105e05f89c45394a",
-                  "run_seq": 192,
-                  "run_prev_hash": "sha256:6596f743648ee2bea1281b2538d24d4f24a2fcda76290d1a851e5ed20c34814a"
+                  "log_id": "a2165cf2fac56073005eb59bae52fb08",
+                  "run_seq": 197,
+                  "run_prev_hash": "sha256:15954283fa9805f499228d290d32b896aace79e3f9ccc8197161eff3c3be5b85"
                 },
-                "hash": "sha256:f84ffbba7cf586b998db18a019eab7fb9984a6b7f8071b36d43cc9a5c8276ebe",
+                "hash": "sha256:5918e75616446804a6a065e803003067d0bf356485cf13d3402c3ddacd078748",
                 "proof": [
-                  "i3yf9x1i05svsRrQnPulhD/mpxl+PjFJwMEdtFMTPtE=",
-                  "X+UnBTgr9e8zop+ShUDmUIb6JdvVwMLeerG80+fZyfg=",
-                  "D4L0wJQQQjsStFl7/jJqBn3bCMEVPmPaXL0ZwsWWD5w=",
-                  "LZGwqWu7YxiGrLLeJT92VcqxzK60BWmAgTJpHV8NmVY=",
-                  "kSseuT7lgkARcOjZsXNegvhChkPw3fKOHrpriRssuKQ=",
-                  "5kbHmGtwud4ZEqGfgdyXRkEYBiPsqWWtAcOMOjwBGRI="
+                  "++3qTOCa26EScWPF8JfBpa5vzS59P38sXCRfdPk6aIA=",
+                  "YUq+hrSBWLWslte/Tc7Y7iz4H2i3yQoIvbik6GEcqJA=",
+                  "1YhNGUxh8kBw0Zg8ELbaf0vs+CDhWvtNgkt7wQxM6l8=",
+                  "kj7AZj5O3RhdXYA3q6K68ZImjU3JRXHG0tmjaM85JpY=",
+                  "LVgoindiKG78OuNG5X8KwYkq/Yyhc3VAKXDepYuDHPo=",
+                  "czDjKpMFpbHjVgYMcwrrZQtG0OcaoBibq6XzMvTTx2c=",
+                  "6V/xY/m7LZHedUsqM+VpbTLTUr2jqG71MtnDGdpamZc=",
+                  "LGaGiVjLC0cIQvrHFHQ22VW8M5wepVcjHNbzTxn0V2s="
                 ]
               }
             ]
@@ -70,12 +72,12 @@
         }
       ],
       "pcm": 0,
-      "id": "3f2202aae923b10e10bc3ad287acce0c",
-      "ts": "2026-10-27T22:15:35.230747Z",
-      "nonce": "d74a55efce1b208982ee479c58c0e698",
+      "id": "f6550bb1e514139e1cdcba4c56e26f81",
+      "ts": "2026-10-27T22:58:12.589753Z",
+      "nonce": "1e95706093935bcbfceb7613394a969f",
       "sig": {
         "key": "example.com/pcm-test-log+0bb91e66",
-        "sig": "4FwcJmJwJ6AACmRTrtHDWJRv+UbCXfhCasDXYNWTLnanuyagiyx9ZcfhDRV91vFZmmzbcNKYIE199oZ63gJqDg=="
+        "sig": "C+jB0elRRuz+1M0z5WgCmmmrd+LoJPsdyo8hyjjPejqOSr+RFqezIgVFVkG4oyff2MYaJhcI2MfZqkSkeZNaAQ=="
       }
     },
     "schemas": [
@@ -162,7 +164,7 @@
     "options": {
       "me": "uid:990102",
       "strict": false,
-      "now": "2026-10-27T22:15:36.230747Z",
+      "now": "2026-10-27T22:58:13.589753Z",
       "replay": null
     }
   },
@@ -190,12 +192,12 @@
       {
         "type": "reached_host",
         "result": "unproven",
-        "detail": "effect.observed seq 217: uid:990201 saw the run try to connect to api.example.com, an attempt"
+        "detail": "effect.observed seq 222: uid:990201 saw the run try to connect to api.example.com, an attempt"
       }
     ],
     "verdict": "accept-unproven",
     "reasons": [
-      "reached_host: unproven (effect.observed seq 217: uid:990201 saw the run try to connect to api.example.com, an attempt)"
+      "reached_host: unproven (effect.observed seq 222: uid:990201 saw the run try to connect to api.example.com, an attempt)"
     ],
     "skipped": [
       "replay"

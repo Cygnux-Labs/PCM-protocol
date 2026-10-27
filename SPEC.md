@@ -638,7 +638,9 @@ approval (`reject-claim-approved-by-request-of-another-approval`), a decision of
   is `failed` ("approval seq 7: its approval.request records name 2 decisions"), whether or not those decisions are in
   the evidence (vector `reject-claim-approved-by-request-names-two-decisions`).
 - Else collect, over all of them, the `policy.decision` records that meet item 3, each as its pair of `data.tool` and
-  args (as the evidence opens them, 6.3, or null). Two or more different pairs: `failed` ("the evidence holds 2
+  args (as the evidence opens them, 6.3, or null). Two pairs are different when the JCS (4.1) of `[data.tool, args]`
+  differs, so args `{"amount": true}` and `{"amount": 1}` differ, though some languages' equality takes them as equal
+  (vector `reject-claim-approved-by-args-true-and-1`). Two or more different pairs: `failed` ("the evidence holds 2
   different decisions approved as call pay-1 by alice: send the records of one approval"; vector
   `reject-claim-approved-by-two-decisions`, two approvals of one call id naming two decisions). None: `failed`, as
   above. One: `proven`, and the detail names the approval with the lowest `seq` that leads to it.
@@ -728,12 +730,16 @@ Hosts are compared in the form of 6.7.
 
 Vectors: `accept-reached-host-http` (`https://API.Example.COM:8443/v1` is `api.example.com`),
 `accept-reached-host-claim-port`, `accept-reached-host-trailing-dot`, `accept-reached-host-short-ipv4`,
-`accept-reached-host-a-label`, `reject-claim-reached-host-other-host`, `reject-claim-reached-host-file-url`,
+`accept-reached-host-a-label`, `accept-reached-host-ipv4-mapped`, `accept-reached-host-nat64`,
+`reject-claim-reached-host-other-host`, `reject-claim-reached-host-file-url`,
 `accept-unproven-reached-host-bracket`, `accept-unproven-reached-host-bracket-ipv6-userinfo`,
 `accept-unproven-reached-host-bracket-other-host`, `accept-unproven-reached-host-two-brackets`,
 `accept-unproven-reached-host-bracket-trailing`, `accept-unproven-reached-host-bracket-not-host`,
 `accept-unproven-reached-host-bracket-no-host`, `accept-unproven-reached-host-ipv6-leading-zero`,
-`accept-unproven-reached-host-ambiguous`, `accept-unproven-reached-host-idn`, `accept-unproven-reached-host-deviation`,
+`accept-unproven-reached-host-ipv6-leading-zero-backslash`, `accept-unproven-reached-host-not-ipv6`,
+`accept-unproven-reached-host-browser-brackets`, `accept-unproven-reached-host-two-trailing-dots`,
+`accept-unproven-reached-host-label-character`, `accept-unproven-reached-host-ambiguous`,
+`accept-unproven-reached-host-idn`, `accept-unproven-reached-host-deviation`,
 `accept-unproven-reached-host-mapped-to-nothing`, `accept-unproven-reached-host-tab-in-escape`,
 `accept-unproven-reached-host-leading-space`, `accept-unproven-reached-host-non-ascii-path`,
 `accept-unproven-reached-host-fullwidth-ipv6`, `accept-unproven-reached-host-percent`,
@@ -820,9 +826,12 @@ no verifier depends on an IDNA or Unicode version, nor on what its URL library s
 `accept-unproven-reached-host-non-ascii-path`, `accept-unproven-reached-host-fullwidth-ipv6`). Unicode hosts are
 future work (Appendix B). Senders SHOULD fetch and claim hosts in ASCII.
 
-The intent is the WHATWG URL host parser [WHATWG-URL], in ASCII. PCM 0.1 specifies the reading step by step, so that
-verifiers in any language agree. Notes name the Python standard-library functions that behave as a step says, since
-the reference implementation uses them.
+The intent is the WHATWG URL host parser [WHATWG-URL], in ASCII. The steps below read the host alone and check no
+more than they say, so a URL a browser refuses can still have a host here: one with a port that is not a number from
+0 to 65535 (`https://api.example.com:99999/` reaches `api.example.com`), or with an `xn--` label that is not valid
+Punycode. An HTTP client that refuses such a URL fails the call, and a call that failed proves nothing. PCM 0.1
+specifies the reading step by step, so that verifiers in any language agree. Notes name the Python standard-library
+functions that behave as a step says, since the reference implementation uses them.
 
 In this section an **IPv6 address** is a text form of [RFC4291] section 2.2 whose embedded IPv4 part, if it has one,
 has no part of two or more digits that starts with `0`: `::ffff:1.2.3.4` is one, `::ffff:01.2.3.4` is none.
@@ -889,26 +898,33 @@ reading.
    (`http://%61pi.example.com/`, vector `accept-unproven-reached-host-percent`; `http://api.example.com%00.evil/`,
    `accept-unproven-reached-host-nul`). If a reading holds a `:` and, in it, `.0` followed by a digit or `:0`
    followed by one or more digits and a `.` (a part of an IPv6 address's dotted quad with a leading zero), the host
-   won't parse. Otherwise put each reading in canonical form. First put it in ASCII lower case. Then a reading that
-   holds a `:` won't parse unless, with every `[` and `]` at its ends removed, it is an IPv6 address. Otherwise split
-   it at `.`, leaving out one empty last part. When the last part is a number (`0x` and zero or more hex digits, or
-   one or more decimal digits), the host won't parse unless it is an IPv4 address as `inet_aton` reads one: 1 to 4
-   parts, each `0x` and zero or more hex digits (hexadecimal; `0x` alone is 0), `0` and one or more octal digits
-   (octal), or `0` or 1 to 10 decimal digits not starting with `0` (decimal); every part but the last at most 255,
-   and the last below 256 to the power of (5 minus the number of parts). So `127.1` and `0x7f.1` are `127.0.0.1`
-   (vector `accept-reached-host-short-ipv4`). An address is written in canonical form: IPv4 in dotted decimal; IPv6
-   as `[`, its text form of [RFC5952] section 4 (never mixed notation), `]`; an IPv4-mapped (`::ffff:0:0/96`) or
-   NAT64 (`64:ff9b::/96`) IPv6 address as the IPv4 address inside. Any other reading is a name and stays as it is.
+   won't parse, also where step 3 found no authority to check (`http:\\[::ffff:01.2.3.4]/`, vector
+   `accept-unproven-reached-host-ipv6-leading-zero-backslash`). Otherwise put each reading in canonical form. First
+   put it in ASCII lower case. Then, if a reading holds a `:`, the host won't parse unless, with every `[` and `]` at
+   the reading's ends removed, the reading is an IPv6 address; such a reading is never left out as an empty one is
+   (`http:\\[::g]/` is `unproven`, not `failed`; vector `accept-unproven-reached-host-not-ipv6`). Otherwise split
+   the reading at `.`, leaving out one empty last part. When the last part is a number (`0x` and zero or more hex
+   digits, or one or more decimal digits), the host won't parse unless it is an IPv4 address as `inet_aton` reads
+   one: 1 to 4 parts, each `0x` and zero or more hex digits (hexadecimal; `0x` alone is 0), `0` and one or more
+   octal digits (octal), or `0` or 1 to 10 decimal digits not starting with `0` (decimal); every part but the last
+   at most 255, and the last below 256 to the power of (5 minus the number of parts). So `127.1` and `0x7f.1` are
+   `127.0.0.1` (vector `accept-reached-host-short-ipv4`). An address is written in canonical form: IPv4 in dotted
+   decimal; IPv6 as `[`, its text form of [RFC5952] section 4 (never mixed notation), `]`; an IPv4-mapped
+   (`::ffff:0:0/96`) or NAT64 (`64:ff9b::/96`) IPv6 address as the IPv4 address inside (vectors
+   `accept-reached-host-ipv4-mapped`, `accept-reached-host-nat64`). Any other reading is a name and stays as it is.
    Two readings whose canonical forms differ: the host won't parse, since the call may have reached either
    (`http://a.example\@b.example/` is `a.example` to the browser reading and `b.example` to the generic one; vector
    `accept-unproven-reached-host-ambiguous`). Else the host is that canonical form.
 
    Note: in Python this step is `str.lower` and `ipaddress`; the IPv4 rule is C's `inet_aton`.
 6. **Compared form.** A host that starts with `[` stays as it is if it is `[`, an IPv6 address and `]`; else it
-   won't parse (`http:\\[h.com]/` is `[h.com]` to the browser reading). Otherwise drop one trailing dot (vector
-   `accept-reached-host-trailing-dot`). The rest MUST be labels of 1 to 63 characters, each of `a`-`z`, `0`-`9`, `_`
-   and `-`, joined by single dots; else it won't parse (`a..example`). An IPv4 address in dotted decimal is such
-   labels. `https://XN--BCHER-KVA.Example/` is `xn--bcher-kva.example` (vector `accept-reached-host-a-label`).
+   won't parse (`http:\\[h.com]/` is `[h.com]` to the browser reading; vector
+   `accept-unproven-reached-host-browser-brackets`). Otherwise drop one trailing dot, and only one (vectors
+   `accept-reached-host-trailing-dot`, `accept-unproven-reached-host-two-trailing-dots`). The rest MUST be labels of
+   1 to 63 characters, each of `a`-`z`, `0`-`9`, `_` and `-`, joined by single dots; else it won't parse
+   (`a..example`; `a*b.example`, which a browser reads, vector `accept-unproven-reached-host-label-character`). An
+   IPv4 address in dotted decimal is such labels. `https://XN--BCHER-KVA.Example/` is `xn--bcher-kva.example`
+   (vector `accept-reached-host-a-label`).
 
 **A claim's or an effect's host** is a name or address, maybe with a port. It won't parse if it is not a string, if
 it holds `/`, `\`, `?`, `#`, `@`, `[` or `]`, or if it has exactly one `:` and what follows it is not 1 to 5 ASCII
@@ -1640,7 +1656,8 @@ assumption PCM rests on, with the rule that closes or bounds it.
     the claim, so the result never depends on the order in which the sender listed the records (6.2, 6.6). Vectors:
     `reject-claim-approved-by-without-decision`, `reject-claim-approved-by-other-decision`,
     `accept-approved-by-opened-args`, `reject-claim-approved-by-request-names-two-decisions`,
-    `reject-claim-approved-by-two-decisions`, `reject-claim-record-listed-twice`.
+    `reject-claim-approved-by-two-decisions`, `reject-claim-approved-by-args-true-and-1`,
+    `reject-claim-record-listed-twice`.
 28. **An attempt is not a connection.** A kernel sensor reports a process's call to connect, and an egress observer
     records a minute with no connection when its connect upstream failed; an earlier draft took either as proof that
     the run reached the host. **Rule:** only an egress observer's `net` record with `data.connections` above 0

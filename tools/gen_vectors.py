@@ -511,6 +511,25 @@ def cases(s, s2):
                pev + pev[2:], lambda i, e: dict(e, data={**e["data"], **{
                    k: v for k, v in second.items() if k in e["data"]}}) if i > 3 else e)},
            "2 different decisions approved as call pay-1")
+    first = a.call("decide", stream="s", client_seq=next(a.seqs), tool_call_id="pay-2", tool="pay",
+                   args_source="parsed", args={"amount": True})
+    a.call("decide", stream="s", client_seq=next(a.seqs), tool_call_id="pay-2", tool="pay", args_source="parsed",
+           args={"amount": 1})
+    s.call(ALICE, "approval_decide", approval_id=a.call("approval_request", tool_call_id="pay-2")["approval_id"],
+           decision="approve")
+    jdec, jreq, japp = a.approval("pay-2")   # the second decision, its request and alice's approval
+    jev = a.evidence([first["run_seq"], jdec, jreq, japp],
+                     {first["run_seq"]: {"amount": True}, jdec: {"amount": 1}})["records"]
+    jsecond = {"approval_id": "apr-second", "decision_id": first["decision_id"]}
+    failed("approved-by-args-true-and-1", "approved_by of call pay-2, which the agent decided twice, a pay of "
+           "{\"amount\": true} and a pay of {\"amount\": 1}, whose evidence opens both decisions and holds alice's "
+           "approval of the second with its request, and a second approval by alice of pay-2 with a request naming the "
+           "first, under a checkpoint the test log key signs offline: the two pairs of tool and args differ in JCS, "
+           "though Python's == takes them as equal, so the approvals name different decisions and the claim fails.",
+           {"type": "approved_by", "args": {"person": "alice", "call": "pay-2"}, "evidence": relog(
+               jev + jev[2:], lambda i, e: dict(e, data={**e["data"], **{
+                   k: v for k, v in jsecond.items() if k in e["data"]}}) if i > 3 else e)},
+           "2 different decisions approved as call pay-2")
     failed("approved-by-request-names-two-decisions", "approved_by of call pay-1 whose evidence holds alice's approval, "
            "its request and the read_file decision, plus a second approval.request of the same approval naming the pay "
            "decision (not in the evidence), under a checkpoint the test log key signs offline: requests of one "
@@ -649,6 +668,25 @@ def cases(s, s2):
             ("accept-reached-host-a-label", "https://XN--BCHER-KVA.Example/", "xn--bcher-kva.example", "",
              "an xn-- label is compared as written, in lower case: a name in another script is fetched and claimed in "
              "its A-label form"),
+            ("accept-reached-host-ipv4-mapped", "http://[::ffff:1.2.3.4]/", "1.2.3.4", "",
+             "an IPv4-mapped IPv6 address is compared as the IPv4 address inside"),
+            ("accept-reached-host-nat64", "http://[64:ff9b::102:304]/", "1.2.3.4", "",
+             "a NAT64 IPv6 address (64:ff9b::/96) is compared as the IPv4 address inside"),
+            ("accept-unproven-reached-host-label-character", "http://a*b.example/", "api.example.com",
+             "can't tell whether", "a label holds only a-z, 0-9, `_` and `-`, so the host a*b.example won't parse, "
+             "though a browser reads it: the claim is unproven, not failed"),
+            ("accept-unproven-reached-host-two-trailing-dots", "http://a.example../", "a.example", "can't tell whether",
+             "a host loses one trailing dot only, so a.example. has an empty label and won't parse"),
+            ("accept-unproven-reached-host-browser-brackets", "http:\\\\[h.com]/", "h.com", "can't tell whether",
+             "the URL has no authority, and the browser reading is [h.com], which starts with `[` and is no IPv6 "
+             "address in brackets, so it won't parse"),
+            ("accept-unproven-reached-host-not-ipv6", "http:\\\\[::g]/", "api.example.com", "can't tell whether",
+             "the browser reading [::g] holds a `:` and is no IPv6 address, so the host won't parse: the reading is "
+             "not left out, as an empty one is, which would leave no host and fail the claim"),
+            ("accept-unproven-reached-host-ipv6-leading-zero-backslash", "http:\\\\[::ffff:01.2.3.4]/", "1.2.3.4",
+             "can't tell whether", "a leading zero in the dotted quad of the browser reading [::ffff:01.2.3.4], and no "
+             "authority for the bracket rule to refuse: the canonical form refuses it, so a verifier whose IPv6 parser "
+             "reads 01 as 1 doesn't prove 1.2.3.4"),
             ("accept-unproven-reached-host-idn", "http://bücher.example/", "xn--bcher-kva.example",
              "can't tell whether", "IDNA 2003 and UTS 46 both read the name as xn--bcher-kva.example, but hosts are "
              "compared in ASCII only: a URL with a character outside printable ASCII won't parse"),

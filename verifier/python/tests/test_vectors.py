@@ -261,6 +261,8 @@ def test_an_ipv6_dotted_quad_with_a_leading_zero_is_unproven(old, monkeypatch):
     try:
         for host, recs in (("1.2.3.4", fetched("http://[::ffff:01.2.3.4]/")),
                            ("1.2.3.4", fetched("file://[::ffff:01.2.3.4]/")),   # the bracket rule comes first
+                           # no authority, so no bracket rule: step 5's own check
+                           ("1.2.3.4", fetched("http:\\\\[::ffff:01.2.3.4]/")),
                            ("::ffff:01.2.3.4", fetched("http://1.2.3.4/"))):
             assert pcm_verify.reached_host({"host": host}, recs)[0] == "unproven", (host, recs)
     finally:
@@ -296,12 +298,13 @@ def test_approved_by_needs_a_persons_own_approval_of_the_decision_its_request_na
 def test_approved_by_does_not_depend_on_record_order():
     """SPEC 6.6: records that disagree on what the person approved fail the claim in either order: a decision listed
     unopened and opened, two requests of one approval naming two decisions (the other one in the evidence or not), two
-    approvals of the call naming different decisions. Records that agree prove it, by the first approval; an opened
-    decision gives its args."""
+    approvals of the call naming different decisions, args {"x": true} and {"x": 1} among them (equal in Python, apart
+    in JCS). Records that agree prove it, by the first approval; an opened decision gives its args."""
     claim, motd = {"person": "alice", "call": "c1"}, {"path": "/etc/motd"}
     dec, req, app = approval("read_file")
     pay = ({"type": "policy.decision", "seq": 4, "data": {"tool": "pay", "decision": "ask", "decision_id": "d2",
                                                           "tool_use_id": "c1"}}, None)
+    one = ({"type": "policy.decision", "seq": 4, "data": dict(dec[0]["data"], decision_id="d2")}, {"x": 1})
     again = ({"type": "approval", "seq": 6, "data": dict(app[0]["data"], approval_id="a2")}, None)
 
     def request(aid, did):
@@ -309,7 +312,9 @@ def test_approved_by_does_not_depend_on_record_order():
     two = "approval seq 3: its approval.request records name 2 decisions"
     for recs, why in (([dec, (dec[0], motd), req, app], "2 different decisions approved as call c1 by alice"),
                       ([dec, req, pay, request("a1", "d2"), app], two), ([dec, req, app, request("a1", "d2")], two),
-                      ([dec, req, app, pay, request("a2", "d2"), again], "2 different decisions approved as")):
+                      ([dec, req, app, pay, request("a2", "d2"), again], "2 different decisions approved as"),
+                      ([(dec[0], {"x": True}), req, app, one, request("a2", "d2"), again],
+                       "2 different decisions approved as")):
         for order in (recs, recs[::-1]):
             got = pcm_verify.approved_by(claim, order)
             assert got[0] == "failed" and why in got[1], (order, got)

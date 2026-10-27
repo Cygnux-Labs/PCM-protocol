@@ -47,7 +47,8 @@ About 600 to 800 lines, mapping one to one onto `tracekit/pcm/__init__.py` and `
    a valid event of `registry/tracekit.event.v2.json`, openings (HMAC-SHA256 with WebCrypto, compared in constant
    time), `Ran` with its "can't tell" answer, and the four checkers with PCM 0.1's frozen tool table,
    `registry/tools.json` (10.2). `approved_by` links the approval to its `approval.request` and that request's
-   `policy.decision`, and fails in any record order when the records disagree on what was approved; `reached_host`
+   `policy.decision`, and fails in any record order when the records disagree on what was approved (pairs of tool and
+   args compared by their JCS, so args `true` and `1` differ); `reached_host`
    is proven by an egress `net` record with connections above 0 only.
 7. **CLI**: `pcm-verify MESSAGE --trust TRUST --schema SCHEMA`, exit 0 accept, 3 accept-unproven, 1 reject, 2 for
    unreadable input, matching the Python verifier.
