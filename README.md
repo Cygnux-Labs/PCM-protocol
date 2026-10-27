@@ -84,11 +84,12 @@ so replicas that answer for one identity must route each sender to one replica o
 [Tracekit](https://github.com/Cygnux-Labs/Tracekit) is the reference implementation. Its signer signs PCM messages and
 grants (`pcm_sign`, `pcm_grant`, `pcm_delegate`) and hands out evidence (`pcm_evidence`). Its `tracekit.pcm.verify`
 produced every vector here. Where this repo and Tracekit disagree, that is a bug in one of them: open an issue.
+Appendix C of `SPEC.md` says where each rule lives in Tracekit's code and where Tracekit does less than the spec asks.
 
 ## Status
 
 Draft 0.1, experimental. The wire format (`"pcm": 0`) can change in any 0.x draft. Don't build anything you can't
-change on it yet. What Tracekit implements today and what is still draft is marked in `SPEC.md`; the questions
+change on it yet. What is implemented today and what is still draft is marked in `SPEC.md`; the questions
 earlier drafts left open (base64, hosts, paths, test commands, senders, keys) are decided rules, marked
 "(decided, 0.1)", and Appendix B lists what remains open.
 

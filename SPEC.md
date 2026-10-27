@@ -2,21 +2,21 @@
 
 Status: draft 0.1, experimental. Wire version `"pcm": 0`. This text can change before 1.0 without notice.
 
-Editor: Cygnux Labs. Reference implementation: Tracekit ([https://github.com/Cygnux-Labs/Tracekit](https://github.com/Cygnux-Labs/Tracekit)),
-the `tracekit.pcm` module and the signer's `pcm_*` calls (Tracekit 1.4.2 plus the issue #436 work, RPC contract
-version 20).
+Editor: Cygnux Labs. Reference implementation: Tracekit [Tracekit], described in Appendix C.
 
 Each part of this document carries one of two marks:
 
-- **[Tracekit]**: Tracekit implements it today, and the test vectors in `vectors/` were produced by it.
+- **[Implemented]**: the reference implementation implements it, and produced the test vectors in `vectors/`.
 - **[Draft]**: specified here, implemented nowhere yet.
 
 A rule marked **(decided, 0.1)** settles a question an earlier draft left open, by the stricter and less ambiguous
-choice. It is normative. Where it constrains a verifier, Tracekit implements it and the vectors pin it.
+choice. It is normative. Where it constrains a verifier, the reference implementation implements it and the vectors
+pin it.
 
-Where the Tracekit code and its design notes or user docs disagree, this document follows the code. Appendix A lists
-each such place. Where Tracekit does less than this document asks, Appendix B lists the place, with the questions
-still open.
+Examples, notes and rationales are informative, and so are Appendices A, B and C. Appendix A records the choices this
+draft made where earlier designs differed, Appendix B lists the questions still open, and Appendix C describes the
+reference implementation, including where it does less than this document asks. Where a step is what a particular
+library does, a note names the library; the step, not the library, is the rule.
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT
 RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14 [RFC2119] [RFC8174]
@@ -42,8 +42,9 @@ when, and only when, they appear in all capitals, as shown here.
 16. Versioning
 17. Registrations
 18. References
-Appendix A. Where this document departs from Tracekit's docs and design
+Appendix A. Design choices
 Appendix B. Open issues
+Appendix C. Reference implementation
 
 ## 1. Overview and the problem
 
@@ -96,17 +97,22 @@ grant, not A, sets the limit.
   executor ran the call and recorded the result itself.
 - **Tool placement table**: a fixed map from tool name to tool class (`shell`, `http`, ...), shipped with the verifier
   (section 10.2).
+- **Control character**: a code point below U+0020 (the C0 controls), as [C2SP-NOTE] uses the term. U+007F (DEL) is
+  not one: a rule that refuses it names it (6.8).
+- **White space**: a code point whose Unicode general category is Zs or whose bidirectional class is WS, B or S:
+  U+0009 to U+000D, U+001C to U+001F, U+0020, U+0085, U+00A0, U+1680, U+2000 to U+200A, U+2028, U+2029, U+202F,
+  U+205F and U+3000. (Python's `str.isspace()` and its regular expressions' `\s` match this set.)
 
 ## 3. The message envelope
 
 ### 3.1 Media type
 
-A PCM message is one JSON object, UTF-8 encoded, of media type `application/vnd.pcm+json` **[Tracekit]**.
+A PCM message is one JSON object, UTF-8 encoded, of media type `application/vnd.pcm+json` **[Implemented]**.
 
 ### 3.2 Fields
 
 The object is closed: a member not listed here makes the envelope invalid. The JSON Schema of this shape is
-`schemas/message.schema.json` (generated from Tracekit's `rpc_schema.PCM_MESSAGE`).
+`schemas/message.schema.json`.
 
 | Field | Required | Set by | Value |
 |---|---|---|---|
@@ -139,24 +145,24 @@ or exponent. `true`, `false`, `0.0` and `"0"` are not the integer 0.
 TS values compare correctly as strings, because the format is fixed. This document compares them that way. A TS
 also names a real UTC date and time: no month 13, no 30 February, no year 0. The envelope checks only the pattern.
 The replay check (section 9) MUST refuse a message whose `ts` is no real time, with "sent at <ts>, which is no real
-time", and MUST NOT raise. **[Tracekit]** (vector `reject-replay-no-real-time`: month 13, re-signed with the test log
+time", and MUST NOT raise. **[Implemented]** (vector `reject-replay-no-real-time`: month 13, re-signed with the test log
 key, since a signer takes `ts` from its clock.)
 
-Python's `.` refuses only U+000A, while an ECMAScript pattern's `.` also refuses `\r`, U+2028 and U+2029. That is why
-IDENTITY is written with `[^\n]`, and the published JSON Schemas write it the same way. Vector
+Note: regular expression dialects disagree on `.`: Python's refuses only U+000A, ECMAScript's also `\r`, U+2028 and
+U+2029. That is why IDENTITY is written with `[^\n]`, and the published JSON Schemas write it the same way. Vector
 `accept-identity-line-break-chars` sends to `uid:990102\r x`.
 
 ### 3.3 Parsing
 
 A receiver MUST parse the message strictly: valid UTF-8, no duplicate member names, integers within
 ±(2^53 − 1), no lone surrogates, nesting at most 128 deep. A message that does not parse this way MUST NOT be
-accepted. **[Tracekit]** (`format.canon.loads_strict`; its CLI reports such input as unreadable, exit 2.)
+accepted. **[Implemented]**
 
 ### 3.4 Example
 
 The examples in this document are real. Unless a section says otherwise, they come from the test vector
-`vectors/accept-approved-by.json`, which a Tracekit signer produced (agent A is `uid:990101`, agent B `uid:990102`,
-alice `uid:990001`). Regenerating the vectors changes ids, times and signatures.
+`vectors/accept-approved-by.json`, which the reference implementation's signer produced (agent A is `uid:990101`, agent
+B `uid:990102`, alice `uid:990001`). Regenerating the vectors changes ids, times and signatures.
 
 The message, with its claim and grant shown in sections 6.6 and 7.1:
 
@@ -184,7 +190,7 @@ A message may also carry a payload, such as `"payload": {"kind": "text", "text":
 ### 4.1 Canonical form
 
 PCM hashes and signs the JSON Canonicalization Scheme (JCS) [RFC8785] encoding of a value. `H(v)` below is
-`"sha256:" + lowercase hex(SHA-256(JCS(v)))`. **[Tracekit]** (`format.canon.canonical`, `event_hash`.)
+`"sha256:" + lowercase hex(SHA-256(JCS(v)))`. **[Implemented]**
 
 ### 4.2 Signatures
 
@@ -201,8 +207,7 @@ JCS( the object without its "sig" member, plus the member "t": TAG )
 | grant | `pcm.grant.v0` |
 
 The signature covers every member except `sig`, including `claims`, `grants` and `payload` in full. `"t"` is never a
-member on the wire: both objects are closed, so a `"t"` member makes the envelope invalid. **[Tracekit]**
-(`format.sigmsg.TAGS`.)
+member on the wire: both objects are closed, so a `"t"` member makes the envelope invalid. **[Implemented]**
 
 The bytes signed for the message in 3.4 start:
 
@@ -238,59 +243,55 @@ signature.
 
 A verifier finds the pinned log vkey of type 0x01 whose `name+keyid` equals `sig.key`, and verifies the signature
 with it. If no pinned key matches, the signature fails ("a key trust.json does not pin"). Invalid base64 is a bad
-signature, not an error. **[Tracekit]** (`pcm.check_sig`.)
+signature, not an error. **[Implemented]**
 
-**Canonical base64 (decided, 0.1).** Every base64 value in PCM (`sig.sig`, evidence proof entries, checkpoint note
-roots and signature lines, vkeys) MUST be canonical: the standard alphabet of [RFC4648], padded, no white space or
-line break, and the unused bits of the last character zero. A verifier MUST decode it so, and MUST treat text that
-is not canonical as invalid: a bad signature in `sig.sig`, "not in the checkpoint" in a proof entry, a failed note in
-a checkpoint. Rationale: a value has one text form, so a signed object can't be rewritten into another text that
-still verifies (and hashes differently, as a grant's `parent` would). **[Tracekit]** (`checkpoint._unb64`; vectors
-`reject-sig-non-canonical-base64`, `reject-claim-proof-non-canonical-base64`.)
+**Canonical base64 (decided, 0.1).** Every base64 value in PCM (`sig.sig`, evidence proof entries, checkpoint note roots
+and signature lines, vkeys) MUST be canonical: the standard alphabet of [RFC4648], padded, no white space or line break,
+and the unused bits of the last character zero: decoding it and encoding the bytes again gives back the same text. A
+verifier MUST decode it so, and MUST treat text that is not canonical as invalid: a bad signature in `sig.sig`, "not in
+the checkpoint" in a proof entry, a failed note in a checkpoint. Rationale: a value has one text form, so a signed
+object can't be rewritten into another text that still verifies (and hashes differently, as a grant's `parent` would).
+**[Implemented]** (vectors `reject-sig-non-canonical-base64`, `reject-claim-proof-non-canonical-base64`.)
 
-Ed25519 verification MUST follow these rules, so two verifiers agree on every signature: the signature is 64 bytes;
-its S value is below the group order L; the public key is a canonical encoding (y below 2^255 − 19) of a point that is
-not of small order; and the cofactorless equation [S]B = R + [k]A holds. **[Tracekit]** (`crypto.verify_v2`, the same
-rules as the rest of Tracekit's v2 format.) Common libraries skip the key checks. Without them, a pinned small-order
-key verifies a forged signature on any message: vector `reject-small-order-key` pins the identity point and signs
-with R = identity, S = 0.
+Ed25519 verification MUST follow these rules, so two verifiers agree on every signature: the signature is 64 bytes; its
+S value is below the group order L; the public key is a canonical encoding (y below 2^255 − 19) of a point that is not
+of small order; and the cofactorless equation [S]B = R + [k]A holds. **[Implemented]** Common libraries skip the key
+checks. Without them, a pinned small-order key verifies a forged signature on any message: vector
+`reject-small-order-key` pins the identity point and signs with R = identity, S = 0.
 
 PCM 0.1 signatures are Ed25519 only. A log that also pins a hybrid SLH-DSA key (10.1) gets no second signature on
-messages or grants. **[Tracekit]** (a `lean:` limit in the code.)
+messages or grants. **[Implemented]**
 
 ### 4.4 The attesting signer
 
-The agent never holds a signing key. It sends the message body to the signer, and the signer signs. **[Tracekit]**
-(`pcm_sign`.)
+The agent never holds a signing key. It sends the message body to the signer, and the signer signs. **[Implemented]**
 
 - The signer MUST sign only as the calling run's own identity. It MUST refuse a body whose `from` is not exactly
-  `{"agent": <the identity that registered the run>, "run": <its id>, "tenant": <its tenant>}`. Tracekit refuses with
-  `forbidden: the signer signs only as the calling run's own agent (uid:990101, run …, tenant default)`.
-- The signer MUST refuse a caller that holds the run's token but is not the run's owner (an identity the token was
-  delegated to, such as a tailer or an observer).
-- The signer MUST set `pcm`, `id`, `ts` and `nonce` itself, from its own clock and randomness. The body the agent
-  sends cannot contain them, nor `sig` or `t` (the request shape is closed).
+  `{"agent": <the identity that registered the run>, "run": <its id>, "tenant": <its tenant>}`.
+- The signer MUST refuse a caller that holds the run's credential but is not the run's owner (an identity the
+  credential was delegated to, such as a reader of the run's log or an observer).
+- The signer MUST set `pcm`, `id`, `ts` and `nonce` itself, from its own clock and randomness. A body that holds
+  them, or `sig` or `t`, is refused.
 - The signer MUST refuse to sign while the run is held or quarantined (section 14.9).
 - The signer SHOULD record each message it signs as a record in the sender's run, holding the message hash, id,
-  receiver and intent reference, never the args. Tracekit writes `ext` with `name: pcm.sent`. An auditor of the run
-  then sees every message the agent had signed, in order among its tool calls.
+  receiver and intent reference, never the args. An auditor of the run then sees every message the agent had signed,
+  in order among its tool calls.
 - The signer does not check the claims or grants of a message. The verifier does.
 
 ### 4.5 The PCM key (decided, 0.1)
 
-A signer SHOULD sign messages and grants with a dedicated PCM key, used for nothing else. A signer MAY sign them
-with its log key instead, relying on domain separation by the `pcm.*` tags (4.2, 14.5). Tracekit does the latter
-(a `lean:` limit in its code). Either way the trust anchors name the key: it is a vkey of type 0x01 in trust.json
-`logs`, under the log's own name (the name `sig.key` carries and the evidence origin check of 6.2 step 2
-compares), so a receiver pins it like any log key and needs no other trust member. Rationale: a fault in PCM signing
-should not force rotating the key that signs the log, but a receiver must still be able to tell which log a message
-speaks for.
+A signer SHOULD sign messages and grants with a dedicated PCM key, used for nothing else. A signer MAY sign them with
+its log key instead, relying on domain separation by the `pcm.*` tags (4.2, 14.5). Either way the trust anchors name the
+key: it is a vkey of type 0x01 in trust.json `logs`, under the log's own name (the name `sig.key` carries and the
+evidence origin check of 6.2 step 2 compares), so a receiver pins it like any log key and needs no other trust member.
+Rationale: a fault in PCM signing should not force rotating the key that signs the log, but a receiver must still be
+able to tell which log a message speaks for.
 
 ## 5. Intent schemas
 
 ### 5.1 The schema document
 
-An intent's args are typed by a schema document. Both sides keep a copy. Example (the refund demo's):
+An intent's args are typed by a schema document. Both sides keep a copy. Example, the refund intent of section 1:
 
 ```json
 {"pcm_schema": 0, "name": "refund.request",
@@ -307,8 +308,7 @@ An intent's args are typed by a schema document. Both sides keep a copy. Example
 | `claims` | no | the claim types the intent needs, distinct, from the claim registry (section 17.2) |
 | `grant` | no | `true`: a message without a grant chain is rejected |
 
-The document is closed. The JSON Schema is `schemas/schema-document.schema.json`. **[Tracekit]** (`pcm.SCHEMA_DOC`,
-`pcm.check_schema`.)
+The document is closed. The JSON Schema is `schemas/schema-document.schema.json`. **[Implemented]**
 
 ### 5.2 Field types
 
@@ -327,17 +327,17 @@ Each field spec is closed. It has `type`, the parameters listed (all required) a
 Nothing is converted. `true`, `120.0` and `"120"` are not ints. $120.00 is `12000`.
 
 PCM 0.1 does not fix the regular expression dialect of `id` patterns. Schema authors SHOULD use only what ECMAScript
-and Python `re` read the same way, with ASCII classes (`[0-9]`, not `\d`). Tracekit runs `id` patterns with Python
-`re` in its default Unicode mode, where `\d` also matches digits such as `٣`.
+and Python `re` read the same way, with ASCII classes (`[0-9]`, not `\d`, which some dialects also match to digits
+such as `٣`).
 
 A verifier MUST refuse a schema document that does not meet 5.1 and 5.2, or whose `int` field has `min > max`, whose
-`enum` values repeat, or whose `id` pattern does not compile. That is a configuration error of the receiver, not a
-verdict on a message. **[Tracekit]** (`verify` raises `ValueError`.)
+`enum` values repeat, or whose `id` pattern does not compile. That is a configuration error of the receiver, which the
+verifier reports instead of a verdict on a message. **[Implemented]**
 
 ### 5.3 Strict matching of args
 
 `intent.args` MUST be an object. Every member MUST be a field of the document. Every field without `optional` MUST be
-present. Every present value MUST pass its field's rule. A real check from Tracekit:
+present. Every present value MUST pass its field's rule. For example (the detail strings are informative):
 
 ```
 args {"amount": 120.0, "order": true, "extra": 1} ->
@@ -364,7 +364,7 @@ hash differs by one character matches nothing.
 
 A claim is `{"type", "args", "evidence"?}`, closed. `type` is one of the registered claim types (section 17.2).
 `args` are checked against the claim type's argument table below, with the rules of 5.3. A claim whose args fail is
-`failed`; it does not make the envelope invalid. **[Tracekit]**
+`failed`; it does not make the envelope invalid. **[Implemented]**
 
 | Claim type | Args |
 |---|---|
@@ -384,7 +384,7 @@ Each claim gets one result:
   segment, 6.6; a `tests_passed` suite that is no test command, 6.8), the evidence does not verify, or no record in it
   says what the claim says. The args and malformed checks come before the evidence: a malformed claim is `failed`
   with or without evidence, at every conformance level (vectors `reject-claim-tests-passed-malformed-no-evidence`,
-  `reject-claim-file-written-relative-no-evidence`). **[Tracekit]**
+  `reject-claim-file-written-relative-no-evidence`). **[Implemented]**
 
 When several records match, the best result counts: proven, then unproven, then failed.
 
@@ -398,7 +398,7 @@ Evidence is `{"checkpoint", "records"}`, closed (`schemas/evidence.schema.json`)
   <origin>\n<tree size>\n<base64 root hash>\n\n— <key name> <base64(key id || signature)>\n ...
   ```
 
-  PCM 0.1 accepts exactly the three body lines (no extension lines). **[Tracekit]**
+  PCM 0.1 accepts exactly the three body lines (no extension lines). **[Implemented]**
 - `records`: 1 to 16 records, each `{"event", "hash", "proof", "salt"?, "args"?}`, closed:
   - `event`: the log record, as the signer wrote it;
   - `hash`: DIGEST, `H(event)`;
@@ -406,12 +406,13 @@ Evidence is `{"checkpoint", "records"}`, closed (`schemas/evidence.schema.json`)
   - `salt` (64 hex) and `args` (any JSON value): an opening (6.3).
 
 A verifier checks an evidence item in this order. The first failure makes the claim `failed`, with the reason.
-**[Tracekit]** (`claims.evidence`.)
+**[Implemented]**
 
 1. **Note.** The note verifies against the pinned keys (section 10). These are the rules of [C2SP-NOTE],
-   [C2SP-CKPT] and [C2SP-COSIG] as Tracekit applies them (`checkpoint.open_note`); breaking any one fails the note:
-   - The note ends with `\n` and holds no control character but `\n`. Its text is everything up to the first blank
-     line, with its final `\n`. The text is exactly three lines: the origin, the tree size and the root.
+   [C2SP-CKPT] and [C2SP-COSIG] as PCM applies them; breaking any one fails the note:
+   - The note ends with `\n` and holds no control character (section 2) but `\n`; U+007F is allowed. Its text is
+     everything up to the first blank line, with its final `\n`. The text is exactly three lines: the origin, the tree
+     size and the root.
    - The origin, and every key name, is 1 to 255 UTF-8 bytes with no `+`, no white space and no control character.
      The tree size is ASCII decimal, at most 20 digits, with no leading zero. The root is 32 bytes.
    - After the blank line come 1 to 64 signature lines. Each is `— `, a key name, one space and base64 of at least
@@ -437,10 +438,10 @@ A verifier checks an evidence item in this order. The first failure makes the cl
       [RFC6962] [RFC9162]. Else "record i: not in the checkpoint".
    3. `event.tenant == from.tenant` and `event.run_id == from.run`: the record is from the sender's own run.
    4. `event` is a valid event of the evidence profile (6.4): `schema_version` is `tracekit.event.v2` and the event
-      matches that profile's event schema, `registry/tracekit.event.v2.json`; else "record i: not a valid event".
-      A pinned log can still be hostile, and a checker must not meet a record without the fields it reads. **[Tracekit]**
-      (vector `reject-claim-record-not-an-event`: an approval whose `prev_hash` is the number 5, a field no checker
-      reads, under a checkpoint the test log key signs offline.)
+      matches that profile's event schema, `registry/tracekit.event.v2.json`; else "record i: not a valid event". A
+      pinned log can still be hostile, and a checker must not meet a record without the fields it reads.
+      **[Implemented]** (vector `reject-claim-record-not-an-event`: an approval whose `prev_hash` is the number 5, a
+      field no checker reads, under a checkpoint the test log key signs offline.)
    5. If the record has `salt` or `args`, it MUST have both, `event.type` MUST be `policy.decision`, and the opening
       MUST verify (6.3). Vectors: `reject-claim-salt-without-args`, `reject-claim-opening-wrong-args`.
 
@@ -455,12 +456,13 @@ data.args_commitment = "hmac-sha256:" + hex( HMAC-SHA256( key = salt, msg = ASCI
 
 where `salt` is 32 bytes, sent as 64 hex characters. The opening holds `salt` and `args`. The verifier recomputes the
 commitment from `data.tool`, the given `args` and `salt`, and compares in constant time. Only an opened decision's
-args are read by a claim checker. **[Tracekit]**
+args are read by a claim checker. **[Implemented]**
 
 ### 6.4 The evidence profile `tracekit.event.v2`
 
 Claim checkers read records. Which fields they read, and what the fields mean, is an **evidence profile**. PCM 0.1
-defines one profile: Tracekit's v2 event format (`schema_version: "tracekit.event.v2"`). **[Tracekit]**
+defines one profile, `tracekit.event.v2`: the v2 event format of [Tracekit] (`schema_version: "tracekit.event.v2"`),
+whose event schema this repository ships as `registry/tracekit.event.v2.json`. **[Implemented]**
 
 The profile's trust assumptions. A verifier relies on them, and a log that offers this profile MUST meet them:
 
@@ -475,6 +477,12 @@ The profile's trust assumptions. A verifier relies on them, and a log that offer
 - A `tool.result` record's top-level `source` and `tier` are set by the signer from the authenticated caller. They are
   `"gateway"` and `"T2"` only when an attesting gateway or executor ran the call and recorded its result. Nothing in
   `data` sets them.
+- A T2 record's tool name means its class. The verifier places a call by `data.tool` alone (6.5, 10.2), so it trusts
+  the attesting gateway or executor that ran the call to run, under a name the placement table places, only a tool
+  of that class. An executor that runs actions under names its operator chooses breaks this when an action takes the
+  name of a tool of another class: an HTTP action named `Bash` is placed as `shell`, and its `ok` says only that the
+  HTTP request succeeded, yet a call of it whose `command` arg is a suite proves `tests_passed` for that suite though
+  no runner ran (14.26).
 - A `policy.decision` record's `args_commitment` commits to the args the signer decided.
 
 The fields each checker reads:
@@ -530,7 +538,7 @@ evidence item is:
 3. The result is the best candidate.
 
 From vector `accept-tests-passed-t2`: the evidence for `tests_passed {"suite": "pytest -q tests/test_refund.py"}`
-holds an opened decision and its result, both recorded through the tool executor:
+holds an opened decision and its result, both recorded through an attesting executor:
 
 ```json
 [{"event": {"type": "policy.decision", "seq": 10, "source": "gateway", "tier": "T2", "...": "...",
@@ -552,7 +560,7 @@ run through `mcp:ci/run`, a tool the table does not place as `shell` (`accept-un
 
 ### 6.6 The four claim types
 
-**`tests_passed {suite}`** **[Tracekit]**
+**`tests_passed {suite}`** **[Implemented]**
 
 1. `suite` MUST be one test command (6.8). Else `failed` ("… is not a single test command"), with or without
    evidence (6.1).
@@ -585,7 +593,7 @@ real test run from another. Vectors: `accept-tests-passed-t2`, `accept-tests-pas
 `reject-claim-tests-passed-wrapper`, `reject-claim-tests-passed-malformed-no-evidence`, `reject-claim-tests-failed`
 (the T2 result is an error).
 
-**`approved_by {person, call}`** **[Tracekit]**
+**`approved_by {person, call}`** **[Implemented]**
 
 `proven` when a record has `type == "approval"`, `data.decision == "approve"`, `data.tool_use_id == call`,
 `data.person == person`, `data.approver_kind` is absent or `"person"`, and `data.self_approved` is not `true`. Else
@@ -595,7 +603,7 @@ real test run from another. Vectors: `accept-tests-passed-t2`, `accept-tests-pas
 `data.approver`. `data.person` is there only when the signer's approvals configuration maps the answering identity
 to a person's name (6.4), so a claim that names a raw identity, or an identity no person maps to, is `failed`.
 Rationale: without an approvals configuration any identity of the tenant may answer, so a raw identity proves no
-human looked. **[Tracekit]** (vector `reject-claim-approved-by-unmapped-identity`: `uid:990009` answers and no person
+human looked. **[Implemented]** (vector `reject-claim-approved-by-unmapped-identity`: `uid:990009` answers and no person
 maps to it.)
 
 What `proven` means: the person the signer's approvals configuration names `person` answered "approve" to call
@@ -621,7 +629,7 @@ match the event"), the proof's last hash cut (`reject-claim-cut-proof`), another
 (`reject-claim-wrong-person`), the approval of another call (`reject-claim-approval-of-another-call`), a proof entry
 that is not canonical base64 (`reject-claim-proof-non-canonical-base64`).
 
-**`reached_host {host}`** **[Tracekit]**
+**`reached_host {host}`** **[Implemented]**
 
 Hosts are compared in the form of 6.7.
 
@@ -643,12 +651,15 @@ Vectors: `accept-reached-host-http` (`https://API.Example.COM:8443/v1` is `api.e
 `accept-unproven-reached-host-deviation`, `accept-unproven-reached-host-no-ipv6`, `accept-unproven-reached-host-nul`,
 `accept-unproven-reached-host-claim-bad-port`.
 
-**`file_written {path, digest}`** **[Tracekit]**
+**`file_written {path, digest}`** **[Implemented]**
 
-A path is **absolute** when, with `\` read as `/`, it starts with `/` or with a letter, `:` and `/` (`C:/x`). A path
-is **rewritten** this way (`policy2.classes.fs_path`): `\` becomes `/`. An absolute path with no `..` segment is
-cleaned as POSIX `normpath` does (repeated `/` and `.` segments go; exactly two leading slashes stay, so `//a/b` stays
-`//a/b`). Any other path keeps only the part after its last `..` segment, without empty and `.` segments.
+A path is **absolute** when, with `\` read as `/`, it starts with `/` or with an ASCII letter, `:` and `/` (`C:/x`).
+A path is **rewritten** this way: `\` becomes `/`, and the path is split into segments at `/`. An absolute path with
+no `..` segment keeps its segments but the empty and `.` ones, joined by `/`, behind `//` when it starts with exactly
+two slashes, behind `/` when it starts with one or with three or more, and behind nothing when it starts with a drive
+letter: `//a//b/./` is `//a/b`, `///a/` is `/a`, `C:/x//y` is `C:/x/y`. (This is POSIX `normpath`, Python's
+`posixpath.normpath`.) Any other path keeps only its segments after its last `..` segment, without the empty and `.`
+ones, joined by `/`.
 
 Steps 1 and 2 make a claim malformed, so they apply with or without evidence (6.1).
 
@@ -678,105 +689,142 @@ Vectors: `accept-file-written`, `reject-claim-file-written-wrong-digest`, `rejec
 host alike. Two hosts match when their compared forms are equal. Ports are ignored. A host that won't parse has no
 compared form, and gives `unproven`, never `proven` or `failed`. Rationale: a host has many spellings
 (`API.Example.COM:8443`, `api.example.com.`, `bücher.example`, `127.1`); comparing one canonical form makes every
-spelling of the same host match. Where two readers this section names disagree on a host (a browser and `urllib`,
-IDNA 2003 and UTS 46), the host won't parse rather than match a host the call may not have reached, and a host the
-verifier can't read proves nothing either way. **[Tracekit]** (`claims._host`, `claims._a_label`, `claims._deviant`,
-`policy2.classes.url_info`.)
+spelling of the same host match. Where two readers this section names disagree on a host (the browser and generic
+readings of step 2, IDNA 2003 and UTS 46), the host won't parse rather than match a host the call may not have
+reached, and a host the verifier can't read proves nothing either way. **[Implemented]**
 
-The intent is the WHATWG URL host parser [WHATWG-URL] followed by IDNA. PCM 0.1 specifies what the reference
-implements with the Python standard library, step by step. A verifier in Python MUST run on CPython 3.11.4 or later
-(earlier versions read brackets in `urlsplit` differently, step 2). The vectors were made on CPython 3.11.15.
+The intent is the WHATWG URL host parser [WHATWG-URL] followed by IDNA. PCM 0.1 specifies the reading step by step,
+so that verifiers in any language agree. Notes name the Python standard-library functions that behave as a step says,
+since the reference implementation uses them. The vectors were made on CPython 3.11.15, whose Unicode version is
+14.0.0.
 
-1. **A URL.** Remove tabs and line breaks. If the URL, with leading controls and spaces skipped, does not start with
-   `http:`, `https:`, `ws:`, `wss:`, `ftp:`, `file:`, another scheme (`[A-Za-z][A-Za-z0-9+.-]*` and `:`) not followed
-   by a digit (so `localhost:` at the end is a scheme), or two slashes (`/` or `\`), put `http://` in front:
-   `example.com:8080/x` is `http://example.com:8080/x`.
+1. **A URL.** Remove tabs and line breaks (U+0009, U+000A, U+000D). If the URL, with leading control characters and
+   spaces skipped, does not start with `http:`, `https:`, `ws:`, `wss:`, `ftp:` or `file:` (in any case), another
+   scheme (`[A-Za-z][A-Za-z0-9+.-]*` and `:`) not followed by a digit (so `localhost:` at the end is a scheme), or
+   two slashes (`/` or `\`), put `http://` in front: `example.com:8080/x` is `http://example.com:8080/x`.
 2. **The scheme, then the host read two ways.** Read the URL as a browser does: drop tabs and line breaks, strip
-   leading and trailing C0 controls and spaces, and peel `view-source:` and `blob:`. Its scheme is the leading
+   leading and trailing control characters and spaces, and peel any number of leading `view-source:` and `blob:` (in
+   any case, each with the control characters and spaces after it). Its scheme is the leading
    `[A-Za-z][A-Za-z0-9+.-]*` before a `:`, in lower case, or none. A URL whose scheme is not `http`, `https`, `ws`,
-   `wss` or `ftp`, and not none (`//host`), has no host, whatever `urllib` reads (`file://api.example.com/x`,
-   `gopher://g.example/`; vector `reject-claim-reached-host-file-url`). Otherwise read the host:
-   - as `urllib.parse.urlsplit(url).hostname` reads it. If `urlsplit` refuses the URL, the host won't parse. From
-     CPython 3.11.4 it raises for a `[` or `]` without the other, and for a netloc whose bracketed part is neither an
-     IPv6 nor an IPvFuture address (`http://[x]@good.com/`; vector `accept-unproven-reached-host-bracket`). Patch
-     releases since have changed which netlocs with brackets it refuses (on 3.11.15, a bracketed IPv6 address before the `@` is
-     refused because `good.com`, the host after the last `@`, is no address), so a URL with `[` or `]` outside a
-     bracketed IPv6 host can read differently between verifiers' Pythons. Senders SHOULD NOT send such URLs
-     (Appendix B question 1);
-   - as a browser reads it: read `\` as `/`, take what follows the slashes up to `/`, `?` or `#`, then what follows
-     the last `@`, then drop the port (a `[...]` IPv6 host keeps its brackets).
+   `wss` or `ftp`, and not none, has no host, whatever the generic reading finds (`file://api.example.com/x`,
+   `gopher://g.example/`; vector `reject-claim-reached-host-file-url`); neither has a URL with no scheme that does
+   not start with two slashes (`/` or `\`). Otherwise read the host two ways:
+   - **The browser reading.** Take what follows the scheme's `:` (all of the URL when it has no scheme), read every
+     `\` as `/`, skip the leading slashes, and keep what comes before the first `/`, `?` or `#`, then what follows
+     its last `@`. If that starts with `[` and holds a `]`, the reading is it up to and including the first `]`;
+     else it is what comes before its first `:` (the port dropped).
+   - **The generic reading**, of the URL of step 1:
+     1. Strip leading control characters and spaces, then remove every tab and line break.
+     2. If the text before the first `:` is not empty, starts with an ASCII letter and holds only ASCII letters,
+        digits, `+`, `-` and `.`, remove it and that `:`.
+     3. If what remains does not start with `//`, there is no host. Else the authority is what follows the `//` up
+        to the first `/`, `?` or `#` (`\` is no delimiter here).
+     4. The URL is refused when the authority holds a `[` but no `]`, or a `]` but no `[`; when it holds both and
+        fails the bracket check below; and when it holds a code point outside ASCII and, with every `@`, `:`, `#`
+        and `?` removed, its NFKC form [UAX15] differs from it and holds a `/`, `?`, `#`, `@` or `:`.
+     5. The reading is the part of the authority after its last `@`: when that holds a `[`, what lies between its
+        first `[` and the next `]` (or the end); else what comes before its first `:`. Its text before its first
+        `%` is put in lower case (the Unicode lower case mapping).
 
-   Put each non-empty reading in canonical form (step 3). Neither reading: the URL has no host. Two readings whose
-   canonical forms differ: the host won't parse, since the call may have reached either
-   (`http://a.example\@b.example/` is `a.example` to a browser and `b.example` to `urllib`; vector
-   `accept-unproven-reached-host-ambiguous`). Else the host is the browser's reading, or `urllib`'s when the browser
-   has none.
-3. **Canonical form.** Percent-decode as UTF-8 (an invalid sequence becomes U+FFFD, which step 4 refuses) and apply
-   Unicode NFKC. **Deviation characters (decided, 0.1).** If the result holds U+00DF `ß`, U+03C2 `ς`, U+200C ZWNJ or
-   U+200D ZWJ, it won't parse. For a call's URL the check covers the whole URL, percent-decoded and NFKC-normalised,
-   its path too (a `lean:` limit of the reference: it gives `unproven` where a stricter reading of the host alone
-   could match). Rationale: these are the four characters UTS 46 nontransitional processing, which browsers use,
-   keeps where IDNA 2003 maps them away, so `faß.example` is `xn--fa-hia.example` to a browser and `fass.example` to
-   the codec of step 4; with them refused, the two either agree or one refuses (vector
-   `accept-unproven-reached-host-deviation`). Then read U+3002 as `.` and casefold. If it names an address, write it
-   in canonical form: IPv4 is read as `inet_aton` reads it, 1 to 4 parts, each decimal, `0x` hex or `0` octal, so
-   `127.1` is `127.0.0.1` (vector `accept-reached-host-short-ipv4`); an IPv6 address is `[...]` in compressed form,
-   an IPv4-mapped or NAT64 (`64:ff9b::/96`) one the IPv4 address inside. Something that ends in a number but is no
-   valid address won't parse. NFKC follows the Unicode version of the verifier's `unicodedata` (14.0 in CPython
-   3.11): a host with a code point that version leaves unassigned can read differently in a verifier with a newer
-   one, so senders SHOULD claim ASCII hosts.
+     The **bracket check** takes the part of the authority after its last `@`. If that part holds a `[`, nothing may
+     come before its first `[`, and after the next `]` there must be nothing or a `:`; the text between the two (up to
+     the end when no `]` follows) is checked. Else its text before its first `:` is checked. The checked text passes
+     when it is an IPv6 address (a text form of [RFC4291] section 2.2, optionally followed by `%` and a zone id of one
+     or more characters other than `%`) or an IPvFuture address [RFC3986] written as a lowercase `v`, one or more hex
+     digits, `.` and one or more characters. A verifier MAY instead check, by the same test, the text between the
+     first `[` of the whole authority and the next `]`. The two checks differ only when the authority holds brackets
+     other than one pair around its host (`http://[::1]@good.com/` passes the second and fails the first), so senders
+     SHOULD NOT send such URLs (Appendix B question 1). Both refuse `http://[x]@good.com/` (vector
+     `accept-unproven-reached-host-bracket`).
+
+     Note: the generic reading is Python's `urllib.parse.urlsplit(url).hostname`, which refuses a URL by raising
+     `ValueError`. CPython 3.11.12 and later make the first bracket check, 3.11.4 to 3.11.11 the second, and earlier
+     releases neither, so a verifier that uses `urlsplit` needs CPython 3.11.4 or later.
+
+   An empty reading counts as none. A URL the generic reading refuses: the host won't parse. Else put each reading
+   that is not none in canonical form (step 3). Neither reading: the URL has no host. Two readings whose canonical
+   forms differ: the host won't parse, since the call may have reached either (`http://a.example\@b.example/` is
+   `a.example` to the browser reading and `b.example` to the generic one; vector
+   `accept-unproven-reached-host-ambiguous`). Else the host is the browser reading, or the generic one when the
+   browser reading is none.
+3. **Canonical form.** Percent-decode as UTF-8 (a `%` and two hex digits is a byte; a `%` without them stays as it
+   is; an invalid byte sequence becomes U+FFFD, which step 4 refuses) and apply Unicode NFKC [UAX15].
+   **Deviation characters (decided, 0.1).** If the result holds U+00DF `ß`, U+03C2 `ς`, U+200C ZWNJ or U+200D ZWJ,
+   it won't parse. For a call's URL this check is made once, on the whole URL, percent-decoded and NFKC-normalised,
+   not on each reading, so one in the path also gives `unproven` where a check of the host alone could match.
+   Rationale: these are the four characters UTS 46 nontransitional processing, which browsers use, keeps where
+   IDNA 2003 maps them away, so `faß.example` is `xn--fa-hia.example` to a browser and `fass.example` to the
+   conversion of step 4; with them refused, the two either agree or one refuses (vector
+   `accept-unproven-reached-host-deviation`). Then read U+3002 as `.` and apply Unicode full case folding.
+
+   A result that holds a `:` won't parse unless, with every `[` and `]` at its ends removed and its zone id (from its
+   first `%` on) dropped, it is an IPv6 address. Otherwise split it at `.`, leaving out one empty last part. When the
+   last part is a number (`0x` and zero or more hex digits, or one or more decimal digits), the host won't parse
+   unless it is an IPv4 address as `inet_aton` reads one: 1 to 4 parts, each `0x` and zero or more hex digits
+   (hexadecimal; `0x` alone is 0), `0` and one or more octal digits (octal), or `0` or 1 to 10 decimal digits not
+   starting with `0` (decimal); every part but the last at most 255, and the last below 256 to the power of (5 minus
+   the number of parts). So `127.1` is `127.0.0.1` (vector `accept-reached-host-short-ipv4`). An address is written
+   in canonical form: IPv4 in dotted decimal; IPv6 as `[`, its text form of [RFC5952] section 4 (never mixed
+   notation), `]`; an IPv4-mapped (`::ffff:0:0/96`) or NAT64 (`64:ff9b::/96`) IPv6 address as the IPv4 address
+   inside. NFKC follows the verifier's Unicode version: a host with a code point one version leaves unassigned can
+   read differently in a verifier with another, so senders SHOULD claim ASCII hosts.
+
+   Note: in Python this step is `urllib.parse.unquote`, `unicodedata.normalize("NFKC", …)`, `str.casefold` and
+   `ipaddress`; the IPv4 rule is C's `inet_aton`.
 4. **A-label.** A host that starts with `[` stays as it is if it is `[`, an IPv6 address and `]`; else it won't
    parse (`http://%5b::1%5d/` decodes to the host `[`; vector `accept-unproven-reached-host-no-ipv6`). Otherwise drop
    one trailing dot (vector `accept-reached-host-trailing-dot`); if the rest is empty or still ends with `.`, it won't
-   parse. Then convert it with Python's `idna` codec (`name.encode("idna")`), which is IDNA 2003: an all-ASCII name
-   is kept as it is, and each label must be 1 to 63 characters; any other name is split at `.` and each label goes
-   through ToASCII [RFC3490] with Nameprep [RFC3491] (Unicode 3.2) and Punycode [RFC3492], with AllowUnassigned on
-   (CPython's codec does not check Nameprep's table A.1, so a code point Unicode 3.2 leaves unassigned is taken:
-   `x` and U+0378 then `.example` is `xn--x-qib.example`, vector `accept-reached-host-unassigned`) and
-   UseSTD3ASCIIRules off: an ASCII label stays, a non-ASCII one becomes `xn--` and its Punycode, and every label
-   must end up 1 to 63 characters. What the codec refuses won't parse. The result MUST be labels of `a`-`z`,
-   `0`-`9`, `_` and `-`, joined by single dots; else it won't parse (a NUL or `%` after percent-decoding; vector
-   `accept-unproven-reached-host-nul`). `bücher.example` is `xn--bcher-kva.example` (vector
-   `accept-reached-host-idn`).
+   parse. Then convert it to ASCII by IDNA 2003 [RFC3490]: an all-ASCII name is kept as it is, and each label must
+   be 1 to 63 characters; any other name is split at `.` and each label goes through ToASCII [RFC3490] with Nameprep
+   [RFC3491] (Unicode 3.2) and Punycode [RFC3492], with AllowUnassigned on (so a code point Unicode 3.2 leaves
+   unassigned is taken: `x` and U+0378 then `.example` is `xn--x-qib.example`, vector
+   `accept-reached-host-unassigned`) and UseSTD3ASCIIRules off: an ASCII label stays, a non-ASCII one becomes `xn--`
+   and its Punycode, and every label must end up 1 to 63 characters. What this conversion refuses won't parse. The
+   result MUST be labels of `a`-`z`, `0`-`9`, `_` and `-`, joined by single dots; else it won't parse (a NUL or `%`
+   after percent-decoding; vector `accept-unproven-reached-host-nul`). `bücher.example` is `xn--bcher-kva.example`
+   (vector `accept-reached-host-idn`).
+
+   Note: this conversion is Python's `idna` codec (`name.encode("idna")`), which takes unassigned code points because
+   it does not check Nameprep's table A.1.
 
 **A claim's or an effect's host** is a name or address, maybe with a port. It won't parse if it is not a string, if
-it holds `/`, `\`, `?`, `#`, `@`, `[`, `]` or Unicode white space (Python's `\s`), if it holds a deviation character
+it holds `/`, `\`, `?`, `#`, `@`, `[`, `]` or white space (section 2), if it holds a deviation character
 (step 3), or if it has exactly one `:` and what follows it is not 1 to 5 ASCII digits (`api.example.com:abc`,
 `api.example.com:`; vector `accept-unproven-reached-host-claim-bad-port`). Otherwise it is read as the host of the
 URL `http://[<host>]/` when it has more than one `:` (a bare IPv6 address), else `http://<host>/`, by steps 2 to 4,
 except that the two readings are not compared: the browser's reading counts. So the claim `api.example.com:443` is
 `api.example.com` (vector `accept-reached-host-claim-port`).
 
-Where IDNA 2003 and UTS 46 [UTS46] still differ, PCM 0.1 follows the codec, a `lean:` limit of the reference: an
-`xn--` label is not checked to be valid Punycode, `_` is allowed, unassigned code points are taken, ZWSP, soft hyphen
-and the other characters Nameprep maps to nothing are dropped (`exam` U+00AD `ple.com` is `example.com`), and
-Nameprep uses Unicode 3.2. A verifier MUST implement the steps above as
-written, not UTS 46. Senders SHOULD claim hosts in ASCII, as DNS names them.
+Where IDNA 2003 and UTS 46 [UTS46] still differ, PCM 0.1 follows IDNA 2003 (step 4): an `xn--` label is not checked to
+be valid Punycode, `_` is allowed, unassigned code points are taken, ZWSP, soft hyphen and the other characters Nameprep
+maps to nothing are dropped (`exam` U+00AD `ple.com` is `example.com`), and Nameprep uses Unicode 3.2. A verifier MUST
+implement the steps above as written, not UTS 46. Senders SHOULD claim hosts in ASCII, as DNS names them.
 
 ### 6.8 Test commands (decided, 0.1)
 
 A `tests_passed` suite is a **test command** when all of these hold. Rationale: every verifier must recognise the same
 commands, so the list is part of the protocol, not a guess at what a command does; the suite must read the same to
 every verifier and to `sh`, so it may hold nothing on which a shell and a word splitter can differ; and a flag that
-runs no tests must not prove that tests passed. **[Tracekit]** (`claims.test_command`, `claims.TEST_RUNNERS`,
-`claims.NO_TESTS`.)
+runs no tests must not prove that tests passed. **[Implemented]**
 
-1. **Plain words (decided, 0.1).** `suite` MUST NOT hold any of the characters `;` `&` `|` `(` `)` `<` `>` `$`
-   `` ` `` `\` `#` `{` `}` `*` `?` `[` `]`, nor a control character (U+0000 to U+001F and U+007F) other than tab: so
-   no operator, background `&`, redirection, expansion, escape, comment, brace expansion, glob or second line. Split
-   it into words at spaces and tabs, where `'…'` and `"…"` group characters into a word and are removed (Python's
-   `shlex.split`); its quotes MUST balance. Rationale: an earlier draft cut a line at operators with a word splitter
-   that reads `$'\''` apart from `sh` (`pytest $'\'';true #'` is one command to it and `pytest "'"; true` to `sh`),
-   kept `pytest &` and `(pytest &)` as one command, and let a glob or brace expansion turn into a flag in the working
-   directory (`pytest -[h]`). With none of these characters, inside double quotes nothing is special, and every
-   splitter reads the same words as `sh`. Vectors `reject-claim-tests-passed-background`,
+1. **Plain words (decided, 0.1).** `suite` MUST NOT hold any of the characters `;` `&` `|` `(` `)` `<` `>` `$` `` ` ``
+   `\` `#` `{` `}` `*` `?` `[` `]`, nor a control character (section 2) other than tab, nor U+007F (DEL): so no
+   operator, background `&`, redirection, expansion, escape, comment, brace expansion, glob or second line. Its quotes
+   MUST balance: each `'` or `"` outside quotes opens a quote that the next same character closes. Split it into words
+   at the spaces and tabs outside quotes; the quote characters are removed, and what they enclose, spaces and tabs too,
+   stays in its word (`a"b c"d` is the one word `ab cd`, and `""` alone is an empty word). Note: this is how `sh` and
+   Python's `shlex.split` split such a line. Rationale: an earlier draft cut a line at operators with a word splitter
+   that reads `$'\''` apart from `sh` (`pytest $'\'';true #'` is one command to it and `pytest "'"; true` to `sh`), kept
+   `pytest &` and `(pytest &)` as one command, and let a glob or brace expansion turn into a flag in the working
+   directory (`pytest -[h]`). With none of these characters, inside double quotes nothing is special, and every splitter
+   reads the same words as `sh`. Vectors `reject-claim-tests-passed-background`,
    `reject-claim-tests-passed-ansi-c-quote`, `reject-claim-tests-passed-unbalanced-quote`,
    `reject-claim-tests-passed-comment`, `reject-claim-hash-inside-word`, `reject-claim-pytest-or-true`.
 2. **A listed runner.** The words MUST begin with one of these word sequences, compared exactly, so the first word is
    a bare program name a shell looks up on `PATH` (`./pytest`, `/tmp/x/pytest` and `.venv/bin/pytest` are not
-   `pytest`; vectors `reject-claim-tests-passed-dot-slash`, `reject-claim-tests-passed-runner-path`). The list is a
-   deliberately strict subset of the test commands the reference's shell analysis knows (no `./gradlew test`,
-   `./mvnw test`, `gmake test`, `make tests`, `npm t` or `npm run test:unit`):
+   `pytest`; vectors `reject-claim-tests-passed-dot-slash`, `reject-claim-tests-passed-runner-path`). The list is
+   deliberately strict (no `./gradlew test`, `./mvnw test`, `gmake test`, `make tests`, `npm t` or
+   `npm run test:unit`):
 
    ```text
    pytest  py.test  python -m pytest  python3 -m pytest  python -m unittest  python3 -m unittest  tox  nox  nose2
@@ -799,7 +847,7 @@ runs no tests must not prove that tests passed. **[Tracekit]** (`claims.test_com
 ### 7.1 Shape
 
 A grant says: this subject may send this intent, within these caveats, until this time. It is closed
-(`schemas/grant.schema.json`). **[Tracekit]**
+(`schemas/grant.schema.json`). **[Implemented]**
 
 | Member | Value |
 |---|---|
@@ -814,7 +862,7 @@ A grant says: this subject may send this intent, within these caveats, until thi
 | `parent` | `null` for a root grant, else `H(parent grant)`, the hash of the full signed parent including its `sig` |
 | `sig` | as in 4.3, with TAG `pcm.grant.v0` |
 
-The root grant of `accept-approved-by`, signed by a Tracekit signer after alice approved it:
+The root grant of `accept-approved-by`, signed after alice approved it:
 
 ```json
 {"pcm_grant": 0, "ts": "2026-10-27T14:11:57.591727Z",
@@ -840,7 +888,7 @@ type, and every value passes the field's rule (5.2):
 | `string`, `id`, `enum` | `==`, `in` (1 to 64 distinct values) |
 | `bool` | `==` |
 
-Real checks from Tracekit against `refund.request`:
+For example, against `refund.request` (the detail strings are informative):
 
 ```
 amount in [1, 2]: in does not apply to a money field
@@ -869,7 +917,7 @@ Child caveat `c` implies parent caveat `p` when:
 | `<= b` | same type and `v <= b` | never | same type and `b' <= b` | never |
 | `>= b` | same type and `v >= b` | never | never | same type and `b' >= b` |
 
-Consequences, each checked by Tracekit (`pcm.narrows`; parent `amount <= 20000, order == 81`):
+Consequences (parent `amount <= 20000, order == 81`):
 
 | Child | Result |
 |---|---|
@@ -886,7 +934,7 @@ no later than its parent's).
 ### 7.4 Root grants come from a person
 
 A caveat-free grant is the widest grant. So a root grant (`parent: null`) MUST come from a person's approval. A
-signer MUST refuse to issue a root grant unless all of these hold **[Tracekit]** (`pcm_grant`):
+signer MUST refuse to issue a root grant unless all of these hold **[Implemented]**:
 
 - the signer has an approvals configuration that names who may answer, so an answer comes from a named person;
 - the agent made a tool call `pcm.grant` whose args are exactly the grant's `subject`, `intent`, `caveats`,
@@ -898,24 +946,15 @@ signer MUST refuse to issue a root grant unless all of these hold **[Tracekit]**
 
 The grant's `issuer` is `{"kind": "person", "id": <approver identity>, "person"?: <the name the approvals
 configuration gives>, "run", "tenant", "approval_id"}`. A policy that does not ask a person about `pcm.grant` leaves
-nothing to consume, so no root grant can be made (fail closed). No policy pack shipped with Tracekit has this rule;
-the rule `docs/pcm.md` shows is:
+nothing to consume, so no root grant can be made (fail closed).
 
-```yaml
-tools:
-  pcm.grant: app
-ask:
-  - {id: PCM-GRANT, tool: pcm.grant, pattern: "^"}
-```
-
-The signer SHOULD record each grant it signs as a record in the issuing run, as it does for messages (4.4): Tracekit
-writes `ext` with `name: pcm.grant`, holding the grant's hash, subject and intent, and the approval id (a root) or the
-parent's hash (a child).
+The signer SHOULD record each grant it signs as a record in the issuing run, as it does for messages (4.4), holding
+the grant's hash, subject and intent, and the approval id (a root) or the parent's hash (a child).
 
 ### 7.5 Delegation
 
 `delegable` is the approving person's choice: they see it in the args they approve. The subject of a delegable grant
-MAY ask the signer for a child. A signer MUST refuse a child unless **[Tracekit]** (`pcm_delegate`):
+MAY ask the signer for a child. A signer MUST refuse a child unless **[Implemented]**:
 
 - the parent verifies under this signer's own log key;
 - the parent's `issuer.tenant` is the caller's tenant (no cross-tenant delegation);
@@ -930,7 +969,7 @@ H(parent)` and its own `delegable`. A child needs no approval, since it only nar
 ### 7.6 Chain rules
 
 `grants` is the chain, root first. A verifier checks it against the intent's schema document. Each failing rule adds
-one problem; any problem makes the grants result `failed`. **[Tracekit]** (`pcm.verify_grants`.)
+one problem; any problem makes the grants result `failed`. **[Implemented]**
 
 | Rule | Check | Vectors (`reject-` left out) |
 |---|---|---|
@@ -950,7 +989,7 @@ one problem; any problem makes the grants result `failed`. **[Tracekit]** (`pcm.
 | subject | the last grant's `subject` equals `from.agent` | `grant-subject-not-sender` |
 
 The result is `{"result": "none" | "ok" | "failed", "steps": <number of grants>, "root": <grant 0's issuer kind, id
-and person> or null, "problems": [...]}`. A real problem from the demo, a $500 refund under a $200 grant:
+and person> or null, "problems": [...]}`. A problem from the refund example, a $500 refund under a $200 grant:
 `grant 0: amount 50000 breaks amount <= 20000`.
 
 The verifier reports the root issuer but does not decide whether the receiver trusts that person. A receiver SHOULD
@@ -961,7 +1000,7 @@ check `grants.root` against the people it accepts.
 Inputs: the message (parsed as in 3.3), the trust anchors (section 10), the schema documents the receiver agreed on,
 and optionally the receiver's replay state, the receiver's own identity `me`, the flag `strict`, and the time `now`.
 
-Output **[Tracekit]** (`pcm.verify`):
+Output **[Implemented]**:
 
 ```json
 {"verdict": "accept" | "accept-unproven" | "reject",
@@ -976,7 +1015,7 @@ Output **[Tracekit]** (`pcm.verify`):
 Steps, in this order:
 
 1. **Envelope.** The message MUST match section 3.2. If not: `reject`, every other part `null`, reasons
-   `envelope: …` (Tracekit lists up to 8). Stop.
+   `envelope: …`. Stop.
 2. **Signature.** Verify `sig` as in 4.2 and 4.3 with TAG `pcm.message.v0`. If it fails: `reject`, `signature.ok`
    false, the later parts `null`. Stop. No claim work is done for a forged message.
 3. **Replay and recipient.** If replay state is given, check it (section 9) and record the message. Then, if `me` is
@@ -1017,31 +1056,15 @@ the recipient `reject-wrong-recipient`, the schema `reject-schema-bool-as-int`, 
 `reject-grant-amount-over-caveat`, a claim `reject-claim-changed-record-hash`, and `strict`
 `reject-strict-required-unproven`.
 
-And the whole refund demo, as `tracekit pcm demo` prints it (a separate run):
-
-```text
-alice approves agent A's grant: refund.request, amount <= $200.00, order == 81, until 18:00Z, can be passed on: no
-A -> B  refund.request {amount $120.00, order 81} + approved_by(alice)
-    B: ACCEPT           signature ok · replay ok · schema ok · grant ok (alice, 1 step) · approved_by proven
-A -> B  same request + tests_passed(pytest tests/test_refund.py), no evidence
-    B: ACCEPT-UNPROVEN  tests_passed: unproven (no evidence)
-A -> B  approved_by with one record hash changed
-    B: REJECT           approved_by: failed (record 1: hash does not match the event)
-A -> B  refund.request {amount $500.00, order 81} + approved_by(alice)
-    B: REJECT           grant: grant 0: amount 50000 breaks amount <= 20000
-A asks the signer to sign as B
-    signer: forbidden: the signer signs only as the calling run's own agent (uid:990101, run 682b33a74fb7e277f59f38d40404dcae, tenant default)
-```
-
 ## 9. Replay and recipient checks
 
 Replay state is per receiver. A receiver keeps one replay state for its whole life and passes every message through
-it. **[Tracekit]** (`pcm.Replay`.) Parameters: `window_s` (default 300 seconds; `null` for an auditor reading a saved
+it. **[Implemented]** Parameters: `window_s` (default 300 seconds; `null` for an auditor reading a saved
 conversation), `per_sender` (default 4096), and `started`, the time the state was created.
 
 **The sender (decided, 0.1).** A sender is the pair (`sig.key`, `from.agent`), never `from.agent` alone. Rationale:
 an identity is a name inside one signer, so `uid:990101` of one log and `uid:990101` of another are two senders, and
-one must not raise the other's floor or spend its nonces. **[Tracekit]** (vector
+one must not raise the other's floor or spend its nonces. **[Implemented]** (vector
 `accept-replay-same-agent-other-log`: a message of the other log with the same agent name and the same nonce was seen
 first, and this one still passes.)
 
@@ -1065,19 +1088,17 @@ Refusing messages signed before the receiver started is what lets a receiver res
 asks again.
 
 A receiver that acts on a message MUST check it with its replay state. Grant expiry is judged at the message's `ts`
-(7.6), not at the receiver's clock, so without replay state a message captured while its grant was valid stays
-`accept` forever. Verifying without replay state (Tracekit's `tracekit pcm verify` and the standalone CLI do) is for
-audit only and MUST NOT lead to action.
+(7.6), not at the receiver's clock, so without replay state a message captured while its grant was valid stays `accept`
+forever. Verifying without replay state, as a command-line audit does, is for audit only and MUST NOT lead to action.
 
 **One acceptance per receiver (decided, 0.1).** A receiver MUST accept each (sender, `nonce`) at most once within
 its window, per receiver identity (`me`), across every replica or process that answers for that identity. How
 replicas share the state (one store, a database, routing each sender to one replica) is implementation-defined.
 Rationale: a replica that keeps its own state takes a message another replica already took, so a captured message
-could be acted on once per replica. Tracekit's `pcm.Replay` is per process (a `lean:` limit in its code): a deployment
-with more than one replica per identity must share it or route each sender to one replica (14.14).
+could be acted on once per replica (14.14).
 
-The recipient check: a receiver MUST pass its own identity as `me`. A message addressed to another fails ("addressed
-to uid:990102, not uid:990103"). In Tracekit the replay state records the message before the recipient check runs.
+The recipient check: a receiver MUST pass its own identity as `me`. A message addressed to another fails ("addressed to
+uid:990102, not uid:990103"). The replay state records the message before the recipient check runs (section 8, step 3).
 
 Signer and receiver clocks MUST agree within the window (use NTP).
 
@@ -1099,41 +1120,38 @@ A receiver pins keys in a trust document:
 | `witnesses` | no | witness keys, each `{"name", "vkey"}`, the vkey of type 0x04 (C2SP tlog-cosignature). Default none. |
 | `witnesses_required` | no | how many pinned witness cosignatures each evidence checkpoint needs. Default 0. |
 
-A verifier MUST ignore members it does not know, so a Tracekit `trust.json` (which also has `algs`, `rekor`,
-`monitors`, and witnesses as `{"vkey", "class"}`) works as it is. A verifier reads only each witness's `vkey`; the key
-name inside the vkey is the one that counts. **[Tracekit]**
+A verifier MUST ignore members it does not know, so a trust document written for other uses too works as it is
+(Appendix C gives one). A verifier reads only each witness's `vkey`; the key name inside the vkey is the one that
+counts. **[Implemented]**
 
 A trust document with any vkey in `logs` or `witnesses` that does not parse as 4.3 says (a malformed vkey, a key id
 that does not match, non-canonical base64) is a configuration error. The verifier MUST report it before it checks
 any message, as for a bad schema document (5.2), wherever the vkey sits in the list. Rationale: otherwise a bad vkey
 listed before the key that verifies a message stops the check, and one listed after it fails only the evidence, so
-the result would depend on the order of the list. **[Tracekit]**
+the result would depend on the order of the list. **[Implemented]**
 
 A trust document MUST NOT pin keys of two different logs under one name. Keys that share a name are one log's
 rotations. The evidence check compares log names (6.2 step 2), and a note is accepted when any pinned Ed25519 key of
 its origin's name signs it, so two logs under one name would let one log's evidence pass for the other's (14.1).
-Tracekit names a log `tracekit.local/<log id>` by default, which is unique, but an operator can choose any origin.
 
 A log may also pin a hybrid key: a vkey of type 0xff whose key bytes are the ASCII text `tracekit/slh-dsa-sha2-128s`
 followed by the 32-byte SLH-DSA-SHA2-128s public key [FIPS205], under the log's own name. When trust pins one, every
 evidence checkpoint of that origin needs a valid SLH-DSA line from it too (its signature is over the note text, as
-the Ed25519 line's). Messages and grants stay Ed25519 only (4.3). **[Tracekit]** (`checkpoint.open_note`.) A verifier
-that does not implement SLH-DSA MUST fail evidence whose origin has a pinned hybrid key, and evidence whose note
-carries a line of any pinned hybrid key. The standalone verifier does so.
+the Ed25519 line's). Messages and grants stay Ed25519 only (4.3). **[Implemented]** A verifier that does not
+implement SLH-DSA MUST fail evidence whose origin has a pinned hybrid key, and evidence whose note carries a line of
+any pinned hybrid key.
 
 ### 10.2 The tool placement table
 
 The verifier places tools with a fixed table, `{tool name: class}`. It MUST ship the table itself, or take it from its
-operator. It MUST NOT take it from a message, a bundle or a sender. The reference table is `registry/tools.json`,
-generated from Tracekit's `tracekit.pcm.claims.placed()`: the tool names the policy packs shipped with Tracekit map,
-leaving out patterns and names two packs class differently. For example `Bash`, `bash`, `shell` and `container.exec`
-are `shell`; `WebFetch`, `fetch` and `http_get` are `http`. A tool not in the table is unplaced. **[Tracekit]** The
-standalone verifier ships a copy of the reference table and uses it unless its operator passes another.
+operator. It MUST NOT take it from a message, a bundle or a sender. The reference table is `registry/tools.json`
+(Appendix C says how it was made). For example `Bash`, `bash`, `shell` and `container.exec` are `shell`; `WebFetch`,
+`fetch` and `http_get` are `http`. A tool not in the table is unplaced. **[Implemented]**
 
 ## 11. Transport bindings
 
 PCM authenticity does not depend on the transport. Confidentiality does: use TLS. Each binding carries the message
-JSON unchanged. All three bindings are **[Draft]**: Tracekit's receivers call `pcm.verify` themselves today.
+JSON unchanged. All three bindings are **[Draft]**: no implementation carries PCM in them yet.
 
 ### 11.1 A2A
 
@@ -1155,10 +1173,8 @@ the message MUST NOT act on it. It MAY return the verification result as its res
 
 ## 12. The transfer-record extension (C2C latent transfers)
 
-**[Draft]** This extension waits for Tracekit issue #434 (the A2A gateway and C2C transfer records), built in PR #445,
-open as of this draft. Until it merges, it is DRAFT: no verifier implements it, and a PCM 0.1 verifier rejects a
-`transfer` payload
-at the envelope, because `payload` is closed to `text` and `data`. That is fail-closed by design.
+**[Draft]** No verifier implements this extension yet, and a PCM 0.1 verifier rejects a `transfer` payload at the
+envelope, because `payload` is closed to `text` and `data`. That is fail-closed by design.
 
 ### 12.1 The problem
 
@@ -1166,11 +1182,11 @@ Some agents exchange model state instead of text: one model's KV cache fused int
 (Cache-to-Cache, C2C). The bytes are large, opaque and not meant to be read. A receiver still needs to know who sent
 which bytes, through which adapter, and that the sender's signer allowed it before it happened.
 
-### 12.2 The transfer record (from issue #434, PR #445)
+### 12.2 The transfer record
 
-Before a transfer, the sender's code calls `RunHandle.transfer` with the payload bytes, the sender and receiver model
-ids, the modality and an optional projector, and two options: `measured` (more fields the caller computed) and
-`keep`. The signer decides it as the tool `a2a:transfer` and records a `policy.decision` whose committed args are:
+Before a transfer, the sender's process asks its signer to decide a call of the tool `a2a:transfer`, giving the
+sender and receiver model ids, the modality, an optional projector, and the size and digest it computed from the
+payload bytes. The signer records a `policy.decision` whose committed args are:
 
 ```json
 {"sender": "qwen-7b@1", "receiver": "llama-1b@2", "modality": "kv-cache", "projector": "c2c@0.1",
@@ -1222,12 +1238,10 @@ are the ones that ran.
 - **Level 2**: Level 1, plus evidence (6.2, 6.3), the evidence profile (6.4) and the four claim checkers (6.5, 6.6).
 - The transfer extension (12) is separate and DRAFT.
 
-Tracekit's `pcm.verify` is a Level 2 verifier, and so is the standalone verifier in `verifier/python`.
-
 ### 13.2 Test vectors
 
-The vectors are in `vectors/`, produced by Tracekit's `tracekit.pcm.verify`. `vectors/index.json` is a JSON list of
-`{"name", "file", "description", "verdict"}`. Each `vectors/<name>.json` is:
+The vectors are in `vectors/`, produced by the reference implementation (Appendix C). `vectors/index.json` is a JSON
+list of `{"name", "file", "description", "verdict"}`. Each `vectors/<name>.json` is:
 
 ```json
 {"name": "...", "description": "...",
@@ -1243,12 +1257,12 @@ The vectors are in `vectors/`, produced by Tracekit's `tracekit.pcm.verify`. `ve
 ```
 
 - `tools` is the tool placement table the verifier uses for this vector: `registry/tools.json` when the vectors were
-  made. (Tracekit's `pcm.verify` uses its own `claims.placed()`, which the generator checks is equal.)
+  made.
 - `options.replay` is `null` (no replay state) or `{"window_s": seconds or null, "started": TS, "per_sender": n,
   "seen": [earlier messages]}`. The verifier creates one replay state with these parameters and verifies each message
   of `seen` in order with it (same trust, schemas, `me`, `strict` and `now`; their results are ignored, and one whose
   signature fails is not recorded), then verifies `message`. `now` is the receiver's clock for all of them.
-- `expected` is the full result Tracekit returned for that input.
+- `expected` is the full result the reference implementation returned for that input.
 
 **Conformance rule.** A verifier conforms on a vector when its `verdict`, `signature.ok`, `replay.ok`, `schema.ok`,
 `grants.result` and every `claims[i].result` equal the expected ones (a part that is `null` in `expected` must be
@@ -1259,8 +1273,8 @@ verifier conforms to a level when it conforms on every vector of that level.
 
 ## 14. Security considerations
 
-Each item below is an attack or a mistake found while building or reviewing the reference implementation, with the
-rule that closes it.
+Each item below is an attack or a mistake found while building or reviewing the reference implementation, or an
+assumption PCM rests on, with the rule that closes or bounds it.
 
 1. **Cross-log evidence replay.** An agent on another signer reused a victim's run id and tenant, then replayed the
    victim's evidence in its own messages. Run ids are chosen by clients and are unique only per log. **Rule:** the
@@ -1278,12 +1292,11 @@ rule that closes it.
 4. **Tenant binding.** A grant issued in one tenant must not authorise a run in another. **Rule:** grants carry the
    issuer's tenant; a chain with a grant whose tenant differs from `from.tenant` is rejected (7.6); the signer MUST
    refuse cross-tenant delegation (7.5). Vector: `reject-grant-cross-tenant`.
-5. **Key reuse.** The log key signs checkpoints and also PCM messages and grants. **Rule:** domain separation by the
-   `t` tag. The tags `pcm.message.v0` and `pcm.grant.v0` differ from every other purpose the key or the signer signs
-   (Tracekit's own tags are `tracekit.<purpose>.v2`), and the signed bytes are a JCS object, which starts with `{` and
-   holds no raw line break, so they can never parse as a checkpoint note's text. A signer SHOULD use a dedicated PCM
-   key and MAY use its log key (4.5); one that uses its log key turns a bug in PCM signing into rotating the log key.
-   Vector: `reject-grant-signature-as-message`.
+5. **Key reuse.** The log key signs checkpoints and also PCM messages and grants. **Rule:** domain separation by the `t`
+   tag. The tags `pcm.message.v0` and `pcm.grant.v0` differ from every other purpose the key or the signer signs, and
+   the signed bytes are a JCS object, which starts with `{` and holds no raw line break, so they can never parse as a
+   checkpoint note's text. A signer SHOULD use a dedicated PCM key and MAY use its log key (4.5); one that uses its log
+   key turns a bug in PCM signing into rotating the log key. Vector: `reject-grant-signature-as-message`.
 6. **Person-rooted grants.** A caveat-free grant is the widest grant. **Rule:** a root grant MUST come from a person's
    approval, never an agent approver's, never self-approved, never by the grant's subject; the signer MUST require an
    approvals configuration (7.4). The verifier MUST reject a root whose issuer kind is not `person`, or whose issuer
@@ -1296,8 +1309,8 @@ rule that closes it.
    `reject-grant-widening-child`, `reject-grant-widen-and-tighten-child`, `reject-grant-missing-caveat-child`,
    `reject-grant-broken-parent`, `reject-grant-child-outlives-parent`, `reject-grant-child-wrong-issuer`.
 8. **One grant per approval.** **Rule:** the signer MUST refuse a second root grant once the `pcm.grant` call has its
-   result. Tracekit honours this after the call completes; until then, repeated `pcm_grant` calls on the same consumed
-   approval can mint grants that differ only in `ts` (a documented `lean:` limit). Its SDK completes the call at once.
+   result. A signer that does not also track grants per approval can, until then, mint more grants from the same
+   consumed approval, the same but for `ts` (the reference implementation is one: Appendix C).
 9. **Held runs.** **Rule:** a held or quarantined run MUST NOT get new messages or grants signed: no new outward
    authority while a person looks at it. Reading evidence stays allowed.
 10. **`tests_passed` on a compound command.** `pytest || true` and `pytest &` exit 0 whether the tests pass or not.
@@ -1317,18 +1330,18 @@ rule that closes it.
 12. **Hostile input.** A pinned log can be hostile, and a caller can pass any object. **Rule:** a verifier MUST NOT
     crash on hostile input: args that are not an object, wrong JSON types, invalid or non-canonical base64, non-ASCII
     proof entries, events that are not objects or not valid events of the profile, records without a field a checker
-    reads, a `ts` that is no real time, values nested deeper than the recursion limit where an error message would
-    show them (an error names a deep list or object by its type, never by its text). Each is a `failed` claim or a
-    `reject`; `verify` returns a verdict and never raises for a message. Integer `const` checks MUST reject `false`
-    and `0.0`. Envelope and claim-arg patterns MUST match the whole value and use ASCII classes (`[0-9]`, not Unicode
-    digits); a schema's own `id` patterns run in Python's Unicode mode (5.2). Public keys MUST be checked as in 4.3.
-    Vectors: `reject-envelope-pcm-false`, `reject-envelope-extra-field`, `reject-schema-bool-as-int`,
-    `reject-schema-int-as-string`, `reject-schema-field-types`, `reject-claim-reached-host-too-long`,
-    `reject-small-order-key`, `accept-jcs-payload`, `reject-sig-non-canonical-base64`,
-    `reject-claim-proof-non-canonical-base64`, `reject-claim-record-not-an-event`, `reject-claim-decision-without-id`,
-    `reject-replay-no-real-time`. Non-object args, non-object events and deep values are covered by the standalone
-    verifier's tests, not by vectors: a signer never makes them, and a value past the recursion limit is no portable
-    JSON.
+    reads, a `ts` that is no real time, values nested deeper than the recursion limit where an error message would show
+    them (an error names a deep list or object by its type, never by its text). Each is a `failed` claim or a `reject`;
+    a verifier returns a verdict for every message and never fails with an error. Integer `const` checks MUST reject
+    `false` and `0.0`. Envelope and claim-arg patterns MUST match the whole value and use ASCII classes (`[0-9]`, not
+    Unicode digits); a schema's own `id` patterns are its author's, in a dialect 0.1 does not fix (5.2). Public keys
+    MUST be checked as in 4.3. Vectors: `reject-envelope-pcm-false`, `reject-envelope-extra-field`,
+    `reject-schema-bool-as-int`, `reject-schema-int-as-string`, `reject-schema-field-types`,
+    `reject-claim-reached-host-too-long`, `reject-small-order-key`, `accept-jcs-payload`,
+    `reject-sig-non-canonical-base64`, `reject-claim-proof-non-canonical-base64`, `reject-claim-record-not-an-event`,
+    `reject-claim-decision-without-id`, `reject-replay-no-real-time`. Non-object args, non-object events and deep values
+    are covered by the standalone verifier's tests, not by vectors: a signer never makes them, and a value past the
+    recursion limit is no portable JSON.
 13. **Evidence is not freshness.** Evidence proves a call happened in the sender's run, not that it is the latest
     state. Tests that passed at 10:00 prove nothing about code changed at 10:05. **Rule:** a receiver that needs
     freshness SHOULD read the record's `ts` and ask for a fresh claim; a sender SHOULD claim right after the call.
@@ -1343,12 +1356,12 @@ rule that closes it.
     expressions the receiver runs, so a hostile pattern can be slow (ReDoS). **Rule:** a receiver MUST only load
     schema documents it chose, ship them with the code that uses them, and review their patterns like code.
 16. **Openings disclose args.** With a decision's commitment, its salt lets anyone brute-force low-entropy args.
-    **Rule:** the signer hands out salts only to the run's own agent, for the records it names (`pcm_evidence`). A
+    **Rule:** the signer hands out salts only to the run's own agent, for the records it names. A
     sender MUST NOT send a salt for a decision it does not open, and opens only the decisions it chooses to show. (A
     verifier also fails a record that has one of `salt` and `args` without the other: vector
     `reject-claim-salt-without-args`.) See section 15.
 17. **No revocation.** PCM 0.1 has no revocation: a grant holds until `expires_at`. **Rule:** the signer MUST cap a
-    grant's lifetime (24 hours in Tracekit); a verifier checks expiry against the signer-set message `ts`, not the
+    grant's lifetime (24 hours, 7.4); a verifier checks expiry against the signer-set message `ts`, not the
     receiver's clock, so a later audit reaches the same answer. So a receiver that acts MUST also check replay
     (section 9): else a captured message stays `accept` after its grant expired. Grant per task, not per agent.
     Vector: `reject-grant-expired`.
@@ -1357,7 +1370,7 @@ rule that closes it.
     log key, a grant signed by log X could ride in a message signed by log Y, sent by an agent on Y whose identity
     string is the grant's subject; anyone who saw the grant could hand it on. **Rule:** every grant in a chain MUST be
     signed by the key that signed the message (7.6), and a sender is the pair (`sig.key`, `from.agent`), never
-    `from.agent` alone (section 9, decided 0.1). `pcm_delegate` takes only its own signer's grants (7.5). Vectors:
+    `from.agent` alone (section 9, decided 0.1). A signer delegates only grants it signed itself (7.5). Vectors:
     `reject-grant-from-another-log` (trust pins both logs), `accept-replay-same-agent-other-log`.
 19. **A word splitter that reads apart from the shell.** A splitter that reads every `#` outside quotes as a comment
     reads `pytest -q tests/x.py#|| true` as the one command `pytest -q tests/x.py`, while the executor's shell runs
@@ -1384,6 +1397,42 @@ rule that closes it.
     compared exactly, so it is a bare name the executor's `PATH` resolves (6.8 step 2). The executor's `PATH` and
     working directory remain the deployment's to keep out of the agent's reach (6.6). Vectors:
     `reject-claim-tests-passed-dot-slash`, `reject-claim-tests-passed-runner-path`.
+24. **Key compromise and rotation.** Whoever holds a log key a receiver pins is that log's signer to the receiver.
+    They can sign messages as any identity, run and tenant of the log, with any `ts` and `nonce`, so neither the
+    replay window nor grant expiry holds them back; root grants with any issuer, caveats and expiry (the 24-hour cap
+    of 7.4 binds only an honest signer: a verifier does not check how long a grant lives); and checkpoints over
+    records they made up, so evidence proves whatever they wrote. A dedicated PCM key (4.5) is no safer in 0.1: it is
+    pinned in `logs`, so a verifier also takes it on that log's checkpoints (Appendix B question 2). Witnesses (10.1)
+    help with checkpoints only: with `witnesses_required` set, forged evidence needs a checkpoint the witnesses
+    cosigned, which they give only to a log consistent with the one they saw, so a forgery either fails or forks the
+    log in a way the honest signer's next checkpoint exposes. Messages and grants carry no cosignature. PCM 0.1 has
+    no revocation and no key validity period: a pinned key verifies until the receiver removes it, and the `ts` of a
+    forged message, which the key's holder chose, can't tell it from an honest one. **Rule:** a receiver that learns
+    a pinned key leaked SHOULD remove it from its trust document at once, which fails every message and grant the key
+    signed, honest ones too (their senders ask for new grants), and SHOULD treat what it accepted under that key
+    since the leak as unverified, dating messages by its own record of when they arrived, not by `ts`. To rotate a
+    key that did not leak, pin the new key next to the old one under the log's name (10.1), switch the signer to it,
+    and remove the old key once the last grant it signed has expired, at most 24 hours later (7.4); an auditor keeps
+    the old key for the messages it has to check again.
+25. **The signer is the trusted computing base.** Every guarantee in this document rests on the signer: that it signs
+    only as the calling run (4.4); that it alone sets a message's `id`, `ts` and `nonce` and assigns each record's
+    `seq` in its log; that it sets a record's `source` and `tier`, and writes approvals and effects, only from callers
+    it authenticated (6.4); and that no agent can read its keys or write its log. A verifier checks that the signer
+    signed, never that the signer was right. A compromised signer, or a caller that can make it sign as another
+    identity, can mint anything: messages as any run of its log, root grants with no person behind them, and records
+    and checkpoints that prove any claim. Witnesses do not change this: they check that the log does not fork, not
+    what the signer appends to it. **Rule:** an agent MUST NOT be able to read the signer's keys or write its log
+    (2, 4.4); a deployment SHOULD run the signer as another user, on another host or in another trust domain than the
+    agents it records, with every caller authenticated by the transport (2, Identity); and a receiver SHOULD pin a
+    signer's keys only as far as it trusts that signer and its operator.
+26. **A T2 tool's name stands for its class.** A verifier places a call by its tool name (6.5) and takes a T2 result
+    as the attesting party's word on what ran. An executor that runs actions its operator names, such as HTTP
+    actions, can record an HTTP request under the name `Bash`: the table places it as `shell`, its result is `ok`
+    when the request succeeded (Appendix C), and a `tests_passed` claim whose suite equals the call's `command` arg
+    is `proven` though no runner ran. **Rule:** a log that offers the evidence profile MUST NOT record, under a tool
+    name the placement table places, a tool of another class (6.4), so an operator does not name an executor action
+    after a placed tool. Future work: a trust member that pins which attesting parties (`data.via`) may attest each
+    tool class, so a receiver need not trust every executor of a pinned log (Appendix B question 4).
 
 Also: PCM authenticates the signer, not the agent's intentions. A compromised agent can send any message its grants
 allow. The receiver's own policy decides what to do with an `accept`.
@@ -1444,10 +1493,10 @@ Change controller: Cygnux Labs
 
 | Name | Args | Defined in | Status |
 |---|---|---|---|
-| `tests_passed` | `suite` | 6.6 | [Tracekit] |
-| `approved_by` | `person`, `call` | 6.6 | [Tracekit] |
-| `reached_host` | `host` | 6.6 | [Tracekit] |
-| `file_written` | `path`, `digest` | 6.6 | [Tracekit] |
+| `tests_passed` | `suite` | 6.6 | [Implemented] |
+| `approved_by` | `person`, `call` | 6.6 | [Implemented] |
+| `reached_host` | `host` | 6.6 | [Implemented] |
+| `file_written` | `path`, `digest` | 6.6 | [Implemented] |
 
 A new claim type needs: its args in the schema language (5.2), an exact checker over a named evidence profile with
 `proven`, `unproven` and `failed` rules, and test vectors for each result.
@@ -1478,15 +1527,15 @@ The table from tool name to class is `registry/tools.json` (10.2).
 
 | Kind | Status |
 |---|---|
-| `text` | [Tracekit] |
-| `data` | [Tracekit] |
+| `text` | [Implemented] |
+| `data` | [Implemented] |
 | `transfer` | [Draft], section 12 |
 
 ### 17.6 Evidence profiles
 
 | Name | Defined in | Status |
 |---|---|---|
-| `tracekit.event.v2` | 6.4 | [Tracekit] |
+| `tracekit.event.v2` | 6.4 | [Implemented] |
 
 ## 18. References
 
@@ -1512,6 +1561,11 @@ The table from tool name to class is `registry/tools.json` (10.2).
 - [C2SP-NOTE] C2SP, "signed-note", https://c2sp.org/signed-note
 - [C2SP-CKPT] C2SP, "tlog-checkpoint", https://c2sp.org/tlog-checkpoint
 - [C2SP-COSIG] C2SP, "tlog-cosignature", https://c2sp.org/tlog-cosignature
+- [RFC3986] Berners-Lee, T., Fielding, R., Masinter, L., "Uniform Resource Identifier (URI): Generic Syntax", STD 66,
+  RFC 3986, 2005.
+- [RFC4291] Hinden, R., Deering, S., "IP Version 6 Addressing Architecture", RFC 4291, 2006.
+- [RFC5952] Kawamura, S., Kawashima, M., "A Recommendation for IPv6 Address Text Representation", RFC 5952, 2010.
+- [UAX15] Unicode Standard Annex #15, "Unicode Normalization Forms", https://www.unicode.org/reports/tr15/
 
 ### 18.2 Informative
 
@@ -1521,59 +1575,155 @@ The table from tool name to class is `registry/tools.json` (10.2).
 - [WHATWG-URL] WHATWG, "URL Standard", https://url.spec.whatwg.org/
 - [UTS46] Unicode Technical Standard #46, "Unicode IDNA Compatibility Processing", https://www.unicode.org/reports/tr46/
 - [RFC6838] Freed, N., Klensin, J., Hansen, T., "Media Type Specifications and Registration Procedures", RFC 6838, 2013.
-- [Tracekit] Cygnux Labs, Tracekit, https://github.com/Cygnux-Labs/Tracekit (the reference implementation:
-  `tracekit/pcm/`, `tracekit/signer/rpc_schema.py`, `tracekit/signer/service.py`, `docs/pcm.md`).
+- [Tracekit] Cygnux Labs, Tracekit, https://github.com/Cygnux-Labs/Tracekit (the reference implementation,
+  Appendix C).
 - [C2C] "Cache-to-Cache: Direct Semantic Communication Between Large Language Models", 2025 (the latent transfers
   of section 12).
 
-## Appendix A. Where this document departs from Tracekit's docs and design
+## Appendix A. Design choices
 
-The code wins. These places differ from Tracekit's design notes at the time of writing. Tracekit's user docs
-(`docs/pcm.md`, `docs/limits.md`) already match the code on each of them.
+Earlier designs of PCM made other choices in these places. This draft settles each one as shown; an implementation
+built from an earlier design changes to match.
 
-- **Signature tags.** The design says `tracekit.pcm.v2` and `tracekit.pcm-grant.v2`. The code (`format/sigmsg.py`
-  `TAGS`) signs `pcm.message.v0` and `pcm.grant.v0`. This document follows the code.
-- **Media type.** The design says `application/vnd.tracekit.pcm+json`. The code (`pcm.MEDIA_TYPE`) says
-  `application/vnd.pcm+json`.
-- **Tool placement.** The design says any opened call with a `command` field is a shell call (and a `url` field an
-  http call). The code places tools with the fixed table (`claims.placed()`).
-- **Root grants.** The design first let agent approvers issue root grants. The code (and the design's binding
-  amendment) requires a person.
-- **Grant issuer tenant and `delegable`.** Not in the design's first grant shape; both are required in the code.
-- **Evidence origin.** The design checks evidence against the sender's run only. The code also requires the
-  checkpoint origin to be the log that signed the message.
-- **`file_written`.** The design reads the file operation from the args. The code reads it from the tool name only.
-- **`tests_passed`.** The design matched a test-command pattern. The code requires a single simple command from a
-  fixed list of test runners (6.8).
-- **Held runs.** The design refused quarantined runs only; the code refuses held runs too.
+- **Signature tags.** `pcm.message.v0` and `pcm.grant.v0` (4.2), bound to the wire version (16), not tags named after
+  one product.
+- **Media type.** `application/vnd.pcm+json` (3.1), not one in a product's vendor tree.
+- **Tool placement.** By a fixed table of tool names (10.2), not by the args: an opened call with a `command` member
+  is not therefore a shell call, nor one with a `url` member an http call (14.3).
+- **Root grants.** Only from a person's approval (7.4), never from an agent approver.
+- **Grant issuer tenant and `delegable`.** Both required in every grant (7.1).
+- **Evidence origin.** Evidence must come from the sender's run and from the log that signed the message (6.2 step 2,
+  14.1), not from the sender's run alone.
+- **`file_written`.** The file operation is read from the tool name (6.6), never from the args.
+- **`tests_passed`.** A single command from a fixed list of test runners (6.8), not a match against a test-command
+  pattern.
+- **Held runs.** The signer refuses held runs as well as quarantined ones (4.4, 14.9).
 
 ## Appendix B. Open issues
 
 A review of the previous draft found an attack on its verifier rules: a `tests_passed` suite with `$'…'` quoting,
 `&` or a file named like a runner was proven though its exit status was not the tests' (14.10, 14.19, 14.23). This
 draft closes those; it has no other known open attack on its verifier rules. What `tests_passed` proves still rests
-on the receiver reading `suite` (6.6). Questions earlier drafts left open are now decided rules, each marked
-"(decided, 0.1)": canonical base64 (4.3), the PCM key (4.5), only a configured person for `approved_by` (6.6),
-absolute paths for `file_written` (6.6), host comparison and deviation characters (6.7), test commands and plain
-words (6.8), the sender pair and one acceptance per receiver (9). What remains:
+on the receiver reading `suite` (6.6), and what a T2 result proves rests on how the deployment names its tools (6.4,
+14.26). Questions earlier drafts left open are now decided rules, each marked "(decided, 0.1)": canonical base64
+(4.3), the PCM key (4.5), only a configured person for `approved_by` (6.6), absolute paths for `file_written` (6.6),
+host comparison and deviation characters (6.7), test commands and plain words (6.8), the sender pair and one
+acceptance per receiver (9). Where the reference implementation does less than this document asks, Appendix C.4 says
+so. What remains are questions for a later draft:
 
-**In the reference implementation.** Places where Tracekit does less than this document asks; each is a `lean:`
-limit in its code and a row of its `docs/limits.md`.
-
-1. **Replay state is per process** (9, 14.14). `pcm.Replay` keeps its state in memory, so a deployment with several
-   replicas per receiver identity must route each sender to one replica until Tracekit shares the state.
-2. **One grant per approval holds only after the call's result** (14.8).
-3. **Messages and grants are signed with the log key** (4.5), as the SHOULD for a dedicated key allows.
-
-**Questions for a later draft.**
-
-1. **Host reading leans on Python's `urllib`, `unicodedata` and `idna`** (6.7). A verifier in another language must
-   reproduce `urlsplit(url).hostname` and when `urlsplit` raises (its bracket checks changed in Python 3.11.4 and in
-   patch releases since), NFKC at Python's Unicode version, and the IDNA 2003 codec. A statement of the rule that
-   needs none of them, closer to the WHATWG host parser and UTS 46, is open; until then the vectors pin the cases
-   that matter and senders keep to ASCII hosts and plain URLs.
+1. **Host reading follows particular readers** (6.7). Step 2's generic reading is what Python's `urlsplit` does, and
+   it allows two bracket checks because CPython releases differ; NFKC runs at the verifier's Unicode version; and step
+   4 is IDNA 2003. A statement of the rule closer to the WHATWG host parser and UTS 46, with one bracket rule, is
+   open; until then the vectors pin the cases that matter and senders keep to ASCII hosts and plain URLs.
 2. **A dedicated PCM key is pinned like a log key** (4.5). It sits in trust.json `logs`, so a verifier would also
    take it on that log's checkpoints. A trust member that pins a key for messages and grants only would separate the
    two; it changes the trust document, so it waits for a later draft.
 3. **The regular expression dialect of `id` patterns** (5.2) is not fixed. Schema authors keep to what ECMAScript and
    Python `re` read alike.
+4. **Which attesting party may attest each tool class** (6.4, 14.26). A verifier trusts every attesting gateway or
+   executor of a pinned log to record a tool only under a name of its class. A trust member that pins which
+   attesting parties (`data.via`) may attest each class would let a receiver trust one executor's `shell` calls
+   without trusting every action of another.
+
+## Appendix C. Reference implementation
+
+This appendix is informative and is not part of the protocol. It records facts about the reference implementation,
+Tracekit [Tracekit], and about the standalone verifier in this repository, as of this draft. Where either disagrees
+with the normative text, that is a bug in one of them: open an issue.
+
+### C.1 What and where
+
+- **Version.** Tracekit after 1.4.2, with its PCM 0.1 work: signer RPC contract version 20. The module `tracekit.pcm`
+  holds the verifier (`tracekit.pcm.verify`), the claim checkers (`tracekit/pcm/claims.py`) and the CLI
+  (`tracekit pcm verify`, `tracekit pcm demo`). The signer serves the RPC calls `pcm_sign` (4.4), `pcm_grant` (7.4),
+  `pcm_delegate` (7.5) and `pcm_evidence` (6.2, 14.16) in `tracekit/signer/service.py`, with their shapes in
+  `tracekit/signer/rpc_schema.py`. Its user docs are `docs/pcm.md` and the PCM 0.1 rows of `docs/limits.md`.
+- **Generated files.** `tools/gen_schemas.py` writes `schemas/` from Tracekit's RPC shapes (`PCM_MESSAGE`,
+  `PCM_GRANT`, ...), `registry/tracekit.event.v2.json` from its event schema, and `registry/tools.json` from
+  `tracekit.pcm.claims.placed()`: the tool names the policy packs shipped with Tracekit map to a class, leaving out
+  patterns and names two packs class differently. `tools/gen_vectors.py` writes `vectors/` by running a Tracekit
+  signer and `tracekit.pcm.verify` on CPython 3.11.15 (Unicode 14.0.0), and checks that `placed()` equals
+  `registry/tools.json`.
+- **Verifiers.** Tracekit's `tracekit.pcm.verify` and the standalone `pcm_verify` in `verifier/python` (Python, with no
+  Tracekit code) are Level 2 verifiers (13.1). The standalone verifier ships a copy of `registry/tools.json` and uses
+  it unless its operator passes another. It does not implement SLH-DSA, so it fails evidence that needs a hybrid line
+  (10.1). Neither CLI keeps replay state: both are for audit (9).
+
+### C.2 Where each rule lives in Tracekit
+
+| Section | Tracekit code |
+|---|---|
+| 3.1 media type | `tracekit.pcm.MEDIA_TYPE` |
+| 3.3 strict parsing | `tracekit.format.canon.loads_strict`; the CLI reports such input as unreadable (exit 2) |
+| 4.1 JCS and `H` | `tracekit.format.canon.canonical`, `event_hash` |
+| 4.2 signature tags | `tracekit.format.sigmsg.TAGS`; Tracekit's other signed objects use tags `tracekit.<purpose>.v2` (14.5) |
+| 4.3 signatures | `tracekit.pcm.check_sig`; canonical base64 in `tracekit.format.checkpoint._unb64`; Ed25519 in `tracekit.crypto.verify_v2`, the rules of Tracekit's v2 evidence format |
+| 5 schema documents | `tracekit.pcm.SCHEMA_DOC`, `check_schema`; a bad document makes `verify` raise `ValueError` |
+| 6.2 evidence | `tracekit.pcm.claims.evidence`; notes in `tracekit.format.checkpoint.open_note` |
+| 6.6 paths | `tracekit.policy2.classes.fs_path` |
+| 6.7 hosts | `tracekit.policy2.classes.url_info`; `tracekit.pcm.claims._host`, `_a_label`, `_deviant` |
+| 6.8 test commands | `tracekit.pcm.claims.test_command`, `TEST_RUNNERS`, `NO_TESTS` |
+| 7.3 narrowing | `tracekit.pcm.narrows` |
+| 7.6 grant chains | `tracekit.pcm.verify_grants` |
+| 8 verification | `tracekit.pcm.verify` (an invalid envelope lists up to 8 reasons) |
+| 9 replay | `tracekit.pcm.Replay` |
+| 10.2 tool placement | `tracekit.pcm.claims.placed()` |
+
+### C.3 Behaviour beyond the protocol
+
+- **Signing.** The signer refuses a body whose `from` is not the calling run with `forbidden: the signer signs only as
+  the calling run's own agent (uid:990101, run …, tenant default)`, and refuses a caller that holds the run token but
+  is not the run's owner, such as a tailer or an observer (4.4). It writes an `ext` record with `name: pcm.sent` for
+  each message it signs (4.4) and one with `name: pcm.grant` for each grant (7.4).
+- **Root grants.** No policy pack shipped with Tracekit asks a person about `pcm.grant`, so a deployment adds the rule
+  itself (7.4). `docs/pcm.md` shows:
+
+  ```yaml
+  tools:
+    pcm.grant: app
+  ask:
+    - {id: PCM-GRANT, tool: pcm.grant, pattern: "^"}
+  ```
+- **Trust documents.** Tracekit's `trust.json` also has `algs`, `rekor`, `monitors`, and witnesses as
+  `{"vkey", "class"}`; a PCM verifier ignores what it does not read (10.1). Tracekit names a log
+  `tracekit.local/<log id>` by default, which is unique, but an operator can choose any origin (10.1).
+- **`id` patterns** run with Python `re` in its default Unicode mode, where `\d` also matches digits such as `٣` (5.2).
+- **Hosts.** Tracekit reads hosts with Python's `urllib.parse.urlsplit`, `unicodedata` and `idna` codec (6.7). It still
+  runs on Python 3.9, whose `urlsplit` makes neither bracket check: verify PCM messages on CPython 3.11.4 or later.
+- **The tool executor** (`tracekit/executor.py`, tier T2) runs HTTP actions its operator names in its configuration,
+  and records a call as `ok` when the upstream's HTTP status is under 400. A T2 call of a tool named `Bash` can
+  therefore be such an action (6.4, 14.26).
+- **Transports and transfers.** Tracekit's receivers call `tracekit.pcm.verify` themselves; no binding of section 11
+  is built. The transfer record of section 12 is Tracekit work not yet merged, in which the SDK call
+  `RunHandle.transfer` takes the payload bytes, the model ids, the modality, an optional projector and the options
+  `measured` and `keep`.
+- **The demo.** `tracekit pcm demo` runs the refund example of section 1 with a real signer (a separate run from the
+  vectors):
+
+  ```text
+  alice approves agent A's grant: refund.request, amount <= $200.00, order == 81, until 18:00Z, can be passed on: no
+  A -> B  refund.request {amount $120.00, order 81} + approved_by(alice)
+      B: ACCEPT           signature ok · replay ok · schema ok · grant ok (alice, 1 step) · approved_by proven
+  A -> B  same request + tests_passed(pytest tests/test_refund.py), no evidence
+      B: ACCEPT-UNPROVEN  tests_passed: unproven (no evidence)
+  A -> B  approved_by with one record hash changed
+      B: REJECT           approved_by: failed (record 1: hash does not match the event)
+  A -> B  refund.request {amount $500.00, order 81} + approved_by(alice)
+      B: REJECT           grant: grant 0: amount 50000 breaks amount <= 20000
+  A asks the signer to sign as B
+      signer: forbidden: the signer signs only as the calling run's own agent (uid:990101, run 682b33a74fb7e277f59f38d40404dcae, tenant default)
+  ```
+
+### C.4 Where it does less than this document asks
+
+Each is marked `lean:` in Tracekit's code and has a row in its `docs/limits.md`.
+
+1. **Replay state is per process** (9, 14.14). `tracekit.pcm.Replay` keeps its state in memory, so a deployment with
+   several replicas per receiver identity must route each sender to one replica until Tracekit shares the state.
+2. **One grant per approval holds only after the call's result** (7.4, 14.8). Until the `pcm.grant` call has its
+   result, repeated `pcm_grant` calls on the same consumed approval can mint grants that differ only in `ts`.
+   Tracekit's SDK completes the call at once.
+3. **Messages and grants are signed with the log key** (4.5), as the MAY allows, not with a dedicated PCM key.
+
+Also marked `lean:` in its code, though this document asks no more: messages and grants carry no SLH-DSA signature
+(4.3); the deviation check covers a call's whole URL (6.7 step 3); and hosts follow IDNA 2003, not UTS 46 (6.7).
