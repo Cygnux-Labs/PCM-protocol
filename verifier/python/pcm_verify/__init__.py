@@ -631,7 +631,8 @@ def tests_passed(a, recs):
 def approved_by(a, recs):
     """SPEC 6.6: the person's approval of call `call`, with the approval.request it answers and the policy.decision
     that request names. The call id is the agent's own name for the call, so only the decision says what was approved:
-    the detail names its tool, and its args when the evidence opens them."""
+    a proven claim adds its {tool, args} (args None unless the evidence opens them), and the detail names them too,
+    the agent's tool name as JSON so it can't spell args."""
     best = ("failed", f"no approval of {a['call']} by the person {a['person']}")
     for e, _ in recs:
         d = _data(e)
@@ -645,8 +646,9 @@ def approved_by(a, recs):
             c = _data(x)
             if x.get("type") == "policy.decision" and c.get("decision_id") in asked \
                     and c.get("tool_use_id") == a["call"] and c.get("tool"):
-                return "proven", (f"approval seq {e.get('seq')} by {a['person']} of {c['tool']} call {a['call']}"
-                                  + ("" if args is None else f" with args {jcs(args).decode()}"))
+                return "proven", (f"approval seq {e.get('seq')} by {a['person']} of {jcs(c['tool']).decode()} call "
+                                  f"{a['call']}" + ("" if args is None else f" with args {jcs(args).decode()}")), \
+                    {"tool": c["tool"], "args": args}
         best = ("failed", f"approval seq {e.get('seq')} by {a['person']} of {a['call']}, but the evidence holds no "
                           "decision of the call it approved: add the approval.request it answers and the "
                           "policy.decision that request names")
@@ -718,16 +720,38 @@ def _canonical_host(host):
     return f"[{ip}]" if ip.version == 6 else str(ip)
 
 
+def _brackets_ok(url):
+    """SPEC 6.7's bracket rule on the authority of the generic reading of `url`: no `[` or `]`, or one of each around
+    an IPv6 or IPvFuture address that opens the host after the last `@`, followed by nothing or `:`. urlsplit's own
+    check differs between Python releases, and every release reads a URL that passes alike."""
+    u = re.sub(r"[\t\n\r]", "", url.lstrip(_C0))
+    u = u[m.end():] if (m := re.match(r"[A-Za-z][A-Za-z0-9+.-]*:", u)) else u
+    auth = re.split(r"[/?#]", u[2:], maxsplit=1)[0] if u.startswith("//") else ""
+    if "[" not in auth and "]" not in auth:
+        return True
+    host = auth.rpartition("@")[2]
+    inside, close, after = host[1:].partition("]")
+    if (auth.count("["), auth.count("]")) != (1, 1) or host[:1] != "[" or not close or after[:1] not in ("", ":"):
+        return False
+    try:
+        ipaddress.IPv6Address(inside)
+    except ValueError:
+        return re.fullmatch(r"v[0-9A-Fa-f]+\..+", inside) is not None
+    return True
+
+
 def url_info(url):
     """{} when the URL (http:// in front when it has no scheme) has no host, or a scheme other than a special one
-    (SPEC 6.7 step 2); {"host": None} when Python's urlsplit refuses it (a `[` it can't read); else {"host": the
-    canonical host, or _BAD, "ambiguous": whether a browser and urlsplit read different hosts}."""
+    (SPEC 6.7 step 2); {"host": None} when the generic reading refuses it (the bracket rule, or Python's urlsplit);
+    else {"host": the canonical host, or _BAD, "ambiguous": whether a browser and urlsplit read different hosts}."""
     if not re.match(r"(?i)[\x00-\x20]*((https?|wss?|ftp|file):|[a-z][a-z0-9+.-]*:(?![0-9])|[/\\]{2})",
                     re.sub(r"[\t\n\r]", "", url)):
         url = "http://" + url
     scheme, wh = _whatwg_host(url)
     if scheme not in (*SPECIAL, None):   # file:, mailto:, gopher:: no host a browser reads
         return {}
+    if not _brackets_ok(url):
+        return {"host": None}
     try:
         rh = urlsplit(url).hostname
     except ValueError:
@@ -736,7 +760,10 @@ def url_info(url):
     return {"host": hosts[0], "ambiguous": len(set(hosts)) > 1} if hosts else {}
 
 
-DEVIATIONS = re.compile("[\u00df\u03c2\u200c\u200d]")   # UTS 46's deviation characters (SPEC 6.7 step 3)
+# SPEC 6.7 step 3: UTS 46's deviation characters, and capital sharp s, which case folding makes ss and UTS 46 a sharp s
+DEVIATIONS = re.compile("[\u00df\u03c2\u1e9e\u200c\u200d]")
+# SPEC 6.7 step 4: Cherokee letters, which Nameprep's Unicode 3.2 table keeps and Python's codec lower-cases
+CHEROKEE = re.compile("[\u13a0-\u13f5\u13f8-\u13fd\uab70-\uabbf]")
 
 
 def _deviant(text):
@@ -756,12 +783,14 @@ def _a_label(h):
         except ValueError:
             return None
     name = h[:-1] if h.endswith(".") else h
+    if not name or name.endswith(".") or CHEROKEE.search(name):
+        return None
     # lean: IDNA 2003 (the stdlib), as the reference runs it, not UTS 46; follow the SPEC if it moves to UTS 46
     try:
-        label = name.encode("idna").decode("ascii") if name and not name.endswith(".") else None
+        label = name.encode("idna").decode("ascii")
     except UnicodeError:
         return None
-    return label if label and re.fullmatch(r"[a-z0-9_-]+(\.[a-z0-9_-]+)*", label) else None
+    return label if re.fullmatch(r"[a-z0-9_-]+(\.[a-z0-9_-]+)*", label) else None
 
 
 def _host(host):
@@ -845,18 +874,20 @@ CHECKERS = {"tests_passed": tests_passed, "approved_by": approved_by, "reached_h
 
 
 def check_claim(c, msg, trust):
+    """{type, result, detail} of a claim, and for a proven approved_by `approved`: {tool, args} (SPEC 6.6)."""
     errs = check_args(CLAIM_ARGS[c["type"]], c["args"])
     bad = "; ".join(errs) if errs else malformed(c["type"], c["args"])   # with or without evidence (SPEC 6.1)
+    approved = []
     if bad:
         result, detail = "failed", bad
     elif "evidence" not in c:
         result, detail = "unproven", "no evidence"
     else:
         try:
-            result, detail = CHECKERS[c["type"]](c["args"], evidence(c["evidence"], msg, trust))
+            result, detail, *approved = CHECKERS[c["type"]](c["args"], evidence(c["evidence"], msg, trust))
         except EvidenceError as e:
             result, detail = "failed", str(e)
-    return {"type": c["type"], "result": result, "detail": detail}
+    return {"type": c["type"], "result": result, "detail": detail, **({"approved": approved[0]} if approved else {})}
 
 
 # ---------------------------------------------------------------------------------------------------- grants

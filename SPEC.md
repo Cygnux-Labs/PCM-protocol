@@ -168,18 +168,18 @@ The message, with its claim and grant shown in sections 6.6 and 7.1:
 
 ```json
 {
- "from": {"agent": "uid:990101", "run": "ca4ca057363ca9d4028c7dd8b6bc5084", "tenant": "default"},
+ "from": {"agent": "uid:990101", "run": "b51de2128d0a77cee8bdf8c3c814458d", "tenant": "default"},
  "to": {"agent": "uid:990102"},
  "intent": {"type": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
             "args": {"amount": 12000, "order": 81}},
  "claims": ["... one approved_by claim, section 6.6 ..."],
  "grants": ["... alice's root grant, section 7.1 ..."],
  "pcm": 0,
- "id": "ee4a6471b915e045f702dbb510f20c6e",
- "ts": "2026-10-27T18:03:28.036966Z",
- "nonce": "384f379ffc2524d63ab12057b19e6465",
+ "id": "2fc20b5deea10b46385aa081ddd3b499",
+ "ts": "2026-10-27T20:35:13.408460Z",
+ "nonce": "43887dbc66f4972f5f9bb0a6135095fe",
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "91qFTtYibJ9vTNUjSfl5aDKn49M0j5/Q26QSmjaAGzDKzv6W5BUldEK47avP/LhLHKFQOzZ+stCdjwpVauzvCA=="}
+         "sig": "fm6rejPt7l3jmfZh0uIDaJS1n498+KDipZnDQOg6e6WfbWWFOWyrk49imJb7M9sNtAfeqrezpolzag0mrFM6Ag=="}
 }
 ```
 
@@ -217,7 +217,7 @@ The bytes signed for the message in 3.4 start:
 and further on, in JCS key order:
 
 ```
-..."nonce":"384f379ffc2524d63ab12057b19e6465","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
+..."nonce":"43887dbc66f4972f5f9bb0a6135095fe","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
 ```
 
 The note's line breaks appear as the two characters `\n`: JCS escapes them.
@@ -464,8 +464,9 @@ args are read by a claim checker. **[Implemented]**
 ### 6.4 The evidence profile `tracekit.event.v2`
 
 Claim checkers read records. Which fields they read, and what the fields mean, is an **evidence profile**. PCM 0.1
-defines one profile, `tracekit.event.v2`: the v2 event format of [Tracekit] (`schema_version: "tracekit.event.v2"`),
-whose event schema this repository ships as `registry/tracekit.event.v2.json`. **[Implemented]**
+defines one profile, `tracekit.event.v2`: a record is an event that `registry/tracekit.event.v2.json` in this
+repository defines (`schema_version: "tracekit.event.v2"`); that schema is part of this specification. The format
+comes from the v2 events of [Tracekit]. **[Implemented]**
 
 The profile's trust assumptions. A verifier relies on them, and a log that offers this profile MUST meet them:
 
@@ -510,15 +511,15 @@ The fields each checker reads:
 A real `approval` record, as evidence carries it:
 
 ```json
-{"schema_version": "tracekit.event.v2", "id": "c3dce747e850569b74e3891aba636393", "seq": 5,
- "prev_hash": "sha256:b7bfb9e79279fb53a9150a44703370a7b638b87f74eb35badd72dce8508eec24",
- "ts": "2026-10-27T18:03:28.018920Z", "run_id": "ca4ca057363ca9d4028c7dd8b6bc5084", "agent_id": "main",
+{"schema_version": "tracekit.event.v2", "id": "bd412ff9e2fa862a3cde692ac74c185d", "seq": 5,
+ "prev_hash": "sha256:d160efaadaeb378b6904bf2357d4439329d3a11b01163e2dd684cce0b308494a",
+ "ts": "2026-10-27T20:35:13.391183Z", "run_id": "b51de2128d0a77cee8bdf8c3c814458d", "agent_id": "main",
  "parent_id": null, "source": "sdk", "type": "approval",
- "data": {"tool_use_id": "grant-1", "approval_id": "apr-1d2c2e92bc8d5d9eeef19ecfd943aa94", "decision": "approve",
+ "data": {"tool_use_id": "grant-1", "approval_id": "apr-b2b78a98eaef5792490dea71e0f01695", "decision": "approve",
           "approver": "uid:990001", "approver_identity": {"scheme": "uid", "subject": "990001", "attested": true},
           "channel": "rpc", "self_approved": false, "person": "alice"},
- "tenant": "default", "log_id": "b92395338b39e901fa25715a224ab0eb", "run_seq": 3,
- "run_prev_hash": "sha256:b7bfb9e79279fb53a9150a44703370a7b638b87f74eb35badd72dce8508eec24",
+ "tenant": "default", "log_id": "42aaf90f74fdd29f4c1db7549ceefa98", "run_seq": 3,
+ "run_prev_hash": "sha256:d160efaadaeb378b6904bf2357d4439329d3a11b01163e2dd684cce0b308494a",
  "request_id": "r4", "tool_call_id": "grant-1"}
 ```
 
@@ -556,13 +557,13 @@ holds an opened decision and its result, both recorded through an attesting exec
 ```json
 [{"event": {"type": "policy.decision", "seq": 10, "source": "gateway", "tier": "T2", "...": "...",
             "data": {"tool_use_id": "call-9", "tool": "Bash", "decision": "allow",
-                     "decision_id": "dec-b2aed75524671c455994060babfe77c6", "via": "mtls:spiffe://example/executor",
-                     "args_commitment": "hmac-sha256:a63fb58a71f320704ce7d261fdb2c2b1d5abc9558994ed04a7310a61817816fb",
+                     "decision_id": "dec-750413eaedc678a9ba93cc31306842ca", "via": "mtls:spiffe://example/executor",
+                     "args_commitment": "hmac-sha256:aae21d33330eabc315947887194b0cc200151d0f788657fd8746ea76d1596969",
                      "...": "..."}},
-  "salt": "72f361d4f482f64aa98783623c1cd020c807e193d2f72656f0ee71198788f9d3",
+  "salt": "02230c6b5f9902265504aa82d6f113a212182fb74a82acfb85d816ce6b94253c",
   "args": {"command": "pytest -q tests/test_refund.py"}, "hash": "...", "proof": ["..."]},
  {"event": {"type": "tool.result", "seq": 11, "source": "gateway", "tier": "T2", "...": "...",
-            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-b2aed75524671c455994060babfe77c6",
+            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-750413eaedc678a9ba93cc31306842ca",
                      "via": "mtls:spiffe://example/executor", "...": "..."}},
   "hash": "...", "proof": ["..."]}]
 ```
@@ -621,16 +622,23 @@ Else `failed`. An approval that meets item 1 without the other two is `failed` t
 holds no decision of the call it approved"): the sender chooses its evidence and can always add them, and without them
 the agent's call id is all that would say what was approved (vectors `reject-claim-approved-by-without-decision`;
 `reject-claim-approved-by-other-decision`, where the agent decided two calls under one id and the evidence holds the
-decision the request does not name). No T2 is needed: the signer writes all three records. An agent approver's answer
-(`reject-claim-approved-by-agent-approver`) and a self-approval (`reject-claim-approved-by-self-approval`: erin
-approves a call of her own agent's run) prove no person's approval.
+decision the request does not name). No T2 is needed: the signer writes all three records. An answer of `reject`
+(`reject-claim-approved-by-rejected-answer`), an agent approver's answer (`reject-claim-approved-by-agent-approver`)
+and a self-approval (`reject-claim-approved-by-self-approval`: erin approves a call of her own agent's run) prove no
+person's approval. Records a pinned log could write against these rules fail too: a request that names another
+approval (`reject-claim-approved-by-request-of-another-approval`), a decision of another call
+(`reject-claim-approved-by-decision-of-another-call`) or of no tool (`reject-claim-approved-by-decision-without-tool`).
 
-**What was approved (decided, 0.1).** The `detail` of a proven claim MUST name the decision's `data.tool` and, when the
-evidence opens the decision (6.3), its opened args, in full, as JCS: `approval seq 5 by alice of pcm.grant call
-grant-1`, or `approval seq 7 by alice of read_file call refund-81-approved with args {"path":"/etc/motd"}`. A receiver
-MUST read the tool and args in the detail, not only the result. Rationale: the agent names its calls, so a claim that
-alice approved `refund-81-approved` can be proven by her approval of a `read_file` call the agent named so; only the
-decision says what she saw. The args are never cut short, so padding can't push a field out of sight.
+**What was approved (decided, 0.1).** The result of a proven claim MUST carry the member `approved`:
+`{"tool": <the decision's data.tool>, "args": <its args as the evidence opens them (6.3), or null>}`. A receiver MUST
+read `approved`, not only `result`. Its `detail` names the same, with the tool as a JSON string and the args in full
+as JCS: `approval seq 5 by alice of "pcm.grant" call grant-1`, or `approval seq 7 by alice of "read_file" call
+refund-81-approved with args {"path":"/etc/motd"}`. Only a proven `approved_by` result has `approved`. Rationale: the
+agent names its calls, so a claim that alice approved `refund-81-approved` can be proven by her approval of a
+`read_file` call the agent named so; only the decision says what she saw. `approved` is a conformance field (13.2), so
+every verifier gives a receiver the same answer; `data.tool` is any string the agent chose, so in a detail it is
+quoted, and a tool named `pay call grant-1 with args {"amount":20000} and read_file` can't read as opened args. The
+args are never cut short, so padding can't push a field out of sight.
 
 **Only a configured person (decided, 0.1).** `person` is compared with `data.person` only, never with
 `data.approver`. `data.person` is there only when the signer's approvals configuration maps the answering identity
@@ -640,7 +648,7 @@ human looked. **[Implemented]** (vector `reject-claim-approved-by-unmapped-ident
 maps to it.)
 
 What `proven` means: the person the signer's approvals configuration names `person` answered "approve" when the
-signer asked about the decision the detail names: a call `call` of that tool, with those args when opened.
+signer asked about the decision `approved` names: a call `call` of that tool, with those args when opened.
 
 The claim of `accept-approved-by`, with its evidence (the decision, the request and the approval of 6.4; events
 shortened to the fields the checker reads):
@@ -648,28 +656,29 @@ shortened to the fields the checker reads):
 ```json
 {"type": "approved_by", "args": {"person": "alice", "call": "grant-1"},
  "evidence": {
-  "checkpoint": "example.com/pcm-test-log\n9\n/PdGPT4fz2Qqik7tDD+59ec2+roL3q+25cFqZzX5HCQ=\n\n— example.com/pcm-test-log C7keZim/1AcIBBK2FDzACejPPJnYomqvV5YeLHAf7hcw3bOLcp/Ljkq0Z0ZXI6eVUi0Oy6qWbyokRbUHCFo9o7mI5gE=\n",
+  "checkpoint": "example.com/pcm-test-log\n9\n7+cxC9md+nWi8SUPkEqwSIfU+Pi3dU3hu/L1g4zPzG0=\n\n— example.com/pcm-test-log C7keZhR5ekRkqKqdIBAjBnRhjKpSnTHu8um+NvJHIUmjrdbe/r3OPF2okpTcrPDIXmXcoYPeM5u8Dj8zws+NajCNpAg=\n",
   "records": [
    {"event": {"type": "policy.decision", "seq": 3, "...": "...",
               "data": {"tool_use_id": "grant-1", "tool": "pcm.grant", "decision": "ask",
-                       "decision_id": "dec-2e2a9d71b749a89e9cffe63add596a76", "...": "..."}},
-    "hash": "sha256:9e38ce5476297488576fb62725aed11943a9708c22472fbc41f41a049b502afe",
-    "proof": ["wef20f80k8WeOsGoGUOn4R+z1W9NhKnFZ/I6eGcVonQ=", "ouTsrhuiukTEQfy0YtNc60lSsTwyt6aKxR+gpkvBEVk=",
-              "ysORMuiFrvAH/6VringqIYAMnB/B5Sb46qfmTneRgz0=", "qwNLUg28jmVldV3QwzWpx7ymvLv4MkL4bEoFIsAzM2w="]},
+                       "decision_id": "dec-5cdcc1234e5c3e0de1118fdda662405e", "...": "..."}},
+    "hash": "sha256:9c7441521d602496a247e27eddc15bc9ad15571ab94a50fedf7f1fc5c7e8979e",
+    "proof": ["l8NTPJlhD24+JUi0uQMnGXOv95pIMBPW4TzZGlVY41E=", "/ZY68N7KT6ZvxMZOSHvis02lfbRLmNmob4D05Ei3xKo=",
+              "xtKLtfh44/2xkAzlN/+6PNuoMqezkbcE+KwWe4P/VtQ=", "mqcsLLicWhyrk1Lg8gUdE2j9gqrQLeoP8VCKQGeclgo="]},
    {"event": {"type": "approval.request", "seq": 4, "...": "...",
-              "data": {"approval_id": "apr-1d2c2e92bc8d5d9eeef19ecfd943aa94",
-                       "decision_id": "dec-2e2a9d71b749a89e9cffe63add596a76", "...": "..."}},
-    "hash": "sha256:b7bfb9e79279fb53a9150a44703370a7b638b87f74eb35badd72dce8508eec24",
-    "proof": ["1s8xpq57AtJUYul2YyP7DFeHdN3NHxZWvuqNfFGtGkA=", "7oIg3wsiWUySx219/g+dK2De4Oi2IBbmuKn2YFj4Nns=",
-              "1BIwB/g9zRm8MwAwlRjogiUXj/WoB+HPW6gbzuEGm/c=", "qwNLUg28jmVldV3QwzWpx7ymvLv4MkL4bEoFIsAzM2w="]},
+              "data": {"approval_id": "apr-b2b78a98eaef5792490dea71e0f01695",
+                       "decision_id": "dec-5cdcc1234e5c3e0de1118fdda662405e", "...": "..."}},
+    "hash": "sha256:d160efaadaeb378b6904bf2357d4439329d3a11b01163e2dd684cce0b308494a",
+    "proof": ["03m70r6sUVlS5pzbHV8a2ylg/YmTR26QJ27eKiXL86s=", "IQ6jHxOM6THV/kibP2h1IVCWu2Wm966k5gThe8iIk94=",
+              "Qx76D/T7jXm9m9QMXZJoxRF4Ri9py9DBg5p9pbxgGnI=", "mqcsLLicWhyrk1Lg8gUdE2j9gqrQLeoP8VCKQGeclgo="]},
    {"event": {"...": "the approval record of 6.4"},
-    "hash": "sha256:0f3241ada46c102736f2531a440e3bb942c426bd8800acf15549995de97f64ea",
-    "proof": ["tsoD/Lx6qYUuOqo1BTmgDMxGfnyoxxo9y6qMWx59L6A=", "7oIg3wsiWUySx219/g+dK2De4Oi2IBbmuKn2YFj4Nns=",
-              "1BIwB/g9zRm8MwAwlRjogiUXj/WoB+HPW6gbzuEGm/c=", "qwNLUg28jmVldV3QwzWpx7ymvLv4MkL4bEoFIsAzM2w="]}]}}
+    "hash": "sha256:6b16b139d3756c047b752ef2b35524b7093b31e958756a0bdd4caad4e63f02ea",
+    "proof": ["iRiuuEElCiDO0B+zZocjNJbzWTfE6ISEC/2OGj7oWJU=", "IQ6jHxOM6THV/kibP2h1IVCWu2Wm966k5gThe8iIk94=",
+              "Qx76D/T7jXm9m9QMXZJoxRF4Ri9py9DBg5p9pbxgGnI=", "mqcsLLicWhyrk1Lg8gUdE2j9gqrQLeoP8VCKQGeclgo="]}]}}
 ```
 
-Result: `{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of pcm.grant call grant-1"}`:
-alice approved the `pcm.grant` call that asked for the grant of 7.1. The vectors
+Result: `{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of \"pcm.grant\" call grant-1",
+"approved": {"tool": "pcm.grant", "args": null}}`: alice approved the `pcm.grant` call that asked for the grant of 7.1
+(the evidence does not open its args). The vectors
 show the other outcomes: one hex digit of `hash` changed (`reject-claim-changed-record-hash`: "record 1: hash does not
 match the event"), the proof's last hash cut (`reject-claim-cut-proof`), another person named
 (`reject-claim-wrong-person`), the approval of another call (`reject-claim-approval-of-another-call`), a proof entry
@@ -699,8 +708,12 @@ Hosts are compared in the form of 6.7.
 Vectors: `accept-reached-host-http` (`https://API.Example.COM:8443/v1` is `api.example.com`),
 `accept-reached-host-claim-port`, `accept-reached-host-trailing-dot`, `accept-reached-host-short-ipv4`,
 `accept-reached-host-idn`, `accept-reached-host-unassigned`, `reject-claim-reached-host-other-host`,
-`reject-claim-reached-host-file-url`, `accept-unproven-reached-host-bracket`, `accept-unproven-reached-host-ambiguous`,
-`accept-unproven-reached-host-deviation`, `accept-unproven-reached-host-no-ipv6`, `accept-unproven-reached-host-nul`,
+`reject-claim-reached-host-file-url`, `accept-unproven-reached-host-bracket`,
+`accept-unproven-reached-host-bracket-ipv6-userinfo`, `accept-unproven-reached-host-bracket-other-host`,
+`accept-unproven-reached-host-two-brackets`, `accept-unproven-reached-host-bracket-trailing`,
+`accept-unproven-reached-host-bracket-not-host`, `accept-unproven-reached-host-ambiguous`,
+`accept-unproven-reached-host-deviation`, `accept-unproven-reached-host-capital-sharp-s`,
+`accept-unproven-reached-host-cherokee`, `accept-unproven-reached-host-no-ipv6`, `accept-unproven-reached-host-nul`,
 `accept-unproven-reached-host-claim-bad-port`, `accept-unproven-reached-host-no-connection`,
 `accept-unproven-reached-host-sensor-connect`, `reject-claim-reached-host-denied-connect`.
 
@@ -734,8 +747,8 @@ Steps 1 and 2 make a claim malformed, so they apply with or without evidence (6.
    `reject-claim-file-written-relative` (a Write of the same relative path, which would match without this rule),
    `reject-claim-file-written-relative-no-evidence`.
 3. Else `Ran(match)` with no class. `match` is no unless all of these hold:
-   - the tool is a write tool: its name maps to the file operation `write` in the reference table, which in 0.1 is the
-     tool `Write` only (an `op` member in the args is the agent's word and is ignored);
+   - the tool is `Write` (an `op` member in the args is the agent's word and is ignored, and so is another tool whose
+     args carry a path and content: vector `reject-claim-file-written-not-write-tool`, an `Edit`);
    - the file path of the args (the first non-null of `file_path`, `notebook_path`, `path`) is a string;
    - the args member `content` is a string, and `"sha256:" + hex(SHA-256(UTF-8 content)) == digest` (what `sha256sum`
      prints for the file, with `sha256:` in front). Edits without the full content never count.
@@ -745,7 +758,10 @@ Steps 1 and 2 make a claim malformed, so they apply with or without evidence (6.
    - `got` absolute and `got == want`: yes under POSIX rules. Under Windows rules, yes only when `raw` is the claim's
      `path` exactly, else can't tell: `C:/work/a.txt` is the claim's file `C:\work\a.txt` on Windows but a relative
      path on POSIX, and the record does not say which system ran the call (vectors `accept-file-written-drive-path`,
-     `accept-unproven-file-written-drive-separators`).
+     `accept-unproven-file-written-drive-separators`). So a proven drive path assumes the call ran on Windows: on a
+     POSIX executor the claim's own string names a relative file of that name, and the claim is still `proven`, since
+     the claim and the call carry the same string. A receiver that does not know the sender's executor runs Windows
+     SHOULD take such a claim as saying no more than that a file of that name was written.
    - `got` not absolute, where `"/" + want` ends with `"/" + got`: can't tell: the record does not hold the working
      directory, so it may be this file or another (`unproven`, never `proven`; vector
      `accept-unproven-file-written-relative-call`).
@@ -754,7 +770,8 @@ Steps 1 and 2 make a claim malformed, so they apply with or without evidence (6.
 
 Vectors: `accept-file-written`, `reject-claim-file-written-wrong-digest`, `reject-claim-file-written-dotdot`,
 `reject-claim-file-written-relative`, `accept-unproven-file-written-relative-call`, `reject-claim-file-written-backslash`,
-`accept-unproven-file-written-drive-separators`, `accept-file-written-drive-path`.
+`accept-unproven-file-written-drive-separators`, `accept-file-written-drive-path`,
+`reject-claim-file-written-not-write-tool`.
 
 ### 6.7 Hosts (decided, 0.1)
 
@@ -792,35 +809,37 @@ since the reference implementation uses them. The vectors were made on CPython 3
         digits, `+`, `-` and `.`, remove it and that `:`.
      3. If what remains does not start with `//`, there is no host. Else the authority is what follows the `//` up
         to the first `/`, `?` or `#` (`\` is no delimiter here).
-     4. The URL is refused when the authority holds a `[` but no `]`, or a `]` but no `[`; when it holds both and
-        fails the bracket check below; and when it holds a code point outside ASCII and, with every `@`, `:`, `#`
-        and `?` removed, its NFKC form [UAX15] differs from it and holds a `/`, `?`, `#`, `@` or `:`.
+     4. The URL is refused when the authority fails the bracket rule below, and when it holds a code point outside
+        ASCII and, with every `@`, `:`, `#` and `?` removed, its NFKC form [UAX15] differs from it and holds a `/`,
+        `?`, `#`, `@` or `:`.
      5. The reading is the part of the authority after its last `@`: when that holds a `[`, what lies between its
         first `[` and the next `]` (or the end); else what comes before its first `:`. Its text before its first
         `%` is put in lower case (the Unicode lower case mapping).
 
-     The **bracket check** takes the part of the authority after its last `@`. If that part holds a `[`, nothing may
-     come before its first `[`, and after the next `]` there must be nothing or a `:`; the text between the two (up to
-     the end when no `]` follows) is checked. Else its text before its first `:` is checked. The checked text passes
-     when it is an IPv6 address (a text form of [RFC4291] section 2.2, optionally followed by `%` and a zone id of one
-     or more characters other than `%`) or an IPvFuture address [RFC3986] written as a lowercase `v`, one or more hex
-     digits, `.` and one or more characters. A verifier MAY instead check, by the same test, the text between the
-     first `[` of the whole authority and the next `]`. The two checks differ only when the authority holds brackets
-     other than one pair around its host (`http://[::1]@good.com/` passes the second and fails the first), so senders
-     SHOULD NOT send such URLs (Appendix B question 1). Both refuse `http://[x]@good.com/` (vector
-     `accept-unproven-reached-host-bracket`).
-
-     **A reader without the bracket check (decided, 0.1).** A verifier whose generic reading makes neither bracket
-     check MUST instead take a call's URL that holds a `[` or `]` anywhere, other than one `[` and one `]` around a
-     host whose canonical form (step 3) is an IPv6 address, as a URL whose host won't parse. An IPv4-mapped or NAT64
-     address in brackets has an IPv4 canonical form, so its brackets count. Such a verifier can give `unproven` where
-     one that checks gives `proven` or `failed` (`http://good.com/a[1]`), never the reverse. Rationale: a reader
-     without the check reads a host from `http://[x]@good.com/`, which a checking reader refuses, so the bracket is a
-     place where the two readers differ, and a host two readers read apart proves nothing.
+     **The bracket rule (decided, 0.1).** An authority with no `[` and no `]` passes. Any other passes only when all
+     of these hold: it holds exactly one `[` and one `]`; the `[` is the first character after the authority's last
+     `@` (its first character when it has no `@`); the `]` comes after the `[` and is followed by nothing or by `:`;
+     and the text between them is an IPv6 address (a text form of [RFC4291] section 2.2, optionally followed by `%`
+     and a zone id of one or more characters other than `%`) or an IPvFuture address [RFC3986] written as a lowercase
+     `v`, one or more hex digits, `.` and one or more characters. So `http://[::1]:8080/` and `http://u@[::1]/x` pass,
+     and these are refused: `http://[x]@good.com/` (vector `accept-unproven-reached-host-bracket`),
+     `http://[::1]@api.example.com/` (`accept-unproven-reached-host-bracket-ipv6-userinfo`),
+     `http://[::1]@evil.example/` (`accept-unproven-reached-host-bracket-other-host`), `http://[zz]@[::1]/`
+     (`accept-unproven-reached-host-two-brackets`), `http://[::1]x/` (`accept-unproven-reached-host-bracket-trailing`)
+     and `http://[@x::1]/` (`accept-unproven-reached-host-bracket-not-host`). Brackets in the path, query or fragment
+     are outside the authority and don't count (`http://good.com/a[1]`). A verifier MUST make this check itself, on
+     the authority of this step, and MUST NOT rest on a URL library's own bracket check. Rationale: URL libraries
+     check brackets in different ways, and each reads a host from some URL another refuses. CPython's `urlsplit` has
+     made, in different releases, no check, a check of the first bracketed part of the whole authority, and a check
+     of the part after the last `@`; verifiers on two releases gave one message different verdicts, `accept` against
+     `accept-unproven` (`http://[::1]@api.example.com/`) and `accept-unproven` against `reject`
+     (`http://[::1]@evil.example/` for a claim of `api.example.com`). The rule passes only URLs whose host every one
+     of those checks reads alike. It refuses some URLs a browser reads (`http://[zz]@[::1]/` reaches `[::1]`), which
+     then give `unproven`.
 
      Note: the generic reading is Python's `urllib.parse.urlsplit(url).hostname`, which refuses a URL by raising
-     `ValueError`. CPython 3.11.12 and later make the first bracket check, 3.11.4 to 3.11.11 the second, and earlier
-     releases neither, so a verifier that uses `urlsplit` on a release before 3.11.4 applies the rule above.
+     `ValueError`. No CPython release's bracket check refuses a URL that passes the bracket rule, so a Python
+     verifier checks the rule first and then calls `urlsplit`.
 
    An empty reading counts as none. A URL the generic reading refuses: the host won't parse. Else put each reading
    that is not none in canonical form (step 3). Neither reading: the URL has no host. Two readings whose canonical
@@ -830,13 +849,15 @@ since the reference implementation uses them. The vectors were made on CPython 3
    browser reading is none.
 3. **Canonical form.** Percent-decode as UTF-8 (a `%` and two hex digits is a byte; a `%` without them stays as it
    is; an invalid byte sequence becomes U+FFFD, which step 4 refuses) and apply Unicode NFKC [UAX15].
-   **Deviation characters (decided, 0.1).** If the result holds U+00DF `ß`, U+03C2 `ς`, U+200C ZWNJ or U+200D ZWJ,
-   it won't parse. For a call's URL this check is made once, on the whole URL, percent-decoded and NFKC-normalised,
-   not on each reading, so one in the path also gives `unproven` where a check of the host alone could match.
-   Rationale: these are the four characters UTS 46 nontransitional processing, which browsers use, keeps where
-   IDNA 2003 maps them away, so `faß.example` is `xn--fa-hia.example` to a browser and `fass.example` to the
-   conversion of step 4; with them refused, the two either agree or one refuses (vector
-   `accept-unproven-reached-host-deviation`). Then read U+3002 as `.` and apply Unicode full case folding.
+   **Deviation characters (decided, 0.1).** If the result holds U+00DF `ß`, U+1E9E `ẞ`, U+03C2 `ς`, U+200C ZWNJ or
+   U+200D ZWJ, it won't parse. For a call's URL this check is made once, on the whole URL, percent-decoded and
+   NFKC-normalised, not on each reading, so one in the path also gives `unproven` where a check of the host alone
+   could match. Rationale: `ß`, `ς`, ZWNJ and ZWJ are the four characters UTS 46 nontransitional processing, which
+   browsers use, keeps where IDNA 2003 maps them away, so `faß.example` is `xn--fa-hia.example` to a browser and
+   `fass.example` to the conversion of step 4 (vector `accept-unproven-reached-host-deviation`). UTS 46 maps `ẞ` to
+   `ß` and keeps it, while NFKC leaves `ẞ` and the case folding below makes it `ss`, so `faẞ.example` reads the same
+   two ways (vector `accept-unproven-reached-host-capital-sharp-s`). With the five refused, the two either agree or
+   one refuses. Then read U+3002 as `.` and apply Unicode full case folding.
 
    A result that holds a `:` won't parse unless, with every `[` and `]` at its ends removed and its zone id (from its
    first `%` on) dropped, it is an IPv6 address. Otherwise split it at `.`, leaving out one empty last part. When the
@@ -855,7 +876,14 @@ since the reference implementation uses them. The vectors were made on CPython 3
 4. **A-label.** A host that starts with `[` stays as it is if it is `[`, an IPv6 address and `]`; else it won't
    parse (`http://%5b::1%5d/` decodes to the host `[`; vector `accept-unproven-reached-host-no-ipv6`). Otherwise drop
    one trailing dot (vector `accept-reached-host-trailing-dot`); if the rest is empty or still ends with `.`, it won't
-   parse. Then convert it to ASCII by IDNA 2003 [RFC3490]: an all-ASCII name is kept as it is, and each label must
+   parse. **Cherokee letters (decided, 0.1).** If the rest holds a Cherokee letter (U+13A0 to U+13F5, U+13F8 to
+   U+13FD or U+AB70 to U+ABBF; after the case folding of step 3 only the first range is left), it won't parse.
+   Rationale: Nameprep's case mapping (its table B.2, from Unicode 3.2) has no Cherokee pairs and UTS 46 keeps the
+   capitals, but Python's `idna` codec lower-cases each capital to U+AB70 to U+ABBF by its own Unicode version, so
+   `aᎠb.example` is `xn--ab-5f1i.example` to the codec and `xn--ab-y8l.example` to the others (vector
+   `accept-unproven-reached-host-cherokee`). The Cherokee capitals are the only code points that case folding leaves
+   alone and the codec's lower-casing changes. Then convert the name to ASCII by IDNA 2003 [RFC3490]: an all-ASCII
+   name is kept as it is, and each label must
    be 1 to 63 characters; any other name is split at `.` and each label goes through ToASCII [RFC3490] with Nameprep
    [RFC3491] (Unicode 3.2) and Punycode [RFC3492], with AllowUnassigned on (so a code point Unicode 3.2 leaves
    unassigned is taken: `x` and U+0378 then `.example` is `xn--x-qib.example`, vector
@@ -866,7 +894,8 @@ since the reference implementation uses them. The vectors were made on CPython 3
    (vector `accept-reached-host-idn`).
 
    Note: this conversion is Python's `idna` codec (`name.encode("idna")`), which takes unassigned code points because
-   it does not check Nameprep's table A.1.
+   it does not check Nameprep's table A.1, and maps case with its own Unicode version's lower case rather than
+   Unicode 3.2's, which the Cherokee rule makes harmless.
 
 **A claim's or an effect's host** is a name or address, maybe with a port. It won't parse if it is not a string, if
 it holds `/`, `\`, `?`, `#`, `@`, `[`, `]` or white space (section 2), if it holds a deviation character
@@ -878,8 +907,10 @@ except that the two readings are not compared: the browser's reading counts. So 
 
 Where IDNA 2003 and UTS 46 [UTS46] still differ, PCM 0.1 follows IDNA 2003 (step 4): an `xn--` label is not checked to
 be valid Punycode, `_` is allowed, unassigned code points are taken, ZWSP, soft hyphen and the other characters Nameprep
-maps to nothing are dropped (`exam` U+00AD `ple.com` is `example.com`), and Nameprep uses Unicode 3.2. A verifier MUST
-implement the steps above as written, not UTS 46. Senders SHOULD claim hosts in ASCII, as DNS names them.
+maps to nothing are dropped (`exam` U+00AD `ple.com` is `example.com`), and Nameprep uses Unicode 3.2; a host with a
+deviation character or a Cherokee letter, on which the two name different hosts, won't parse (steps 3 and 4). A
+verifier MUST implement the steps above as written, not UTS 46. Senders SHOULD claim hosts in ASCII, as DNS names
+them.
 
 ### 6.8 Test commands (decided, 0.1)
 
@@ -946,15 +977,15 @@ A grant says: this subject may send this intent, within these caveats, until thi
 The root grant of `accept-approved-by`, signed after alice approved it:
 
 ```json
-{"pcm_grant": 0, "ts": "2026-10-27T18:03:28.020197Z",
- "issuer": {"kind": "person", "id": "uid:990001", "run": "ca4ca057363ca9d4028c7dd8b6bc5084", "tenant": "default",
-            "approval_id": "apr-1d2c2e92bc8d5d9eeef19ecfd943aa94", "person": "alice"},
+{"pcm_grant": 0, "ts": "2026-10-27T20:35:13.392391Z",
+ "issuer": {"kind": "person", "id": "uid:990001", "run": "b51de2128d0a77cee8bdf8c3c814458d", "tenant": "default",
+            "approval_id": "apr-b2b78a98eaef5792490dea71e0f01695", "person": "alice"},
  "subject": "uid:990101",
  "intent": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
  "caveats": [{"field": "amount", "op": "<=", "value": 20000}, {"field": "order", "op": "==", "value": 81}],
- "expires_at": "2026-10-27T19:03:28.017815Z", "delegable": false, "parent": null,
+ "expires_at": "2026-10-27T21:35:13.390119Z", "delegable": false, "parent": null,
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "3WA/xsSrUSzDwrt17cpjSSswaWhFQ/27SWU5AgeoMzwp1EuGI8fC7+prsC6yHlx79CW7oL2Z0PuKALUIrXYmAw=="}}
+         "sig": "3TNWnBZ05HNJOzCrRogSPdzHG5uFKCTdHWk/v3lN6z8LDTDbaJKcbuqqFF8omytaZKjbnQZKDteAPSvYHPDPAg=="}}
 ```
 
 ### 7.2 Caveats
@@ -1100,7 +1131,7 @@ Output **[Implemented]**:
  "replay": {"ok": true | false | null, "detail": string} | null,
  "schema": {"ok": bool, "ref": string, "errors": [string]} | null,
  "grants": <7.6 result> | null,
- "claims": [{"type", "result", "detail"}] | null,
+ "claims": [{"type", "result", "detail", "approved"?}] | null,
  "reasons": [string],
  "skipped": [string]}
 ```
@@ -1146,9 +1177,12 @@ The expected result of `accept-approved-by` (receiver `uid:990102`, a fresh repl
  "replay": {"ok": true, "detail": "fresh"},
  "schema": {"ok": true, "ref": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c", "errors": []},
  "grants": {"result": "ok", "steps": 1, "root": {"kind": "person", "id": "uid:990001", "person": "alice"}, "problems": []},
- "claims": [{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of pcm.grant call grant-1"}],
+ "claims": [{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of \"pcm.grant\" call grant-1",
+             "approved": {"tool": "pcm.grant", "args": null}}],
  "verdict": "accept", "reasons": [], "skipped": []}
 ```
+
+`approved` is in a claim's result only when the claim is a proven `approved_by` (6.6).
 
 Each step stops a different vector: the envelope `reject-envelope-pcm-false` ("envelope: $.pcm: expected integer,
 got bool"), the signature `reject-forged-signature` and `reject-unpinned-key`, replay `reject-replay-duplicate-nonce`,
@@ -1225,7 +1259,7 @@ A receiver pins keys in a trust document:
 
 | Member | Required | Value |
 |---|---|---|
-| `logs` | yes | one or more log vkeys (4.3), one Ed25519 key per log name. They verify messages, grants and evidence checkpoints. |
+| `logs` | yes | log vkeys (4.3): Ed25519 keys, at most one per log name, and hybrid keys (below). They verify messages, grants and evidence checkpoints. An empty list pins no log, so every message fails its signature check (8 step 2); it is no configuration error. |
 | `witnesses` | no | witness keys, each `{"name", "vkey"}`, the vkey of type 0x04 (C2SP tlog-cosignature). Default none. |
 | `witnesses_required` | no | how many pinned witness cosignatures each evidence checkpoint needs. Default 0. |
 
@@ -1233,15 +1267,19 @@ A verifier MUST ignore members it does not know, so a trust document written for
 (Appendix C gives one). A verifier reads only each witness's `vkey`; the key name inside the vkey is the one that
 counts. **[Implemented]**
 
-A trust document with any vkey in `logs` or `witnesses` that does not parse as 4.3 says (a malformed vkey, a key id
-that does not match, non-canonical base64) is a configuration error. The verifier MUST report it before it checks
-any message, as for a bad schema document (5.2), wherever the vkey sits in the list. Rationale: otherwise a bad vkey
-listed before the key that verifies a message stops the check, and one listed after it fails only the evidence, so
-the result would depend on the order of the list. **[Implemented]**
+A trust document with any vkey in `logs` or `witnesses` that is not a well-formed vkey of type 0x01 (4.3), 0x04 (a
+cosignature key) or 0xff (a hybrid key, below) is a configuration error: a malformed vkey, another type byte, a key
+id that does not match, non-canonical base64. The verifier MUST report it before it checks any message, as for a bad
+schema document (5.2), wherever the vkey sits in the list. Rationale: otherwise a bad vkey listed before the key that
+verifies a message stops the check, and one listed after it fails only the evidence, so the result would depend on
+the order of the list. A well-formed vkey of the wrong kind for its member, a cosignature key in `logs` or a log key
+in `witnesses`, is no configuration error: it fails every evidence checkpoint (6.2 step 1; vector
+`reject-claim-witness-key-in-logs`). **[Implemented]**
 
 **One key per log (decided, 0.1).** A trust document MUST pin at most one Ed25519 key under each log name in `logs`.
-A verifier MUST refuse a trust document that pins two or more, as a configuration error, reported like a bad vkey
-before any message ("trust pins 2 Ed25519 keys of log …"). A hybrid key (below) under the same name does not count.
+A verifier MUST refuse a trust document with two or more entries of Ed25519 keys under one log name, the same key
+listed twice included, as a configuration error, reported like a bad vkey before any message ("trust pins 2 Ed25519
+keys of log …"). A hybrid key (below) under the same name does not count.
 Rationale: PCM 0.1 declares no key rotation, so two keys under one name may be two logs; the evidence check compares
 log names (6.2 step 2) while a message names its key, so two logs under one name would let one log's evidence pass for
 the other's (14.1), and the replay sender (9) would split one log in two. With one key per name, the key that signed a
@@ -1389,8 +1427,9 @@ A trust document or schema document the verifier must refuse as a configuration 
 has no result to compare. Those rules are covered by the standalone verifier's tests.
 
 **Conformance rule.** A verifier conforms on a vector when its `verdict`, `signature.ok`, `replay.ok`, `schema.ok`,
-`grants.result`, every `claims[i].result` and `skipped` equal the expected ones (a part that is `null` in `expected`
-must be absent or `null`). The `detail`, `reasons` and `problems` strings are for people, not compared.
+`grants.result`, every `claims[i].result`, every `claims[i].approved` (present exactly when `expected` has it: a proven
+`approved_by`, 6.6) and `skipped` equal the expected ones (a part that is `null` in `expected` must be absent or
+`null`). The `detail`, `reasons` and `problems` strings are for people, not compared.
 
 A vector is a Level 2 vector when any claim of its message carries `evidence`; otherwise it is a Level 1 vector. A
 verifier conforms to a level when it conforms on every vector of that level.
@@ -1404,7 +1443,8 @@ assumption PCM rests on, with the rule that closes or bounds it.
    victim's evidence in its own messages. Run ids are chosen by clients and are unique only per log. **Rule:** the
    evidence checkpoint's origin MUST equal the log name of the key that signed the message (6.2 step 2), and a trust
    document pins one key per log name (10.1). Within one log, records must be of the sender's run and tenant (6.2
-   step 4.3). Vectors: `reject-claim-evidence-from-another-log`, where trust pins both logs;
+   step 4.3). Vectors: `reject-claim-evidence-from-another-log`, where trust pins both logs and a sender on the other
+   log reuses the victim's run id and tenant;
    `reject-claim-evidence-from-another-run`, `reject-claim-evidence-from-another-tenant`. Grants and replay state have
    the same problem: 14.18.
 2. **T1 is not proof.** A tool result the agent's own process reported is its own word. **Rule:** only a T2 result
@@ -1518,10 +1558,13 @@ assumption PCM rests on, with the rule that closes or bounds it.
     `reject-claim-tests-passed-ansi-c-quote`, `reject-claim-tests-passed-comment`,
     `reject-claim-tests-passed-unbalanced-quote`.
 20. **Host spellings.** A host has many spellings, and two readers of one URL can disagree on its host
-    (`http://a.example\@b.example/`; `faß.example` is `fass.example` to IDNA 2003 and `xn--fa-hia.example` to a
-    browser). **Rule:** hosts are compared in one canonical form, and a host that won't parse, that two readers read
-    apart or that holds a deviation character gives `unproven`, never `proven`; a URL of a scheme without a host
-    reaches none (6.7). Vectors: the `reached-host` vectors of 6.6.
+    (`http://a.example\@b.example/`; `faß.example` and `faẞ.example` are `fass.example` to IDNA 2003 and
+    `xn--fa-hia.example` to a browser; Python's `idna` codec lower-cases Cherokee capitals that Unicode 3.2's Nameprep
+    keeps). A draft that left the URL's bracket check to Python's `urlsplit` gave one message different verdicts on
+    different CPython releases, since they check brackets three ways. **Rule:** hosts are compared in one canonical
+    form; a host that won't parse, that two readers read apart, or that holds a deviation character or a Cherokee
+    letter gives `unproven`, never `proven`; a verifier checks one bracket rule itself; a URL of a scheme without a
+    host reaches none (6.7). Vectors: the `reached-host` vectors of 6.6.
 21. **Signature malleability.** With lenient base64, one signature had several texts that verified, so a grant's
     text, and its hash in a child's `parent`, could change without a new signature. **Rule:** canonical base64 only
     (4.3). Vectors: `reject-sig-non-canonical-base64`, `reject-claim-proof-non-canonical-base64`.
@@ -1576,10 +1619,11 @@ assumption PCM rests on, with the rule that closes or bounds it.
     id `refund-81-approved`, have a person approve it, and claim that the person approved `refund-81-approved`. An
     earlier draft proved `approved_by` from the approval record alone, so the claim was `proven`, and nothing in the
     result said what was approved. **Rule:** `approved_by` needs the `approval.request` the approval answers and the
-    `policy.decision` that request names, and a proven claim's detail names the decision's tool and, when opened, its
-    args in full; a receiver reads them (6.6). An agent that decided two calls under one id can't pass the approval
-    of one off as the other's, since the request names one decision. Vectors:
-    `reject-claim-approved-by-without-decision`, `reject-claim-approved-by-other-decision`.
+    `policy.decision` that request names, and a proven claim's result carries `approved`, the decision's tool and,
+    when opened, its args in full, as a conformance field; a receiver reads it (6.6). The detail quotes the tool, so a
+    tool name can't spell args. An agent that decided two calls under one id can't pass the approval of one off as the
+    other's, since the request names one decision. Vectors: `reject-claim-approved-by-without-decision`,
+    `reject-claim-approved-by-other-decision`.
 28. **An attempt is not a connection.** A kernel sensor reports a process's call to connect, and an egress observer
     records a minute with no connection when its connect upstream failed; an earlier draft took either as proof that
     the run reached the host. **Rule:** only an egress observer's `net` record with `data.connections` above 0
@@ -1750,8 +1794,9 @@ built from an earlier design changes to match.
   not derived from an implementation's policy (14.29).
 - **Signing key.** The log's one pinned key signs checkpoints, messages and grants (4.5, 10.1), not a dedicated PCM
   key pinned beside it under the log's name.
-- **`approved_by`.** Proven by the approval with its request and decision, and the detail names what was approved
-  (6.6, 14.27), not by the approval alone.
+- **`approved_by`.** Proven by the approval with its request and decision, and the result's `approved` says what was
+  approved (6.6, 14.27), not by the approval alone, nor in a detail only.
+- **URL brackets.** One bracket rule that a verifier checks itself (6.7), not whatever check its URL library makes.
 - **`reached_host`.** Only by a connection an egress observer saw opened (6.6, 14.28), not by an attempt.
 - **`file_written` paths.** By POSIX or Windows rules, picked by the claim's path (6.6), not with every `\` read as
   `/`.
@@ -1774,17 +1819,17 @@ draft closes those; it has no other known open attack on its verifier rules. Wha
 on the receiver reading `suite` (6.6), and what a T2 result proves rests on how the deployment names its tools (6.4,
 14.26). Questions earlier drafts left open are now decided rules, each marked "(decided, 0.1)": canonical base64
 (4.3), the signing key (4.5), only a configured person for `approved_by` and what it names (6.6), connections, not
-attempts, for `reached_host` (6.6), absolute paths and path rules for `file_written` (6.6), host comparison,
-deviation characters and a reader without the bracket check (6.7), test commands and plain words (6.8), skipped
+attempts, for `reached_host` (6.6), absolute paths and path rules for `file_written` (6.6), host comparison, the
+bracket rule, deviation characters and Cherokee letters (6.7), test commands and plain words (6.8), skipped
 checks (8), the sender pair, one acceptance per receiver and which messages spend their nonce (9), one key per log
 (10.1) and the frozen tool table (10.2). Where the reference implementation does less than this document asks,
 Appendix C.4 says so. What remains are questions for a later draft:
 
-1. **Host reading follows particular readers** (6.7). Step 2's generic reading is what Python's `urlsplit` does, and
-   it allows two bracket checks, and a stricter rule for a reader with neither, because CPython releases differ; NFKC
-   runs at the verifier's Unicode version; and step 4 is IDNA 2003. A statement of the rule closer to the WHATWG host
-   parser and UTS 46, with one bracket rule, is open; until then the vectors pin the cases that matter and senders
-   keep to ASCII hosts and plain URLs.
+1. **Host reading follows particular readers** (6.7). Step 2's generic reading is what Python's `urlsplit` does,
+   with a bracket rule of its own that refuses some URLs a browser reads; NFKC runs at the verifier's Unicode version;
+   and step 4 is IDNA 2003, with the deviation characters and Cherokee letters refused where it, Python's codec and
+   UTS 46 disagree. A statement of the rule closer to the WHATWG host parser and UTS 46 is open; until then the vectors
+   pin the cases that matter and senders keep to ASCII hosts and plain URLs.
 2. **A key for messages and grants only, and key rotation** (4.5, 10.1). PCM 0.1 signs messages and grants with the
    log key and pins one key per log name. A trust member that pins a key for messages and grants only would let a
    fault in PCM signing leave the log key alone, and a way to declare a rotation (two keys of one log, each with the
@@ -1837,7 +1882,7 @@ with the normative text, that is a bug in one of them: open an issue.
 | 6.2 evidence | `tracekit.pcm.claims.evidence`; notes in `tracekit.format.checkpoint.open_note` |
 | 6.6 `approved_by`, `reached_host` | `tracekit.pcm.claims.approved_by`, `reached_host` |
 | 6.6 paths | `tracekit.pcm.claims._path`, `malformed`, `file_written`; Tracekit's policy rules read paths with `tracekit.policy2.classes.fs_path`, which reads every `\` as `/`, so policy verdicts don't follow 6.6 |
-| 6.7 hosts | `tracekit.policy2.classes.url_info`; `tracekit.pcm.claims._host`, `_a_label`, `_deviant`; the rule for a reader without the bracket check in `_old_brackets`, on when `URLSPLIT_CHECKS_BRACKETS` is false |
+| 6.7 hosts | `tracekit.policy2.classes.url_info` (the scheme of step 1 in `with_scheme`); `tracekit.pcm.claims._host`, `_a_label` (the Cherokee rule), `_deviant`; the bracket rule in `_brackets_ok` |
 | 6.8 test commands | `tracekit.pcm.claims.test_command`, `TEST_RUNNERS`, `NO_TESTS` |
 | 7.3 narrowing | `tracekit.pcm.narrows` |
 | 7.6 grant chains | `tracekit.pcm.verify_grants` |
@@ -1871,9 +1916,11 @@ with the normative text, that is a bug in one of them: open an issue.
   PCM trust document, and `tracekit.pcm.verify` refuses it (10.1): a receiver needs one that pins only each log's
   current key.
 - **`id` patterns** run with Python `re` in its default Unicode mode, where `\d` also matches digits such as `٣` (5.2).
-- **Hosts.** Tracekit reads hosts with Python's `urllib.parse.urlsplit`, `unicodedata` and `idna` codec (6.7). It still
-  runs on Python 3.9, whose `urlsplit` makes neither bracket check; there it applies the rule of 6.7 for a reader
-  without the check. The standalone verifier needs CPython 3.11.4 or later.
+- **Hosts.** Tracekit reads hosts with Python's `urllib.parse.urlsplit`, `unicodedata` and `idna` codec (6.7). It
+  still runs on Python 3.9; both verifiers check the bracket rule of 6.7 before `urlsplit`, so its bracket check,
+  which differs between CPython releases, changes no verdict. The standalone verifier needs CPython 3.11.4 or later.
+  `tracekit pcm verify` prints a proven `approved_by`'s detail on its line, and `python -m pcm_verify` its `approved`
+  (6.6).
 - **The tool executor** (`tracekit/executor.py`, tier T2) runs HTTP actions its operator names in its configuration,
   and records a call as `ok` when the upstream's HTTP status is under 400. A T2 call of a tool named `Bash` can
   therefore be such an action (6.4, 14.26).
@@ -1887,7 +1934,7 @@ with the normative text, that is a bug in one of them: open an issue.
   ```text
   alice approves agent A's grant: refund.request, amount <= $200.00, order == 81, until 18:00Z, can be passed on: no
   A -> B  refund.request {amount $120.00, order 81} + approved_by(alice)
-      B: ACCEPT           signature ok · replay ok · schema ok · grant ok (alice, 1 step) · approved_by proven
+      B: ACCEPT           signature ok · replay ok · schema ok · grant ok (alice, 1 step) · approved_by proven (approval seq 4 by alice of "pcm.grant" call grant-1)
   A -> B  same request + tests_passed(pytest tests/test_refund.py), no evidence
       B: ACCEPT-UNPROVEN  tests_passed: unproven (no evidence)
   A -> B  approved_by with one record hash changed

@@ -71,6 +71,9 @@ def main(argv=None):
         print(out["verdict"])
         for r in out["reasons"]:   # the sender chose parts of them: escape controls, non-ASCII and lone surrogates
             print(f"  {json.dumps(r)[1:-1]}")
+        for c in out["claims"] or []:   # SPEC 6.6: what the person approved, which the receiver reads
+            if "approved" in c:
+                print(f"  approved_by: {json.dumps(c['approved'])}")
         if out["skipped"]:
             print(f"  not checked: {', '.join(out['skipped'])}")
     return EXIT[out["verdict"]]

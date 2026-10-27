@@ -158,13 +158,13 @@ class Run:
                  and x["data"].get("decision_id") == r["data"]["decision_id"])
         return [d["run_seq"], r["run_seq"], a["run_seq"]]
 
-    def approve(self, tcid, args, approver):
+    def approve(self, tcid, args, approver, decision="approve"):
         """(decision, run_seqs of its decision, request and approval) of a pcm.grant call of `args` that `approver`
-        approved."""
+        answered with `decision`."""
         d = self.call("decide", stream="s", client_seq=next(self.seqs), tool_call_id=tcid, tool="pcm.grant",
                       args_source="parsed", args=args)
         aid = self.call("approval_request", tool_call_id=tcid)["approval_id"]
-        self.signer.call(approver, "approval_decide", approval_id=aid, decision="approve")
+        self.signer.call(approver, "approval_decide", approval_id=aid, decision=decision)
         return d, self.approval(tcid)
 
     def grant(self, tcid, intent, subject=None, delegable=False, expires_s=3600, approver=ALICE, caveats=CAVEATS):
@@ -369,9 +369,12 @@ def cases(s, s2):
     moved = dict(approved, evidence=dict(ev, checkpoint=o.evidence([0])["checkpoint"]))
     failed("unpinned-log-note", "approved_by under a checkpoint note of a log trust does not pin.", moved,
            "approved_by: failed (checkpoint: ")
-    failed("evidence-from-another-log", "The same claim, with trust pinning both logs: the note is not of the log "
-           "that signed the message.", moved, "not the one that signed the message",
-           trust=dict(trust, logs=[s.vkey, s2.vkey]))
+    vector("reject-claim-evidence-from-another-log", "approved_by with alice's approval records of the test log as "
+           "evidence, sent by uid:990101 of the other log from a run it registered there under the run id of A's run "
+           "(run ids are the client's, unique per log only), so the records are of the sender's run id and tenant; "
+           "trust pins both logs: the note is not of the log that signed the message.",
+           Run(s2, A, run_id=a.frm["run"]).send("uid:990102", qref, claims=[approved]), [QUOTE],
+           "not the one that signed the message", trust=dict(trust, logs=[s.vkey, s2.vkey]))
     vector("reject-grant-from-another-log", "A root grant alice approved on the other log, for uid:990101 there, sent "
            "by uid:990101 of the test log; trust pins both logs. Identities are names inside one log: the grant is not "
            "this sender's.", a.send("uid:990102", ref, claims=[approved], grants=[o.grant("grant-o", ref)[0]]), [DOC],
@@ -401,6 +404,12 @@ def cases(s, s2):
            "approvals configuration maps to, with its approval, request and decision as evidence: only a person's name "
            "proves it.", {"type": "approved_by", "args": {"person": "uid:990009", "call": "grant-dave"},
                           "evidence": a.evidence(dseqs)}, "no approval of grant-dave by the person uid:990009")
+    _, rseqs = a.approve("grant-rejected", {"subject": a.agent, "intent": ref, "caveats": CAVEATS,
+                                            "expires_at": root["expires_at"], "delegable": False}, ALICE, "reject")
+    failed("approved-by-rejected-answer", "approved_by of call grant-rejected, with alice's answer, the request and the "
+           "decision as evidence: she answered reject, which approves nothing.",
+           {"type": "approved_by", "args": {"person": "alice", "call": "grant-rejected"}, "evidence": a.evidence(rseqs)},
+           "no approval of grant-rejected by the person alice")
     failed("approved-by-without-decision", "approved_by whose evidence holds alice's approval and the approval.request "
            "it answers, but not the policy.decision the request names: the call id is the agent's own name for the "
            "call, so without its decision nothing says what was approved.",
@@ -468,6 +477,19 @@ def cases(s, s2):
            "answer proves no person's approval.",
            dict(approved, evidence=relog(ev["records"], lambda i, e: dict(e, data=dict(e["data"], approver_kind="agent"))
                                          if e["type"] == "approval" else e)), "no approval of grant-1 by the person alice")
+    for name, kind, edit, what in (
+            ("request-of-another-approval", "approval.request", {"approval_id": "apr-other"},
+             "the request's approval_id changed to apr-other, so no request in the evidence names the approval"),
+            ("decision-of-another-call", "policy.decision", {"tool_use_id": "grant-other"},
+             "the decision's tool_use_id changed to grant-other, so the decision the request names is not of the "
+             "claimed call"),
+            ("decision-without-tool", "policy.decision", {"tool": None},
+             "the decision's tool removed, so nothing says what was approved")):
+        failed(f"approved-by-{name}", f"approved_by whose evidence is alice's approval, its request and decision, with "
+               f"{what}, under a checkpoint the test log key signs offline over the edited records.",
+               dict(approved, evidence=relog(ev["records"], lambda i, e, kind=kind, edit=edit: dict(e, data={
+                   k: v for k, v in {**e["data"], **edit}.items() if v is not None}) if e["type"] == kind else e)),
+               "holds no decision of the call it approved")
     failed("witness-key-in-logs", "approved_by with trust pinning the witness's cosignature key in logs, next to the "
            "test log key: a key in logs that is no Ed25519 or hybrid log key fails the note.", approved,
            "wrong signature type", trust=dict(trust, logs=[s.vkey, WITNESS["vkey"]]))
@@ -538,6 +560,12 @@ def cases(s, s2):
              "naming the path with `..`, which fails")):
         claimed(name, f"file_written of {path} by a Write of /work/report.txt the executor ran (T2), {what}.",
                 {"type": "file_written", "args": {"path": path, "digest": digest}, "evidence": wrote}, want)
+    claimed("reject-claim-file-written-not-write-tool", "file_written of /work/report.txt by an Edit of "
+            "/work/report.txt the executor ran (T2), whose args carry the whole content with that digest: only the tool "
+            "Write writes a file, whatever the args of another tool hold.",
+            {"type": "file_written", "args": {"path": "/work/report.txt", "digest": sha},
+             "evidence": call("Edit", {"file_path": "/work/report.txt", "content": "total: 81\n"})},
+            "no call in the evidence wrote")
     claimed("reject-claim-file-written-relative", "file_written of work/report.txt by a Write of work/report.txt the "
             "executor ran (T2): the paths are equal, but a relative claim is malformed, so it fails.",
             {"type": "file_written", "args": {"path": "work/report.txt", "digest": sha},
@@ -594,13 +622,34 @@ def cases(s, s2):
             ("reject-claim-reached-host-other-host", "https://api.example.com/v1/refunds", "api.example.org",
              "no call in the evidence", "another host"),
             ("accept-unproven-reached-host-bracket", "http://[x]@good.com/", "good.com", "can't tell whether",
-             "a `[` in the userinfo: Python's urlsplit refuses the URL, so its host won't parse"),
+             "a bracket in the user info: the bracket rule refuses the URL, so its host won't parse"),
+            ("accept-unproven-reached-host-bracket-ipv6-userinfo", "http://[::1]@api.example.com/", "api.example.com",
+             "can't tell whether", "a bracketed IPv6 address in the user info: the bracket rule refuses it, though "
+             "one of urlsplit's bracket checks passes it and reads api.example.com"),
+            ("accept-unproven-reached-host-bracket-other-host", "http://[::1]@evil.example/", "api.example.com",
+             "can't tell whether", "a bracketed IPv6 address in the user info before another host: the bracket rule "
+             "refuses it, so the claim is unproven, not failed"),
+            ("accept-unproven-reached-host-two-brackets", "http://[zz]@[::1]/", "::1", "can't tell whether",
+             "two pairs of brackets: the bracket rule takes only one, around the host, so it refuses this though a "
+             "browser reaches [::1]"),
+            ("accept-unproven-reached-host-bracket-trailing", "http://[::1]x/", "::1", "can't tell whether",
+             "text after the `]` that is no port: the bracket rule refuses it"),
+            ("accept-unproven-reached-host-bracket-not-host", "http://[@x::1]/", "x", "can't tell whether",
+             "the `[` is in the user info, not at the start of the host after the `@`: the bracket rule refuses it, "
+             "where a reader without urlsplit's bracket check reads the host x"),
             ("accept-unproven-reached-host-ambiguous", "http://a.example\\@b.example/", "b.example",
              "can't tell whether", "a browser reads the host a.example and Python's urllib b.example, so it won't "
              "parse"),
             ("accept-unproven-reached-host-deviation", "http://fa\u00df.example/", "fass.example", "can't tell whether",
              "IDNA 2003 maps the sharp s to ss and a browser keeps it (xn--fa-hia.example), so a host with one of the "
              "four deviation characters won't parse"),
+            ("accept-unproven-reached-host-capital-sharp-s", "http://faẞ.example/", "fass.example",
+             "can't tell whether", "NFKC keeps the capital sharp s, case folding makes it ss and UTS 46 a sharp s "
+             "(xn--fa-hia.example), so it won't parse"),
+            ("accept-unproven-reached-host-cherokee", "http://aᎠb.example/", "xn--ab-5f1i.example",
+             "can't tell whether", "Python's idna codec lower-cases the Cherokee capital by its own Unicode "
+             "(xn--ab-5f1i.example), where Nameprep's Unicode 3.2 table and UTS 46 keep it (xn--ab-y8l.example), so a "
+             "name with a Cherokee letter won't parse"),
             ("accept-reached-host-unassigned", "http://x\u0378.example/", "xn--x-qib.example", "",
              "U+0378 is unassigned in Unicode 3.2, and the stdlib codec takes it (AllowUnassigned on)"),
             ("reject-claim-reached-host-file-url", "file://api.example.com/x", "api.example.com",

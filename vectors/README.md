@@ -53,12 +53,12 @@ A verifier conforms on a vector when these match `expected`:
 - `schema.ok`
 - `grants.result`
 - `claims[i].result`, for every claim, in order
+- `claims[i].approved`, present only for a proven `approved_by`: `{"tool", "args"}` of the decision the person
+  approved, `args` null unless the evidence opens it (SPEC 6.6). A receiver reads it.
 - `skipped`: the checks not asked for, `replay` (no replay state) and `recipient` (`me` null), in that order
 
 Where `expected` has `null` for a part (the check stopped before it), your result must have no value there too.
-The `detail`, `reasons` and `problems` strings are informative: they say why, and need not match. One `detail` is
-more than that to a receiver: a proven `approved_by` names the tool and opened args of the call that was approved
-(SPEC 6.6), and a receiver reads it.
+The `detail`, `reasons` and `problems` strings are informative: they say why, and need not match.
 
 ## How the vectors are made
 
@@ -71,8 +71,8 @@ Some cases can't come from the signer, because it refuses to make them: a wideni
 grant that can't be passed on, a root grant issued by an agent or naming no person, a `ts` in month 13 or equal to a
 grant's expiry, a second message with another message's nonce. These are a valid output edited, then re-signed with
 the test log key (or the other log's, for a message of the other log). Records a hostile pinned log could send (an
-event that is no valid event, a decision without its id, an agent approver's answer naming a person) are edited and
-put under a checkpoint the test log key signs offline. Envelope and signature cases, such as a non-canonical base64
+event that is no valid event, a decision without its id or tool or of another call, an agent approver's answer naming
+a person, a request naming another approval) are edited and put under a checkpoint the test log key signs offline. Envelope and signature cases, such as a non-canonical base64
 signature, are edited without re-signing. Each one's description says so.
 
 The log, other-log and witness keys come from a fixed seed, so `trust` is the same on every run. Run ids, message

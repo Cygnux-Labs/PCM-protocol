@@ -218,7 +218,7 @@
   {
     "name": "reject-claim-evidence-from-another-log",
     "file": "reject-claim-evidence-from-another-log.json",
-    "description": "The same claim, with trust pinning both logs: the note is not of the log that signed the message.",
+    "description": "approved_by with alice's approval records of the test log as evidence, sent by uid:990101 of the other log from a run it registered there under the run id of A's run (run ids are the client's, unique per log only), so the records are of the sender's run id and tenant; trust pins both logs: the note is not of the log that signed the message.",
     "verdict": "reject"
   },
   {
@@ -267,6 +267,12 @@
     "name": "reject-claim-approved-by-unmapped-identity",
     "file": "reject-claim-approved-by-unmapped-identity.json",
     "description": "approved_by naming uid:990009, an approver no person in the signer's approvals configuration maps to, with its approval, request and decision as evidence: only a person's name proves it.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-approved-by-rejected-answer",
+    "file": "reject-claim-approved-by-rejected-answer.json",
+    "description": "approved_by of call grant-rejected, with alice's answer, the request and the decision as evidence: she answered reject, which approves nothing.",
     "verdict": "reject"
   },
   {
@@ -321,6 +327,24 @@
     "name": "reject-claim-approved-by-agent-approver",
     "file": "reject-claim-approved-by-agent-approver.json",
     "description": "approved_by whose evidence is alice's approval, its request and decision, with approver_kind agent added to the approval, under a checkpoint the test log key signs offline over the edited records (an honest signer writes no person on an agent approver's answer): an agent approver's answer proves no person's approval.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-approved-by-request-of-another-approval",
+    "file": "reject-claim-approved-by-request-of-another-approval.json",
+    "description": "approved_by whose evidence is alice's approval, its request and decision, with the request's approval_id changed to apr-other, so no request in the evidence names the approval, under a checkpoint the test log key signs offline over the edited records.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-approved-by-decision-of-another-call",
+    "file": "reject-claim-approved-by-decision-of-another-call.json",
+    "description": "approved_by whose evidence is alice's approval, its request and decision, with the decision's tool_use_id changed to grant-other, so the decision the request names is not of the claimed call, under a checkpoint the test log key signs offline over the edited records.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-approved-by-decision-without-tool",
+    "file": "reject-claim-approved-by-decision-without-tool.json",
+    "description": "approved_by whose evidence is alice's approval, its request and decision, with the decision's tool removed, so nothing says what was approved, under a checkpoint the test log key signs offline over the edited records.",
     "verdict": "reject"
   },
   {
@@ -498,6 +522,12 @@
     "verdict": "reject"
   },
   {
+    "name": "reject-claim-file-written-not-write-tool",
+    "file": "reject-claim-file-written-not-write-tool.json",
+    "description": "file_written of /work/report.txt by an Edit of /work/report.txt the executor ran (T2), whose args carry the whole content with that digest: only the tool Write writes a file, whatever the args of another tool hold.",
+    "verdict": "reject"
+  },
+  {
     "name": "reject-claim-file-written-relative",
     "file": "reject-claim-file-written-relative.json",
     "description": "file_written of work/report.txt by a Write of work/report.txt the executor ran (T2): the paths are equal, but a relative claim is malformed, so it fails.",
@@ -596,7 +626,37 @@
   {
     "name": "accept-unproven-reached-host-bracket",
     "file": "accept-unproven-reached-host-bracket.json",
-    "description": "reached_host good.com by a WebFetch of http://[x]@good.com/ the executor ran (T2): a `[` in the userinfo: Python's urlsplit refuses the URL, so its host won't parse.",
+    "description": "reached_host good.com by a WebFetch of http://[x]@good.com/ the executor ran (T2): a bracket in the user info: the bracket rule refuses the URL, so its host won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-bracket-ipv6-userinfo",
+    "file": "accept-unproven-reached-host-bracket-ipv6-userinfo.json",
+    "description": "reached_host api.example.com by a WebFetch of http://[::1]@api.example.com/ the executor ran (T2): a bracketed IPv6 address in the user info: the bracket rule refuses it, though one of urlsplit's bracket checks passes it and reads api.example.com.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-bracket-other-host",
+    "file": "accept-unproven-reached-host-bracket-other-host.json",
+    "description": "reached_host api.example.com by a WebFetch of http://[::1]@evil.example/ the executor ran (T2): a bracketed IPv6 address in the user info before another host: the bracket rule refuses it, so the claim is unproven, not failed.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-two-brackets",
+    "file": "accept-unproven-reached-host-two-brackets.json",
+    "description": "reached_host ::1 by a WebFetch of http://[zz]@[::1]/ the executor ran (T2): two pairs of brackets: the bracket rule takes only one, around the host, so it refuses this though a browser reaches [::1].",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-bracket-trailing",
+    "file": "accept-unproven-reached-host-bracket-trailing.json",
+    "description": "reached_host ::1 by a WebFetch of http://[::1]x/ the executor ran (T2): text after the `]` that is no port: the bracket rule refuses it.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-bracket-not-host",
+    "file": "accept-unproven-reached-host-bracket-not-host.json",
+    "description": "reached_host x by a WebFetch of http://[@x::1]/ the executor ran (T2): the `[` is in the user info, not at the start of the host after the `@`: the bracket rule refuses it, where a reader without urlsplit's bracket check reads the host x.",
     "verdict": "accept-unproven"
   },
   {
@@ -609,6 +669,18 @@
     "name": "accept-unproven-reached-host-deviation",
     "file": "accept-unproven-reached-host-deviation.json",
     "description": "reached_host fass.example by a WebFetch of http://faß.example/ the executor ran (T2): IDNA 2003 maps the sharp s to ss and a browser keeps it (xn--fa-hia.example), so a host with one of the four deviation characters won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-capital-sharp-s",
+    "file": "accept-unproven-reached-host-capital-sharp-s.json",
+    "description": "reached_host fass.example by a WebFetch of http://faẞ.example/ the executor ran (T2): NFKC keeps the capital sharp s, case folding makes it ss and UTS 46 a sharp s (xn--fa-hia.example), so it won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-cherokee",
+    "file": "accept-unproven-reached-host-cherokee.json",
+    "description": "reached_host xn--ab-5f1i.example by a WebFetch of http://aᎠb.example/ the executor ran (T2): Python's idna codec lower-cases the Cherokee capital by its own Unicode (xn--ab-5f1i.example), where Nameprep's Unicode 3.2 table and UTS 46 keep it (xn--ab-y8l.example), so a name with a Cherokee letter won't parse.",
     "verdict": "accept-unproven"
   },
   {

@@ -61,14 +61,15 @@ vector, so each is ported with its own tests:
   words begin with one of the fixed runner sequences (first word compared exactly) and carry none of the flags that
   run no tests or their long prefixes. A table, no shell parser to port.
 - **`reached_host`**: the compared form of SPEC 6.7, step by step. Don't use `new URL()` or `URL.hostname` for it:
-  they apply UTS 46, which differs from the IDNA 2003 the spec fixes (the spec refuses the four deviation characters
-  where the two disagree), refuse some hosts the spec reads, and know nothing of `urlsplit`'s refusals or the
-  rule that a browser's and `urlsplit`'s readings must agree. Port the two readings, the canonical form and the
-  A-label step as the spec writes them: the browser reading is a few regular expressions; `urlsplit(url).hostname`
-  (netloc after `//` up to `/?#`, after the last `@`, before the port, lower case) and the cases where it raises
-  (unbalanced `[`/`]`, a bracketed host that is no IPv6 address, a non-ASCII netloc whose NFKC form gains one of
-  `/?#@:`) need their own tests; the IDNA 2003 step needs Nameprep with Unicode 3.2 tables and Punycode (a small
-  vendored port; the vectors only exercise `bücher.example`, so add Tracekit's own host cases as tests).
+  they apply UTS 46, which differs from the IDNA 2003 the spec fixes (the spec refuses the deviation characters and
+  Cherokee letters where they disagree), refuse some hosts the spec reads, and know nothing of the spec's bracket
+  rule or the rule that a browser's and the generic readings must agree. Port the two readings, the canonical form
+  and the A-label step as the spec writes them: the browser reading is a few regular expressions; the generic
+  reading (netloc after `//` up to `/?#`, after the last `@`, before the port, lower case) and the cases where it
+  refuses (the bracket rule of 6.7, the same one the Python verifiers check before `urlsplit`, and a non-ASCII netloc
+  whose NFKC form gains one of `/?#@:`) need their own tests; the IDNA 2003 step needs Nameprep with Unicode 3.2
+  tables and Punycode (a small vendored port; the vectors only exercise `bücher.example`, so add Tracekit's own host
+  cases as tests).
 - **`file_written`**: the path rules of SPEC 6.6 (POSIX rules for a path from `/`, where `\` is part of a name;
   Windows rules for a drive path, proven only by a call of its own string), the suffix after the last `..`, the
   absolute-path rule and the "can't tell" results. Small, but easy to get subtly wrong.

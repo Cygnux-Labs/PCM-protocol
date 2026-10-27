@@ -7,7 +7,7 @@ name = "pcm-verify"
 version = "0.1.0"
 description = "Standalone verifier for PCM 0.1 proof-carrying messages"
 requires-python = ">=3.11.4"
-dependencies = ["rfc8785", "cryptography"]
+dependencies = ["rfc8785>=0.1.4,<0.2", "cryptography>=41"]
 
 [tool.setuptools]
 packages = ["pcm_verify"]

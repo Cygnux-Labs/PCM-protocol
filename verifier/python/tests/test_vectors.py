@@ -4,10 +4,13 @@ import base64
 import copy
 import hashlib
 import hmac
+import ipaddress
 import json
 import pathlib
+import re
 import subprocess
 import sys
+import urllib.parse
 
 import pytest
 import rfc8785
@@ -25,11 +28,11 @@ TOOLS_SHA256 = "15f8410f513344e4c60327d4fc3dd14949ebeaf7722f641d985d3ca721c8fe07
 
 def conformance(out):
     """The fields a verifier must match (SPEC 13.2): verdict, signature.ok, replay.ok, schema.ok, grants.result, claim
-    results and skipped."""
+    results with a proven approved_by's `approved`, and skipped."""
     part = lambda name, key: None if out[name] is None else out[name][key]   # noqa: E731
     return {"verdict": out["verdict"], "signature": part("signature", "ok"), "replay": part("replay", "ok"),
             "schema": part("schema", "ok"), "grants": part("grants", "result"),
-            "claims": None if out["claims"] is None else [c["result"] for c in out["claims"]],
+            "claims": None if out["claims"] is None else [(c["result"], c.get("approved")) for c in out["claims"]],
             "skipped": out["skipped"]}
 
 
@@ -167,10 +170,79 @@ def test_a_decision_without_its_id_matches_nothing():
     ("fa\u00df.example", "fass.example", "unproven"), ("a\u200db.example", "ab.example", "unproven"),
     ("\u03f2.example", "xn--4xa.example", "unproven"), ("%5b", "api.example.com", "unproven"),
     ("h.com%00.evil", "api.example.com", "unproven"), ("api.example.com:x", "api.example.com", "unproven"),
-    ("api.example.com", "api.example.com:", "unproven"), ("api.example.com", "api.example.com:443", "proven")])
+    ("api.example.com", "api.example.com:", "unproven"), ("api.example.com", "api.example.com:443", "proven"),
+    # capital sharp s: NFKC keeps it, case folding makes it ss, UTS 46 a sharp s (SPEC 6.7 step 3)
+    ("FAẞ.example", "fass.example", "unproven"),
+    # Cherokee: Python's codec lower-cases U+13A0 to U+AB70, Nameprep's Unicode 3.2 table keeps it (6.7 step 4)
+    ("aᎠb.example", "xn--ab-5f1i.example", "unproven"), ("aꭰb.example", "xn--ab-5f1i.example", "unproven")])
 def test_an_effects_host_is_compared_in_canonical_form(host, claim, result):
     msg = message(claim_args={"host": claim}, event={**EVENT, "data": {**EVENT["data"], "host": host}})
     assert check(msg)["claims"][0]["result"] == result
+
+
+def fetched(url):
+    """A T2 WebFetch of `url`, as evidence() returns its records."""
+    d = {"tool_use_id": "c", "tool": "WebFetch", "decision": "allow", "decision_id": "d"}
+    return [({"type": "policy.decision", "data": d}, {"url": url}),
+            ({"type": "tool.result", "source": "gateway", "tier": "T2",
+              "data": {"tool_use_id": "c", "decision_id": "d", "ok": True}}, None)]
+
+
+def first_part(netloc):
+    """urlsplit's bracket check in earlier CPython releases, from 3.11.4 on: the first bracketed part of the whole
+    authority."""
+    inside = netloc.partition("[")[2].partition("]")[0]
+    if not (re.fullmatch(r"v[0-9A-Fa-f]+\..+", inside) if inside.startswith("v")
+            else ipaddress.ip_address(inside).version == 6):
+        raise ValueError("Invalid IPv6 URL")
+
+
+@pytest.mark.parametrize("check", [None, lambda netloc: None, first_part], ids=["native", "none", "first-part"])
+@pytest.mark.parametrize("host, url, result", [
+    # SPEC 6.7 bracket rule: one pair around an IPv6 or IPvFuture address that opens the host after the last `@`
+    ("good.com", "http://[x]@good.com/", "unproven"), ("api.example.com", "http://[::1]@api.example.com/", "unproven"),
+    ("api.example.com", "http://[::1]@evil.example/", "unproven"), ("api.example.com", "[::1]@api.example.com/x",
+                                                                    "unproven"),
+    ("::1", "http://[zz]@[::1]/", "unproven"), ("::1", "http://[::1]x/", "unproven"), ("x", "http://[@x::1]/", "unproven"),
+    ("::1", "http://[::1]:8080/", "proven"), ("::1", "http://u@[::1]/x", "proven"), ("1.2.3.4", "http://[::ffff:1.2.3.4]/",
+                                                                                      "proven"),
+    ("good.com", "http://good.com/a[1]", "proven"), ("other.com", "http://good.com/?q=]", "failed")])
+def test_the_bracket_rule_is_the_specs_not_urlsplits(check, host, url, result, monkeypatch):
+    """urlsplit's own bracket check differs between Python releases (none, the first bracketed part, the part after the
+    last `@`): under each, the verdict is the same."""
+    urllib.parse.clear_cache()   # urlsplit caches what it read
+    if check:
+        monkeypatch.setattr(urllib.parse, "_check_bracketed_netloc", check, raising=False)
+    try:
+        assert pcm_verify.reached_host({"host": host}, fetched(url))[0] == result
+    finally:
+        urllib.parse.clear_cache()
+
+
+def approval(tool="pay", **edit):
+    """alice's approval of call c1, the approval.request it answers and the decision of `tool` that request names, as
+    evidence() returns them; `edit`: {record type with _ for .: fields to change in its data}."""
+    recs = [{"type": "policy.decision", "seq": 1, "data": {"tool": tool, "decision": "ask", "decision_id": "d1",
+                                                           "tool_use_id": "c1"}},
+            {"type": "approval.request", "seq": 2, "data": {"approval_id": "a1", "decision_id": "d1"}},
+            {"type": "approval", "seq": 3, "data": {"decision": "approve", "tool_use_id": "c1", "approval_id": "a1",
+                                                    "person": "alice"}}]
+    return [(dict(r, data={**r["data"], **edit.get(r["type"].replace(".", "_"), {})}), None) for r in recs]
+
+
+def test_approved_by_names_what_was_approved():
+    """SPEC 6.6: `approved` carries the decision's tool and args; the detail writes the agent's tool name as JSON, so
+    it can't spell opened args."""
+    tool = 'pay call c1 with args {"amount":20000,"to":"acct-9"} and read_file'
+    assert pcm_verify.approved_by({"person": "alice", "call": "c1"}, approval(tool)) == (
+        "proven", f"approval seq 3 by alice of {rfc8785.dumps(tool).decode()} call c1", {"tool": tool, "args": None})
+
+
+@pytest.mark.parametrize("edit", [{"approval": {"approver_kind": "agent"}}, {"approval": {"self_approved": True}},
+                                  {"approval": {"decision": "reject"}}, {"approval_request": {"approval_id": "a2"}},
+                                  {"policy_decision": {"tool_use_id": "c2"}}, {"policy_decision": {"tool": ""}}])
+def test_approved_by_needs_a_persons_own_approval_of_the_decision_its_request_names(edit):
+    assert pcm_verify.approved_by({"person": "alice", "call": "c1"}, approval(**edit))[0] == "failed"
 
 
 @pytest.mark.parametrize("claim, path, result", [
@@ -350,6 +422,17 @@ def test_cli_exit_codes(tmp_path):
     deep["payload"] = {"kind": "data", "data": json.loads("[" * 200 + "]" * 200)}
     r = cli(write("deep.json", signed(deep, pcm_verify.MESSAGE_TAG)), "--trust", trust, "--schema", schema)
     assert r.returncode == 2 and "deeper than 128" in r.stderr, r.stderr
+
+
+def test_cli_prints_what_a_proven_approved_by_approved(tmp_path):
+    inp = json.loads((VECTORS / "accept-approved-by.json").read_text())["input"]
+    args = []
+    for name, flag in (("message", None), ("trust", "--trust"), ("schemas", "--schema")):
+        (tmp_path / name).write_text(json.dumps(inp[name]))
+        args += [flag, str(tmp_path / name)] if flag else [str(tmp_path / name)]
+    r = cli(*args, "--me", inp["options"]["me"])
+    assert (r.returncode, r.stdout) == (0, 'accept\n  approved_by: {"tool": "pcm.grant", "args": null}\n'
+                                           "  not checked: replay\n"), r.stderr
 
 
 def test_cli_escapes_what_the_sender_wrote(tmp_path):
