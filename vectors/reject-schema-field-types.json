@@ -1,0 +1,176 @@
+{
+  "name": "reject-schema-field-types",
+  "description": "Each field of the same schema broken: a title of 81 characters, a code the pattern refuses, a level not in the enum, 0 for a bool, a time without microseconds, an optional field too long.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "bb650aec66cc29fb4ee0de297fd3392f",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "ticket.open@sha256:109903b68370e4a4a24d4a9421bfa05ead3dc688b57e5024b60d5f8b2c10a30a",
+        "args": {
+          "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "code": "op-81",
+          "level": "urgent",
+          "urgent": 0,
+          "due": "2026-11-01T09:00:00Z",
+          "note": "far too long"
+        }
+      },
+      "pcm": 0,
+      "id": "b36caf7d5ab3874b6d7ac2b7f07df04a",
+      "ts": "2026-10-27T14:12:00.977094Z",
+      "nonce": "6dd8e38c7f9618ce7256cf7ffc796170",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "/S5b159yyg+fcKJEb54x3/E1W70bI+TYuh5A+Qu1RUBvX1ncqvpwr5VsTh06No7cKs6pSBDAMdJnmu4JHrnDDg=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "ticket.open",
+        "fields": {
+          "title": {
+            "type": "string",
+            "max": 80
+          },
+          "code": {
+            "type": "id",
+            "pattern": "^[A-Z]{2}-[0-9]{1,6}$"
+          },
+          "level": {
+            "type": "enum",
+            "values": [
+              "low",
+              "high"
+            ]
+          },
+          "urgent": {
+            "type": "bool"
+          },
+          "due": {
+            "type": "time"
+          },
+          "note": {
+            "type": "string",
+            "max": 10,
+            "optional": true
+          }
+        }
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "run_shell_command": "shell",
+      "shell": "shell",
+      "local_shell": "shell",
+      "container.exec": "shell",
+      "run_terminal_cmd": "shell",
+      "terminal": "shell",
+      "Write": "fs",
+      "Edit": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "Grep": "fs",
+      "Glob": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "srt:request": "http",
+      "transfer_funds": "payment",
+      "send_payment": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_transfer": "payment",
+      "create_refund": "payment",
+      "create_charge": "payment",
+      "pay_invoice": "payment",
+      "get_balance": "payment",
+      "list_transactions": "payment",
+      "get_transaction": "payment",
+      "list_payments": "payment",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "gmail_send_message": "email",
+      "run_sql": "sql",
+      "execute_sql": "sql",
+      "execute_query": "sql",
+      "query_database": "sql",
+      "sql_db_query": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "http_request": "http",
+      "http_get": "http",
+      "http_post": "http",
+      "requests_get": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "requests_patch": "http",
+      "requests_delete": "http",
+      "fetch": "http",
+      "web_fetch": "http",
+      "mcp:fetch/fetch": "http",
+      "bash": "shell"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-27T14:12:01.977094Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": false,
+      "ref": "ticket.open@sha256:109903b68370e4a4a24d4a9421bfa05ead3dc688b57e5024b60d5f8b2c10a30a",
+      "errors": [
+        "args.title: \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx is not a valid string",
+        "args.code: \"op-81\" is not a valid id",
+        "args.level: \"urgent\" is not a valid enum",
+        "args.urgent: 0 is not a valid bool",
+        "args.due: \"2026-11-01T09:00:00Z\" is not a valid time",
+        "args.note: \"far too long\" is not a valid string"
+      ]
+    },
+    "grants": {
+      "result": "none",
+      "steps": 0,
+      "root": null,
+      "problems": []
+    },
+    "claims": [],
+    "verdict": "reject",
+    "reasons": [
+      "schema: args.title: \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx is not a valid string",
+      "schema: args.code: \"op-81\" is not a valid id",
+      "schema: args.level: \"urgent\" is not a valid enum",
+      "schema: args.urgent: 0 is not a valid bool",
+      "schema: args.due: \"2026-11-01T09:00:00Z\" is not a valid time",
+      "schema: args.note: \"far too long\" is not a valid string"
+    ]
+  }
+}

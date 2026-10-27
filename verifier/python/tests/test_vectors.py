@@ -133,6 +133,39 @@ def test_huge_number_signed_is_rejected():
     assert out["verdict"] == "reject" and out["signature"]["ok"] is False
 
 
+def test_deep_value_in_an_enum_field_is_rejected():
+    deep = []
+    for _ in range(5000):
+        deep = [deep]
+    msg = message()
+    msg["claims"][0]["type"] = deep
+    assert check(msg)["verdict"] == "reject"
+
+
+def hybrid(name):
+    public = b"\xff" + pcm_verify.SLH_DSA + bytes(32)
+    return f"{name}+{pcm_verify._key_id(name, 0xff, public[1:]).hex()}+{b64(public)}"
+
+
+def test_hybrid_key_fails_only_its_own_logs_notes():
+    other = pcm_verify.verify(message(), dict(TRUST, logs=[VKEY, hybrid("example.org/other")]), [DOC], {})
+    assert other["verdict"] == "accept", other["reasons"]
+    own = pcm_verify.verify(message(), dict(TRUST, logs=[VKEY, hybrid(NAME)]), [DOC], {})
+    assert own["claims"][0]["result"] == "failed" and "SLH-DSA" in own["claims"][0]["detail"]
+
+
+@pytest.mark.parametrize("trust", [{}, {"logs": VKEY}, {"logs": [VKEY], "witnesses": [{"name": "w"}]},
+                                   {"logs": [VKEY], "witnesses_required": "1"}])
+def test_bad_trust_raises_value_error(trust):
+    with pytest.raises(ValueError):
+        pcm_verify.verify(message(), trust, [DOC], {})
+
+
+def test_packaged_tool_table_is_the_registry():
+    assert (HERE.parent / "pcm_verify" / "tools.json").read_text() == (HERE.parents[2] / "registry" /
+                                                                       "tools.json").read_text()
+
+
 # ---------------------------------------------------------------------------------------------------- CLI
 def cli(*args):
     return subprocess.run([sys.executable, "-m", "pcm_verify", *args], cwd=HERE.parent, capture_output=True,
@@ -158,3 +191,18 @@ def test_cli_exit_codes(tmp_path):
     r = cli(write("ok.json", message()), "--trust", str(tmp_path / "missing.json"), "--schema", schema)
     assert r.returncode == 2 and "Traceback" not in r.stderr
     assert cli("--json").returncode == 2
+    deep = message()
+    deep["payload"] = {"kind": "data", "data": json.loads("[" * 200 + "]" * 200)}
+    r = cli(write("deep.json", signed(deep, pcm_verify.MESSAGE_TAG)), "--trust", trust, "--schema", schema)
+    assert r.returncode == 2 and "deeper than 128" in r.stderr, r.stderr
+
+
+def test_cli_escapes_what_the_sender_wrote(tmp_path):
+    msg = message()
+    msg["to"]["agent"] = "uid:\x1b[2J"
+    (tmp_path / "m.json").write_text(json.dumps(signed(msg, pcm_verify.MESSAGE_TAG)))
+    (tmp_path / "t.json").write_text(json.dumps(TRUST))
+    (tmp_path / "s.json").write_text(json.dumps(DOC))
+    r = cli(str(tmp_path / "m.json"), "--trust", str(tmp_path / "t.json"), "--schema", str(tmp_path / "s.json"),
+            "--me", "uid:2")
+    assert r.returncode == 1 and "\x1b" not in r.stdout and "uid:\\u001b[2J" in r.stdout, (r.stdout, r.stderr)

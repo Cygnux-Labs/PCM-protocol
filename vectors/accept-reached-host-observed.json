@@ -1,0 +1,198 @@
+{
+  "name": "accept-reached-host-observed",
+  "description": "reached_host proven by the effect.observed record an egress observer reported to the signer.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "bb650aec66cc29fb4ee0de297fd3392f",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "claims": [
+        {
+          "type": "reached_host",
+          "args": {
+            "host": "api.example.com"
+          },
+          "evidence": {
+            "checkpoint": "example.com/pcm-test-log\n114\ng/wpXXXslo7b/B+8CdDD4OHPQBkUWvPIoAdHwktUXEI=\n\n— example.com/pcm-test-log C7keZmJ3xZwZ4gr+WI4U2VlspH3iD/28GFbzrW+FWBm6WKOs/ZQ5BaePNdhRbYhmjxsgMYrgrR4fvYSoZBatBipzqQ0=\n",
+            "records": [
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "4f952d98205ec3cdc0addfc26e531f9c",
+                  "seq": 112,
+                  "prev_hash": "sha256:38727724b4099d50080e521e89ffeadb132ac7a7a49ec473ec2519e1150d0859",
+                  "ts": "2026-10-27T14:12:00.951170Z",
+                  "run_id": "bb650aec66cc29fb4ee0de297fd3392f",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "signer",
+                  "type": "effect.observed",
+                  "data": {
+                    "observer": "uid:990200",
+                    "kind": "net",
+                    "host": "api.example.com",
+                    "port": 443,
+                    "bytes_out": 512,
+                    "bytes_in": 2048,
+                    "connections": 1,
+                    "first_ts": "2026-10-27T14:12:00.950951Z",
+                    "last_ts": "2026-10-27T14:12:00.950951Z",
+                    "attribution": "token"
+                  },
+                  "tenant": "default",
+                  "log_id": "4b583d8211fe9891e76921977c9d6f37",
+                  "run_seq": 96,
+                  "run_prev_hash": "sha256:38727724b4099d50080e521e89ffeadb132ac7a7a49ec473ec2519e1150d0859"
+                },
+                "hash": "sha256:2ac9cb4e1754949705c8f6ce99a2b624e578654a1cbef32de949cfe5a6dc2946",
+                "proof": [
+                  "Wvqkm8E1KVRU+B5jiplwAwEQWVl1v7NqW5HQyeRTyno=",
+                  "6sPOk8rcUfOrXNyPp2JKtqJ9f3Aw+Ue3kljhkarZSeI=",
+                  "bJTvWBVJC8x0wo0sOYQbhVSkJMbcZYL1GUBhl7Fau5I=",
+                  "3MIxM/oezWtDwQRFPe7t7Ge/xoCEAQE45ilUH9HoVDI="
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "152ba371152dfb35863312c69499abf6",
+      "ts": "2026-10-27T14:12:00.956934Z",
+      "nonce": "12ed46e4088a5198fe54ed5e432dd45b",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "u3neLcXsAv5VhBPvW2PebQPloL5DxQgDitgMHlxFb6SCWKBCY6aYyydtgq4Ne/Lm2zHynOkKQIfXRCJYlP1hCQ=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.quote",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        }
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "run_shell_command": "shell",
+      "shell": "shell",
+      "local_shell": "shell",
+      "container.exec": "shell",
+      "run_terminal_cmd": "shell",
+      "terminal": "shell",
+      "Write": "fs",
+      "Edit": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "Grep": "fs",
+      "Glob": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "srt:request": "http",
+      "transfer_funds": "payment",
+      "send_payment": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_transfer": "payment",
+      "create_refund": "payment",
+      "create_charge": "payment",
+      "pay_invoice": "payment",
+      "get_balance": "payment",
+      "list_transactions": "payment",
+      "get_transaction": "payment",
+      "list_payments": "payment",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "gmail_send_message": "email",
+      "run_sql": "sql",
+      "execute_sql": "sql",
+      "execute_query": "sql",
+      "query_database": "sql",
+      "sql_db_query": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "http_request": "http",
+      "http_get": "http",
+      "http_post": "http",
+      "requests_get": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "requests_patch": "http",
+      "requests_delete": "http",
+      "fetch": "http",
+      "web_fetch": "http",
+      "mcp:fetch/fetch": "http",
+      "bash": "shell"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-27T14:12:01.956934Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+      "errors": []
+    },
+    "grants": {
+      "result": "none",
+      "steps": 0,
+      "root": null,
+      "problems": []
+    },
+    "claims": [
+      {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "effect.observed seq 112: uid:990200 saw the run reach api.example.com"
+      }
+    ],
+    "verdict": "accept",
+    "reasons": []
+  }
+}

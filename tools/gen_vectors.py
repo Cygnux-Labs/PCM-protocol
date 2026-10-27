@@ -7,6 +7,7 @@ edited, and re-signed with the test log key only where the case needs a valid si
 
 The log, other-log and witness keys come from a fixed seed, so trust is the same on every run. Run ids, message ids,
 nonces and timestamps come from the signer's clock and randomness, so they and the signatures change on every run."""
+import base64
 import glob
 import hashlib
 import itertools
@@ -28,7 +29,8 @@ from tracekit.signer import logkey, service as svc
 from tracekit.signer.rpc_schema import REQUESTS
 
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vectors")
-A, B, M, ALICE, CAROL = (CallerIdentity("uid", u, True) for u in ("990101", "990102", "990107", "990001", "990008"))
+A, B, M, ALICE, CAROL, EGRESS = (CallerIdentity("uid", u, True)
+                                 for u in ("990101", "990102", "990107", "990001", "990008", "990200"))
 C = "uid:990103"
 GW = CallerIdentity("mtls", "spiffe://example/executor", True)   # a tool executor: its results are T2
 SUITE = "pytest -q tests/test_refund.py"
@@ -61,13 +63,14 @@ class Signer:
     """A Tracekit signer in a temp dir: alice approves, the executor GW runs tools; M and carol are in tenant acme."""
 
     def __init__(self, origin, key):
-        self.dir = tempfile.mkdtemp(prefix="pcm-vec-", dir="/tmp" if os.path.isdir("/tmp") else None)
+        self.dir = tempfile.mkdtemp(prefix="pcm-vec-")
         self.ids = itertools.count()
         self.s = svc.SignerService(
             self.dir, policy=Engine({"ask": [{"id": "PCM-GRANT", "tool": "pcm.grant", "pattern": "^"}]}),
             approvals={"approvers": ["uid:990001", "uid:990008"],
                        "persons": {"uid:990001": "alice", "uid:990008": "carol"}}, origin=origin, log_key=key,
-            gateways=[f"mtls:{GW.subject}"], authorize={f"mtls:{GW.subject}": ["decide", "complete"]},
+            gateways=[f"mtls:{GW.subject}"],
+            authorize={f"mtls:{GW.subject}": ["decide", "complete"], "uid:990200": ["observe_effect"]},
             tenants={"uid:990107": "acme", "uid:990008": "acme"}, fsck_every_s=0)
         self.vkey = self.s.vkey
 
@@ -92,17 +95,25 @@ class Run:
     def call(self, method, who=None, **req):
         return self.signer.call(who or self.who, method, **self.creds, **req)
 
-    def ran(self, tool, args, t2=True):
-        """(decision run_seq, result run_seq) of a call of `tool` that succeeded: run by the executor (T2), else
-        reported by the agent's own process (T1)."""
+    def ran(self, tool, args, t2=True, status="ok"):
+        """(decision run_seq, result run_seq) of a call of `tool` that ended with `status`: run by the executor (T2),
+        else reported by the agent's own process (T1)."""
         tcid = f"call-{next(self.signer.ids)}"
         who, via, seqs = (GW, {"stream": "gw", "caller": self.agent}, self.gw) if t2 else (self.who, {"stream": "s"},
                                                                                          self.seqs)
         d = self.call("decide", who, client_seq=next(seqs), tool_call_id=tcid, tool=tool, args_source="parsed",
                       args=args, **via)
         r = self.call("complete", who, client_seq=next(seqs), tool_call_id=tcid, decision_id=d["decision_id"],
-                      args_digest=event_hash({"tool": tool, "args": args}), status="ok", **via)
+                      args_digest=event_hash({"tool": tool, "args": args}), status=status, **via)
         return d["run_seq"], r["run_seq"]
+
+    def observed(self, host):
+        """run_seq of the effect.observed an egress observer reports: the run reached `host`."""
+        ts = svc._iso(time.time())
+        self.signer.call(EGRESS, "observe_effect", instance="egress-1", effects=[
+            {"kind": "net", "host": host, "port": 443, "bytes_out": 512, "bytes_in": 2048, "connections": 1,
+             "first_ts": ts, "last_ts": ts, **self.creds}])
+        return next(e["run_seq"] for e in self.call("read", limit=1000)["events"] if e["type"] == "effect.observed")
 
     def grant(self, tcid, intent, subject=None, delegable=False, expires_s=3600, approver=ALICE):
         """(root grant `approver` approved, run_seq of her approval), as the SDK's pcm_grant makes it."""
@@ -186,10 +197,14 @@ def cases(s, s2):
     approved = {"type": "approved_by", "args": {"person": "alice", "call": "grant-1"}, "evidence": ev}
     tp = {"type": "tests_passed", "args": {"suite": SUITE}}
 
-    def ran(tool, command, t2=True):
-        d, r = a.ran(tool, {"command": command}, t2)
+    def call(tool, args, t2=True, status="ok"):
+        """Evidence of one call: its opened decision and its result."""
+        d, r = a.ran(tool, args, t2, status)
+        return a.evidence([d, r], {d: args})
+
+    def ran(tool, command, t2=True, status="ok"):
         return {"type": "tests_passed", "args": {"suite": command},
-                "evidence": a.evidence([d, r], {d: {"command": command}})}
+                "evidence": call(tool, {"command": command}, t2, status)}
 
     # accept and accept-unproven
     m = a.send("uid:990102", ref, claims=[approved], grants=[root])
@@ -312,6 +327,138 @@ def cases(s, s2):
            dict(approved, args={"person": "alice", "call": "grant-2"}), "no approval of grant-2")
     failed("pytest-or-true", "tests_passed of `pytest ... || true`, run by the executor (T2): its status is not the "
            "tests'.", ran("Bash", SUITE + " || true"), "is not a single test command")
+    note = ev["checkpoint"]
+    text = note[:note.find("\n\n") + 1]
+    vector("accept-witnessed", "approved_by under a note cosigned by the pinned witness; trust requires one witness.",
+           a.send("uid:990102", ref, claims=[dict(approved, evidence=dict(ev, checkpoint=note + checkpoint.cosign(
+               text, WITNESS["name"], seed("witness"), int(time.time()))))], grants=[root]), [DOC],
+           trust=dict(trust, witnesses=[WITNESS], witnesses_required=1))
+    failed("malformed-unpinned-note-line", "approved_by under a note with an extra signature line of a key trust does "
+           "not pin, whose signature is 3 bytes: a malformed line fails the note even when its key is not pinned.",
+           dict(approved, evidence=dict(ev, checkpoint=note + "— example.com/unpinned AAAA\n")), "short signature")
+
+    # claims on a refund.quote, which needs no grant or claim, so the claim is the one cause
+    def claimed(name, description, claim, want=""):
+        vector(name, description, a.send("uid:990102", qref, claims=[claim]), [QUOTE], want)
+    claimed("reject-claim-bash-c", "tests_passed of `bash -c 'pytest || true'`, run by the executor (T2): bash is not a "
+            "test runner.", ran("Bash", "bash -c 'pytest || true'"), "is not a single test command")
+    claimed("accept-tests-passed-comment", "tests_passed of `pytest ... # || true`, run by the executor (T2): the shell "
+            "reads `# || true` as a comment, so it is one command.", ran("Bash", SUITE + " # || true"))
+    claimed("accept-tests-passed-collect-only", "tests_passed of `pytest --co -q`, run by the executor (T2): proven "
+            "means this exact command line exited 0, and `--co` only lists the tests.", ran("Bash", "pytest --co -q"))
+    claimed("accept-tests-passed-npm-test", "tests_passed of `npm test`, run by the executor (T2).",
+            ran("Bash", "npm test"))
+    claimed("reject-claim-tests-failed", "tests_passed whose T2 result is an error.",
+            ran("Bash", SUITE, status="error"), "and failed")
+    opened = ran("Bash", SUITE)
+    dec, res = opened["evidence"]["records"]
+    claimed("reject-claim-salt-without-args", "tests_passed whose decision record carries its salt but not its args.",
+            dict(opened, evidence=dict(opened["evidence"], records=[
+                {k: v for k, v in dec.items() if k != "args"}, res])), "do not open its decision's commitment")
+    claimed("reject-claim-opening-wrong-args", "tests_passed whose opening carries other args than the decision "
+            "committed to.", dict(opened, evidence=dict(opened["evidence"], records=[
+                dict(dec, args={"command": SUITE + " -x"}), res])), "do not open its decision's commitment")
+
+    sha = "sha256:" + hashlib.sha256(b"total: 81\n").hexdigest()
+    wrote = call("Write", {"file_path": "/work/report.txt", "content": "total: 81\n"})
+    for name, path, digest, want, what in (
+            ("accept-file-written", "/work/report.txt", sha, "", "with the SHA-256 of the content written"),
+            ("reject-claim-file-written-wrong-digest", "/work/report.txt", "sha256:" + "0" * 64,
+             "no call in the evidence wrote", "with another digest than the content's"),
+            ("reject-claim-file-written-dotdot", "/work/../work/report.txt", sha, "has a `..`",
+             "naming the path with `..`, which fails")):
+        claimed(name, f"file_written of {path} by a Write of /work/report.txt the executor ran (T2), {what}.",
+                {"type": "file_written", "args": {"path": path, "digest": digest}, "evidence": wrote}, want)
+    claimed("accept-reached-host-observed", "reached_host proven by the effect.observed record an egress observer "
+            "reported to the signer.", {"type": "reached_host", "args": {"host": "api.example.com"},
+                                         "evidence": a.evidence([a.observed("api.example.com")])})
+    for name, url, host, want, what in (
+            ("accept-reached-host-http", "https://API.Example.COM:8443/v1/refunds", "api.example.com", "",
+             "the host is read lower case, without the port"),
+            ("accept-reached-host-short-ipv4", "http://127.1/health", "127.0.0.1", "",
+             "127.1 is the IPv4 address 127.0.0.1"),
+            ("reject-claim-reached-host-bracket", "http://[x]@good.com/", "good.com", "no call in the evidence",
+             "a `[` in the userinfo: Python's urlsplit refuses the URL, so it has no host"),
+            ("reject-claim-reached-host-idn", "http://bücher.example/", "xn--bcher-kva.example",
+             "no call in the evidence", "the host is read as bücher.example, without IDNA, so the punycode "
+             "name a claim can carry does not match")):
+        claimed(name, f"reached_host {host} by a WebFetch of {url} the executor ran (T2): {what}.",
+                {"type": "reached_host", "args": {"host": host}, "evidence": call("WebFetch", {"url": url})}, want)
+    claimed("reject-claim-reached-host-too-long", "reached_host of a 200-character host: a claim's host is an id, at "
+            "most 128 characters.", {"type": "reached_host", "args": {"host": "a" * 196 + ".com"}}, "not a valid id")
+
+    # signature encodings, identities and JCS
+    sig = q["sig"]["sig"]
+    b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+    loose = sig[:-3] + b64[b64.index(sig[-3]) ^ 1] + "=="   # a padding bit set: the same 64 bytes
+    vector("accept-sig-non-canonical-base64", "sig.sig with a padding bit set in its last base64 character: it decodes "
+           "to the same 64 bytes, and Tracekit ignores padding bits.", dict(q, sig=dict(q["sig"], sig=loose)), [QUOTE])
+    small = checkpoint.vkey("example.com/pcm-test-log", checkpoint.ED25519, b"\x01" + bytes(31))
+    vector("reject-small-order-key", "trust pins a key that is the identity point (small order). The signature "
+           "R = identity, S = 0 holds for any message under the plain equation; a verifier must refuse the key.",
+           dict(q, sig={"key": small.rpartition("+")[0], "sig": base64.b64encode(b"\x01" + bytes(63)).decode()}),
+           [QUOTE], "bad signature", trust=dict(trust, logs=[small]))
+    odd = "uid:990102\r x"
+    vector("accept-identity-line-break-chars", "to.agent holds a carriage return and U+2028: an identity's subject is "
+           "any character but a line feed.", a.send(odd, qref), [QUOTE], me=odd)
+    vector("accept-jcs-payload", "A data payload with floats, a non-ASCII key, a key outside the BMP that sorts before "
+           "U+E000 by UTF-16 code units, controls and U+2028: the signature verifies only with exact RFC 8785.",
+           a.call("pcm_sign", message={
+               "from": a.frm, "to": {"agent": "uid:990102"}, "intent": {"type": qref, "args": ARGS},
+               "payload": {"kind": "data", "data": {"n": [1.5e-7, 1e21, 0.1, 333333333.33333333, -0.0],
+                                                    "été": "\u0007\u001f \u007f",
+                                                    "": 1, "\U0001F600": 2}}})["message"], [QUOTE])
+
+    # replay: remembered messages leave in the order they arrived
+    q1, q2, q3 = (a.send("uid:990102", qref) for _ in range(3))
+    vector("reject-replay-floor-arrival-order", "per_sender 1, no window: the receiver took the 3rd, then the 1st "
+           "message, so the 3rd left first and raised the floor to its time; the 2nd is older than the floor.",
+           q2, [QUOTE], "older than the messages this receiver remembers",
+           replay={"window_s": None, "started": at(q1, -60), "per_sender": 1, "seen": [q3, q1]}, now=at(q3, 1))
+
+    # schema field types
+    ticket = {"pcm_schema": 0, "name": "ticket.open", "fields": {
+        "title": {"type": "string", "max": 80}, "code": {"type": "id", "pattern": "^[A-Z]{2}-[0-9]{1,6}$"},
+        "level": {"type": "enum", "values": ["low", "high"]}, "urgent": {"type": "bool"}, "due": {"type": "time"},
+        "note": {"type": "string", "max": 10, "optional": True}}}
+    tref = pcm.schema_ref(ticket)
+    vector("accept-schema-field-types", "A string, id, enum, bool and time field, and an optional field left out.",
+           a.send("uid:990102", tref, {"title": "Printer jam", "code": "OP-81", "level": "high", "urgent": False,
+                                       "due": "2026-11-01T09:00:00.000000Z"}), [ticket])
+    vector("reject-schema-field-types", "Each field of the same schema broken: a title of 81 characters, a code the "
+           "pattern refuses, a level not in the enum, 0 for a bool, a time without microseconds, an optional field "
+           "too long.", a.send("uid:990102", tref, {"title": "x" * 81, "code": "op-81", "level": "urgent", "urgent": 0,
+                                                    "due": "2026-11-01T09:00:00Z", "note": "far too long"}),
+           [ticket], "schema: args.")
+
+    # grants
+    vector("reject-grant-needed", "refund.request needs a grant (grant: true); the message has none.",
+           a.send("uid:990102", ref, claims=[approved]), [DOC], "the intent needs a grant")
+    for name, grant, want, what in (
+            ("tampered", {**root, "delegable": True}, "bad signature", "with delegable set to true after signing"),
+            ("unpinned-key", pcm.sign(OTHER, s2.vkey, "pcm-grant", {k: v for k, v in root.items() if k != "sig"}),
+             "a key trust.json does not pin", "signed by the other log, which trust does not pin"),
+            ("issuer-is-subject", resign(root, "pcm-grant", issuer={**root["issuer"], "id": a.agent}),
+             "issuer is its own subject", "with its issuer id edited to its subject, re-signed with the test log key"),
+            ("bad-caveat", resign(root, "pcm-grant", caveats=[cv("amount", "in", [12000]), cv("order", "==", 81)]),
+             "in does not apply to a money field", "with an `in` caveat on a money field, re-signed with the test log "
+             "key")):
+        vector(f"reject-grant-{name}", f"alice's root grant, {what}.",
+               a.send("uid:990102", ref, claims=[approved], grants=[grant]), [DOC], want)
+    quote_grant, _ = a.grant("grant-q", qref)
+    vector("reject-grant-other-intent", "A root grant for refund.quote, sent with a refund.request.",
+           a.send("uid:990102", ref, claims=[approved], grants=[quote_grant]), [DOC], "not this intent")
+    lt = a.call("pcm_delegate", parent=droot, subject="uid:990102", caveats=[
+        cv("amount", "<", 20001), cv("order", "==", 81)], expires_at=droot["expires_at"], delegable=False)["grant"]
+    vector("accept-delegation-less-than", "A's child to B has amount < 20001, which narrows amount <= 20000.",
+           b.send(C, pref, grants=[droot, lt]), [PASSED], me=C)
+    for name, change, want, what in (
+            ("child-outlives-parent", {"expires_at": svc._iso(pcm._epoch(droot["expires_at"]) + 60)},
+             "outlives its parent", "expires 60 s after its parent"),
+            ("child-wrong-issuer", {"issuer": {**child["issuer"], "id": "uid:990107"}}, "not grant 0's subject",
+             "names uid:990107, not the parent's subject, as its issuer")):
+        vector(f"reject-grant-{name}", f"A's child to B {what}; {edited}.",
+               b.send(C, pref, grants=[droot, resign(child, "pcm-grant", **change)]), [PASSED], want, me=C)
     return out
 
 

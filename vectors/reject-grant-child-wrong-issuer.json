@@ -1,0 +1,217 @@
+{
+  "name": "reject-grant-child-wrong-issuer",
+  "description": "A's child to B names uid:990107, not the parent's subject, as its issuer; the signer refuses it, so it is the real child edited and re-signed with the test log key.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990102",
+        "run": "7776e7c2bdc1e7d932083bf510531efc",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990103"
+      },
+      "intent": {
+        "type": "refund.passed@sha256:7caec9ad65e3cdc40ea059d076e182427496bef14614fbf14ead9c3e0549dd60",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "grants": [
+        {
+          "pcm_grant": 0,
+          "ts": "2026-10-27T14:12:00.878959Z",
+          "issuer": {
+            "kind": "person",
+            "id": "uid:990001",
+            "run": "bb650aec66cc29fb4ee0de297fd3392f",
+            "tenant": "default",
+            "approval_id": "apr-9f00784e6d5c7b6a879012c7eb6a2aca",
+            "person": "alice"
+          },
+          "subject": "uid:990101",
+          "intent": "refund.passed@sha256:7caec9ad65e3cdc40ea059d076e182427496bef14614fbf14ead9c3e0549dd60",
+          "caveats": [
+            {
+              "field": "amount",
+              "op": "<=",
+              "value": 20000
+            },
+            {
+              "field": "order",
+              "op": "==",
+              "value": 81
+            }
+          ],
+          "expires_at": "2026-10-27T15:12:00.877646Z",
+          "delegable": true,
+          "parent": null,
+          "sig": {
+            "key": "example.com/pcm-test-log+0bb91e66",
+            "sig": "Oj+pP3/ZSBJBBV8ENJGbgcUsD6p1fjmYTdQvowLk6Xc2EUauTm0SvVqBhVexBexooNqWpPrhlz+4saAS3l4nDg=="
+          }
+        },
+        {
+          "pcm_grant": 0,
+          "ts": "2026-10-27T14:12:00.879987Z",
+          "issuer": {
+            "kind": "agent",
+            "id": "uid:990107",
+            "run": "bb650aec66cc29fb4ee0de297fd3392f",
+            "tenant": "default"
+          },
+          "subject": "uid:990102",
+          "intent": "refund.passed@sha256:7caec9ad65e3cdc40ea059d076e182427496bef14614fbf14ead9c3e0549dd60",
+          "caveats": [
+            {
+              "field": "amount",
+              "op": "<=",
+              "value": 15000
+            },
+            {
+              "field": "order",
+              "op": "==",
+              "value": 81
+            }
+          ],
+          "expires_at": "2026-10-27T15:12:00.877646Z",
+          "delegable": false,
+          "parent": "sha256:ef89a038bd22bdc7ff2b12937bcca40461fa4f1f5c8bf0760757ca3988cdd70f",
+          "sig": {
+            "key": "example.com/pcm-test-log+0bb91e66",
+            "sig": "Wz0u+/vIfNPedze7ZATrTWXsh/8Y+2u4bWnl9reDCAiUCenWBnZxhJ+bMsbtiwtMhY2Fjeab6eWd+jGWEyMOCQ=="
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "4c9da568664a8b861d1af6458dc30f27",
+      "ts": "2026-10-27T14:12:00.983768Z",
+      "nonce": "c9de50e45df51e9c01b729fdd16aa421",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "A7FLsXmlIHtzqpryupp3A2B7Lu7A5zobtmwVHHit+hLLZvOL0/bGbNfqKn1I7wO+SOoI3mM8IwedeXCR9A0lAQ=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.passed",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        },
+        "grant": true
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "run_shell_command": "shell",
+      "shell": "shell",
+      "local_shell": "shell",
+      "container.exec": "shell",
+      "run_terminal_cmd": "shell",
+      "terminal": "shell",
+      "Write": "fs",
+      "Edit": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "Grep": "fs",
+      "Glob": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "srt:request": "http",
+      "transfer_funds": "payment",
+      "send_payment": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_transfer": "payment",
+      "create_refund": "payment",
+      "create_charge": "payment",
+      "pay_invoice": "payment",
+      "get_balance": "payment",
+      "list_transactions": "payment",
+      "get_transaction": "payment",
+      "list_payments": "payment",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "gmail_send_message": "email",
+      "run_sql": "sql",
+      "execute_sql": "sql",
+      "execute_query": "sql",
+      "query_database": "sql",
+      "sql_db_query": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "http_request": "http",
+      "http_get": "http",
+      "http_post": "http",
+      "requests_get": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "requests_patch": "http",
+      "requests_delete": "http",
+      "fetch": "http",
+      "web_fetch": "http",
+      "mcp:fetch/fetch": "http",
+      "bash": "shell"
+    },
+    "options": {
+      "me": "uid:990103",
+      "strict": false,
+      "now": "2026-10-27T14:12:01.983768Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.passed@sha256:7caec9ad65e3cdc40ea059d076e182427496bef14614fbf14ead9c3e0549dd60",
+      "errors": []
+    },
+    "grants": {
+      "result": "failed",
+      "steps": 2,
+      "root": {
+        "kind": "person",
+        "id": "uid:990001",
+        "person": "alice"
+      },
+      "problems": [
+        "grant 1: issued by uid:990107, not grant 0's subject uid:990101"
+      ]
+    },
+    "claims": [],
+    "verdict": "reject",
+    "reasons": [
+      "grant: grant 1: issued by uid:990107, not grant 0's subject uid:990101"
+    ]
+  }
+}

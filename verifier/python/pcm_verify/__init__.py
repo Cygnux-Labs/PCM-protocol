@@ -1,4 +1,4 @@
-"""PCM 0.1 reference verifier: checks a proof-carrying message offline, with only the receiver's trust file (pinned
+"""PCM 0.1 standalone verifier: checks a proof-carrying message offline, with only the receiver's trust file (pinned
 log and witness keys), the schema documents it agreed on and the tool placement table.
 
 It needs the standard library, rfc8785 and cryptography, nothing else. Tracekit is the reference implementation; the
@@ -8,12 +8,15 @@ import collections
 import datetime
 import hashlib
 import hmac
+import ipaddress
 import json
 import posixpath
 import re
 import shlex
 import struct
 import time
+import unicodedata
+from urllib.parse import unquote, urlsplit
 
 import rfc8785
 from cryptography.exceptions import InvalidSignature
@@ -56,7 +59,7 @@ def _obj(required, **props):
 
 ANY, BOOL, ZERO = {}, {"type": "boolean"}, {"type": "integer", "const": 0}
 ID = _str(128, minLength=1, pattern=r"[A-Za-z0-9._:-]+")
-IDENTITY = _str(256, pattern=r"[a-z0-9_]+:.+")
+IDENTITY = _str(256, pattern=r"[a-z0-9_]+:[^\n]+")   # any character but a line feed, \r and U+2028 too
 TS = _str(27, pattern=r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}Z")
 DIGEST = _str(71, pattern=r"sha256:[0-9a-f]{64}")
 HEX32 = _str(32, pattern=r"[0-9a-f]{32}")
@@ -84,6 +87,11 @@ MESSAGE = _obj(["pcm", "id", "ts", "nonce", "sig", "from", "to", "intent"],
                payload={"oneOf": [_obj(["kind", "text"], kind={"const": "text"}, text=_str(65536)),
                                   _obj(["kind", "data"], kind={"const": "data"}, data=ANY)]},
                **{"from": _obj(["agent", "run", "tenant"], agent=IDENTITY, run=ID, tenant=ID)})
+TRUST = {"type": "object", "required": ["logs"], "properties": {   # SPEC 10.1; other members are ignored
+    "logs": {"type": "array", "items": {"type": "string"}},
+    "witnesses": {"type": "array", "items": {"type": "object", "required": ["vkey"],
+                                             "properties": {"vkey": {"type": "string"}}}},
+    "witnesses_required": {"type": "integer", "minimum": 0}}}
 SAFE = {"type": "integer", "minimum": -MAX_SAFE_INT, "maximum": MAX_SAFE_INT}
 OPT = {"optional": BOOL}
 FIELD = {"oneOf": [
@@ -119,8 +127,9 @@ def errors(schema, v, path="$"):
         return [f"{path}: expected {s['type']}, got {type(v).__name__}"]
     if "const" in s and v != s["const"]:
         out.append(f"{path}: must be {s['const']!r}")
-    if "enum" in s and v not in s["enum"]:
-        out.append(f"{path}: {str(v)[:64]!r} not in {s['enum']}")
+    if "enum" in s and v not in s["enum"]:   # only a string is shown: a deep list's repr would recurse
+        shown = repr(v[:64]) if isinstance(v, str) else f"a {type(v).__name__}"
+        out.append(f"{path}: {shown} not in {s['enum']}")
     if isinstance(v, str):
         if "pattern" in s and not re.fullmatch(s["pattern"], v, re.ASCII):
             out.append(f"{path}: does not match {s['pattern']}")
@@ -340,7 +349,18 @@ def parse_vkey(text):
     return name, bytes.fromhex(hid), raw[0], raw[1:]
 
 
+_P = 2 ** 255 - 19
+# the y of the 8 points of small order: 0, 1 and p-1 (orders 4, 1, 2) and the two of order 8
+_SMALL_Y = {0, 1, _P - 1, 0x5fc536d880238b13933c6d305acdfd5f098eff289f4c345b027b2c28f95e826,
+            _P - 0x5fc536d880238b13933c6d305acdfd5f098eff289f4c345b027b2c28f95e826}
+
+
 def _ed25519(public, msg, sig):
+    """SPEC 4.3: a 64-byte signature with S < L (checked by cryptography), a canonical public key not of small order,
+    and the equation. cryptography takes small-order and non-canonical keys, so they are refused here first."""
+    y = int.from_bytes(public, "little") & (2 ** 255 - 1)
+    if len(public) != 32 or y >= _P or y in _SMALL_Y:
+        return False
     try:
         Ed25519PublicKey.from_public_bytes(public).verify(sig, msg)
         return True
@@ -399,8 +419,9 @@ def open_note(note, log_keys, witness_keys):
             name, kid, type_, public = parse_vkey(k)
             if type_ not in want:
                 raise NoteError(f"pinned key {name} has the wrong signature type")
-            # lean: no SLH-DSA in the cryptography package; check hybrid lines when a pure SLH-DSA verify is added
-            if type_ == HYBRID:
+            # lean: no SLH-DSA in the cryptography package, so a note that needs a hybrid line (its origin's pinned
+            # hybrid key) or carries one of a pinned hybrid key fails; check them when a pure SLH-DSA verify is added
+            if type_ == HYBRID and name == origin:
                 raise NoteError(f"pinned key {name} is SLH-DSA, which this verifier can't check")
             pinned[(name, kid)] = (k, type_, public)
     data, seen, logged, cosigs = text.encode("utf-8"), set(), False, []
@@ -419,6 +440,8 @@ def open_note(note, log_keys, witness_keys):
             continue
         k, type_, public = pinned[(name, raw[:4])]
         sig = raw[4:]
+        if type_ == HYBRID:
+            raise NoteError(f"a line of pinned key {name}, SLH-DSA, which this verifier can't check")
         if type_ == ED25519:
             if not _ed25519(public, data, sig):
                 raise NoteError(f"bad signature from pinned key {name}")
@@ -629,32 +652,85 @@ def approved_by(a, recs, tools):
     return "failed", f"no approval of {a['call']} by the person {a['person']}"
 
 
-SCHEMES = ("http", "https", "ws", "wss", "ftp")
+# The host of a URL, as Tracekit's policy2.classes.url_info reads it (SPEC 6.6 reached_host).
+SPECIAL = ("http", "https", "ws", "wss", "ftp")
+_C0 = "".join(map(chr, range(0x21)))
+_BAD = object()   # looks like an address and is none
+
+
+def _whatwg_host(url):
+    """The host a browser reads: tabs and newlines dropped, leading and trailing controls and spaces stripped,
+    view-source: and blob: peeled, `\\` a `/`, any number of slashes after a special scheme, the host after the last
+    `@`, without its port. None for a scheme that has no host."""
+    u = re.sub(r"[\t\n\r]", "", url).strip(_C0)
+    u = u[re.match(r"(?i)(?:(?:view-source|blob):[\x00-\x20]*)*", u).end():]
+    m = re.match(r"([A-Za-z][A-Za-z0-9+.-]*):", u)
+    scheme = m.group(1).lower() if m else None
+    if scheme not in SPECIAL and (scheme or not re.match(r"[/\\]{2}", u)):
+        return None
+    host = re.split(r"[/?#]", (u[m.end():] if m else u).replace("\\", "/").lstrip("/"), maxsplit=1)[0]
+    host = host.rpartition("@")[2]
+    return host[:host.find("]") + 1] if host.startswith("[") and "]" in host else host.split(":")[0]
+
+
+def _number(part):
+    """An IPv4 part in decimal, 0x hex or 0 octal; None for a name; -1 for 08 or more than 10 decimal digits."""
+    if re.fullmatch(r"0[xX][0-9A-Fa-f]*", part):
+        return int(part[2:] or "0", 16)
+    if re.fullmatch(r"0[0-7]+", part):
+        return int(part, 8)
+    if re.fullmatch(r"[0-9]+", part):
+        return -1 if len(part) > 1 and part[0] == "0" or len(part) > 10 else int(part)
+    return None
+
+
+def _address(host):
+    """The address a host names (IPv4 in inet_aton's 1 to 4 parts), None for a name, _BAD for neither."""
+    if ":" in host:
+        try:
+            return ipaddress.IPv6Address(host.strip("[]").split("%")[0])
+        except ValueError:
+            return _BAD
+    parts = host.split(".")
+    if len(parts) > 1 and parts[-1] == "":
+        parts.pop()
+    if _number(parts[-1]) is None:
+        return None
+    if len(parts) > 4:
+        return _BAD
+    nums = [_number(p) for p in parts]
+    if None in nums or -1 in nums or any(n > 255 for n in nums[:-1]) or nums[-1] >= 256 ** (5 - len(nums)):
+        return _BAD
+    return ipaddress.IPv4Address(nums[-1] + sum(n << 8 * (3 - i) for i, n in enumerate(nums[:-1])))
+
+
+def _canonical_host(host):
+    """Percent-decoded, NFKC, U+3002 as `.`, casefolded (no IDNA); an address in canonical form, an IPv4-mapped or
+    NAT64 IPv6 address as its IPv4 address."""
+    h = unicodedata.normalize("NFKC", unquote(host)).replace("。", ".").casefold()
+    ip = _address(h)
+    if ip is None or ip is _BAD:
+        return ip or h
+    if ip.version == 6:
+        nat64 = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF) if int(ip) >> 32 == 0x64FF9B << 64 else None
+        ip = ip.ipv4_mapped or nat64 or ip
+    return f"[{ip}]" if ip.version == 6 else str(ip)
 
 
 def url_host(url):
-    """The host of an http, https, ws, wss or ftp URL (http when it has no scheme), lower case, when it is a plain DNS
-    name or a dotted-quad IPv4 address; else None."""
-    # lean: a URL with %, \, spaces, controls, non-ASCII, IPv6 or a numeric host in another notation (0x7f.1) is no
-    # match, where the WHATWG reading canonicalises it; widen when an http tool's records need it
-    if not isinstance(url, str) or not url.isascii() or re.search(r"[\x00-\x20\\%\x7f]", url):
+    """The canonical host of a URL (http:// in front when it has no scheme); None when it has none, or when Python's
+    urlsplit refuses the URL (a `[` it can't read)."""
+    if not isinstance(url, str):
         return None
-    if not re.match(r"(?i)((https?|wss?|ftp|file):|[a-z][a-z0-9+.-]*:(?![0-9])|//)", url):
+    if not re.match(r"(?i)[\x00-\x20]*((https?|wss?|ftp|file):|[a-z][a-z0-9+.-]*:(?![0-9])|[/\\]{2})",
+                    re.sub(r"[\t\n\r]", "", url)):
         url = "http://" + url
-    m = re.match(r"([A-Za-z][A-Za-z0-9+.-]*)://([^/?#]*)", url)
-    if not m or m.group(1).lower() not in SCHEMES:
+    try:
+        rh = urlsplit(url).hostname
+    except ValueError:
         return None
-    host = m.group(2).rpartition("@")[2]
-    if host.startswith("["):
-        return None
-    host = host.partition(":")[0].lower()
-    if re.fullmatch(r"(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3}",
-                    host):
-        return host
-    if re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)*\.?", host) and not re.fullmatch(
-            r"0x[0-9a-f]*|[0-9]+", host.rstrip(".").rpartition(".")[2]):
-        return host
-    return None
+    hosts = [_canonical_host(h) for h in (_whatwg_host(url), rh) if h]
+    return hosts[0] if hosts and hosts[0] is not _BAD else None
 
 
 def reached_host(a, recs, tools):
@@ -827,6 +903,8 @@ def verify(message, trust, schemas, tools, me=None, strict=False, now=None, repl
     Returns {verdict: accept | accept-unproven | reject, signature, replay, schema, grants, claims, reasons}; a part is
     None when the check stopped before it. Raises ValueError for a bad schema document or trust file (the receiver's
     configuration), never for a bad message."""
+    if errs := errors(TRUST, trust):
+        raise ValueError(f"trust: {'; '.join(errs)}")
     out = {"signature": None, "replay": None, "schema": None, "grants": None, "claims": None, "verdict": "reject",
            "reasons": []}
     errs = errors(MESSAGE, message)

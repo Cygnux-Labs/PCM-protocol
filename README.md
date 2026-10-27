@@ -50,15 +50,20 @@ $ tracekit pcm demo
 
 ## Verify a message
 
-With the reference verifier in `verifier/python`:
+With the standalone verifier in `verifier/python`:
 
 ```sh
 pip install ./verifier/python
-python -m pcm_verify MESSAGE --trust TRUST --schema SCHEMA
+python -m pcm_verify MESSAGE --trust TRUST --schema SCHEMA --me uid:990102
 ```
 
-`MESSAGE` is the message JSON, `TRUST` pins the signer's log key (`{"logs": ["<vkey>"]}`), and `SCHEMA` is the schema
-document of the message's intent. It prints the verdict: `accept`, `accept-unproven` or `reject`, with the reasons.
+`MESSAGE` is the message JSON, `TRUST` pins the signer's log key (`{"logs": ["<vkey>"]}`), `SCHEMA` is the schema
+document of the message's intent, and `--me` is the receiver's own identity, so a message sent to someone else is
+rejected. The tool placement table defaults to `registry/tools.json`, which the package ships; pass `--tools` for
+another. It prints the verdict: `accept`, `accept-unproven` or `reject`, with the reasons.
+
+The CLI does not check replay: it has no memory of earlier messages. That is fine for an audit. A receiver that acts
+on messages keeps one `pcm_verify.Replay` for its whole life and passes it to `pcm_verify.verify` (SPEC section 9).
 
 ## What is here
 
@@ -68,7 +73,7 @@ document of the message's intent. It prints the verdict: `accept`, `accept-unpro
 | [`schemas/`](schemas) | JSON Schemas of the message, grant, claim, evidence and schema document |
 | [`vectors/`](vectors) | test vectors: inputs and the results a verifier must give |
 | [`registry/tools.json`](registry/tools.json) | the reference tool placement table |
-| [`verifier/python`](verifier/python) | the reference verifier, `pcm_verify` |
+| [`verifier/python`](verifier/python) | the standalone verifier, `pcm_verify`: Python, with no Tracekit code |
 | [`docs/ts-verifier-plan.md`](docs/ts-verifier-plan.md) | the plan for a TypeScript verifier |
 
 ## Reference implementation

@@ -1,0 +1,211 @@
+{
+  "name": "reject-grant-needed",
+  "description": "refund.request needs a grant (grant: true); the message has none.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "bb650aec66cc29fb4ee0de297fd3392f",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "claims": [
+        {
+          "type": "approved_by",
+          "args": {
+            "person": "alice",
+            "call": "grant-1"
+          },
+          "evidence": {
+            "checkpoint": "example.com/pcm-test-log\n9\nZXhZWXHeS0bz3YSEmavclQ625T/zTkJWtlj3/UlZ+wQ=\n\n— example.com/pcm-test-log C7keZnFJpPe6KxvhUXDapyf7QZJdtlzTv0SDuxIlD64H7S6IE97K6Xm5kP8T8oS2i/l1n5X0wObT6q5ghWvaowA7fgU=\n",
+            "records": [
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "355a699d3b9517be68b62f40dcaff0bd",
+                  "seq": 5,
+                  "prev_hash": "sha256:cd50e5be123d0cbb792581b0b878096000231b2245cec964d0ac123782abd181",
+                  "ts": "2026-10-27T14:11:57.591019Z",
+                  "run_id": "bb650aec66cc29fb4ee0de297fd3392f",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "sdk",
+                  "type": "approval",
+                  "data": {
+                    "tool_use_id": "grant-1",
+                    "approval_id": "apr-f64cebe370aa43f2c14051fa70226929",
+                    "decision": "approve",
+                    "approver": "uid:990001",
+                    "approver_identity": {
+                      "scheme": "uid",
+                      "subject": "990001",
+                      "attested": true
+                    },
+                    "channel": "rpc",
+                    "self_approved": false,
+                    "person": "alice"
+                  },
+                  "tenant": "default",
+                  "log_id": "4b583d8211fe9891e76921977c9d6f37",
+                  "run_seq": 3,
+                  "run_prev_hash": "sha256:cd50e5be123d0cbb792581b0b878096000231b2245cec964d0ac123782abd181",
+                  "request_id": "r4",
+                  "tool_call_id": "grant-1"
+                },
+                "hash": "sha256:28f907f8a23ad9da3c6e8c13628ac6f3ddf1917a16e82887c3851c98cd5056ff",
+                "proof": [
+                  "z37pA0XQSZRpEOunXdL8E9y90bPpvcvqsuKsjeIF4JU=",
+                  "wR29D4XHHgZQ6WrODvNbSPZnh6yrg7QBlEJlDHfEgFQ=",
+                  "HLiOLzvRXW9DnSkqg/8Zd/4fQxgKsOZzT44slptKTEg=",
+                  "uARbbqEXw3+3ZhPuu9TNSX3t4aLteFhrKkVXzJEBCtg="
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "4317c9d8ef4a480da3e47e0259517424",
+      "ts": "2026-10-27T14:12:00.977309Z",
+      "nonce": "a47caa45592025eeb9ff48c338367835",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "CZgoHSa+JjZmkx7U9TVnllqxv3r+JYT6OUiVabtVTHzEZbd90QVfKJFiPB4LHZAPR3Dhe/+VWIwzkvI+65LUCw=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.request",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        },
+        "claims": [
+          "approved_by"
+        ],
+        "grant": true
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "run_shell_command": "shell",
+      "shell": "shell",
+      "local_shell": "shell",
+      "container.exec": "shell",
+      "run_terminal_cmd": "shell",
+      "terminal": "shell",
+      "Write": "fs",
+      "Edit": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "Grep": "fs",
+      "Glob": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "srt:request": "http",
+      "transfer_funds": "payment",
+      "send_payment": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_transfer": "payment",
+      "create_refund": "payment",
+      "create_charge": "payment",
+      "pay_invoice": "payment",
+      "get_balance": "payment",
+      "list_transactions": "payment",
+      "get_transaction": "payment",
+      "list_payments": "payment",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "gmail_send_message": "email",
+      "run_sql": "sql",
+      "execute_sql": "sql",
+      "execute_query": "sql",
+      "query_database": "sql",
+      "sql_db_query": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "http_request": "http",
+      "http_get": "http",
+      "http_post": "http",
+      "requests_get": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "requests_patch": "http",
+      "requests_delete": "http",
+      "fetch": "http",
+      "web_fetch": "http",
+      "mcp:fetch/fetch": "http",
+      "bash": "shell"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-27T14:12:01.977309Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
+      "errors": []
+    },
+    "grants": {
+      "result": "failed",
+      "steps": 0,
+      "root": null,
+      "problems": [
+        "the intent needs a grant"
+      ]
+    },
+    "claims": [
+      {
+        "type": "approved_by",
+        "result": "proven",
+        "detail": "approval seq 5 by alice of grant-1"
+      }
+    ],
+    "verdict": "reject",
+    "reasons": [
+      "grant: the intent needs a grant"
+    ]
+  }
+}

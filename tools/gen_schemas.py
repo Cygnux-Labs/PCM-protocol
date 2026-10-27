@@ -38,9 +38,10 @@ def convert(s, top):
     for name, (shape, *_) in FILES.items():
         if s is shape and s is not top:
             return {"$ref": BASE + name}
-    if isinstance(s, dict):   # [0-9] for \d: Tracekit matches ASCII, and not every validator's \d is ASCII
-        return {k: v.replace("\\d", "[0-9]") if k == "pattern" and isinstance(v, str) else convert(v, top)
-                for k, v in s.items()}
+    if isinstance(s, dict):   # [0-9] for \d: Tracekit matches ASCII, and not every validator's \d is ASCII; and
+        # IDENTITY's `.` as [^\n]: Python's `.` refuses only \n, an ECMAScript pattern's also \r, U+2028 and U+2029
+        return {k: v.replace("\\d", "[0-9]").replace(":.+", ":[^\\n]+") if k == "pattern" and isinstance(v, str)
+                else convert(v, top) for k, v in s.items()}
     if isinstance(s, list):
         return [convert(v, top) for v in s]
     return s
@@ -62,7 +63,8 @@ def main():
                 if alt["properties"]["type"] == {"const": "enum"}:
                     alt["properties"]["values"]["uniqueItems"] = True
         write(os.path.join(ROOT, "schemas", f"{name}.schema.json"), out)
-    write(os.path.join(ROOT, "registry", "tools.json"), dict(sorted(placed().items())))
+    for path in (("registry",), ("verifier", "python", "pcm_verify")):   # the verifier ships it as its default
+        write(os.path.join(ROOT, *path, "tools.json"), dict(sorted(placed().items())))
 
 
 if __name__ == "__main__":

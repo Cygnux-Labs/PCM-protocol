@@ -74,7 +74,7 @@
     "subject": {
       "type": "string",
       "maxLength": 256,
-      "pattern": "^[a-z0-9_]+:.+(?![\\s\\S])"
+      "pattern": "^[a-z0-9_]+:[^\\n]+(?![\\s\\S])"
     },
     "intent": {
       "type": "string",

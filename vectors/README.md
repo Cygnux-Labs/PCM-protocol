@@ -27,7 +27,8 @@ Each `<name>.json`:
   `name@sha256:<hex>`, the SHA-256 of its JCS.
 - `trust`: the pinned log keys (signed-note verifier keys), the witness keys and how many witness cosignatures each
   evidence checkpoint needs.
-- `tools`: the table that places a tool name as a class (`shell`, `http`, …). It is `registry/tools.json`. A
+- `tools`: the table that places a tool name as a class (`shell`, `http`, …). It is `registry/tools.json` as it was
+  when the vectors were made. A
   `tests_passed` claim needs a `shell` tool, a `reached_host` claim through a call needs an `http` tool; any other
   tool makes the claim `unproven`.
 - `options.me`: the receiver's own identity, or `null` to skip the recipient check.
@@ -36,7 +37,8 @@ Each `<name>.json`:
 - `options.replay`: `null` skips the replay check (`replay.ok` is `null`). Otherwise the receiver's replay state:
   `window_s` (seconds, or `null` to skip the clock checks), `started` (when the receiver started), `per_sender` (how
   many nonces it keeps per sender) and `seen`: earlier messages. Start one fresh replay state, verify each `seen`
-  message with it (same trust, schemas, me, strict and now; ignore their results), then verify `message`.
+  message with it (same trust, schemas, me, strict and now; ignore their results; one whose signature fails is not
+  recorded), then verify `message`.
 
 ## Conformance
 

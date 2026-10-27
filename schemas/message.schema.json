@@ -26,7 +26,7 @@
         "agent": {
           "type": "string",
           "maxLength": 256,
-          "pattern": "^[a-z0-9_]+:.+(?![\\s\\S])"
+          "pattern": "^[a-z0-9_]+:[^\\n]+(?![\\s\\S])"
         }
       }
     },
@@ -107,7 +107,7 @@
         "agent": {
           "type": "string",
           "maxLength": 256,
-          "pattern": "^[a-z0-9_]+:.+(?![\\s\\S])"
+          "pattern": "^[a-z0-9_]+:[^\\n]+(?![\\s\\S])"
         },
         "run": {
           "type": "string",

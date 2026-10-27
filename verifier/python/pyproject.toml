@@ -5,9 +5,15 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pcm-verify"
 version = "0.1.0"
-description = "Reference verifier for PCM 0.1 proof-carrying messages"
+description = "Standalone verifier for PCM 0.1 proof-carrying messages"
 requires-python = ">=3.9"
 dependencies = ["rfc8785", "cryptography"]
 
 [tool.setuptools]
 packages = ["pcm_verify"]
+
+[tool.setuptools.package-data]
+pcm_verify = ["tools.json"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

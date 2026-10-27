@@ -1,0 +1,200 @@
+{
+  "name": "reject-replay-floor-arrival-order",
+  "description": "per_sender 1, no window: the receiver took the 3rd, then the 1st message, so the 3rd left first and raised the floor to its time; the 2nd is older than the floor.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "bb650aec66cc29fb4ee0de297fd3392f",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "pcm": 0,
+      "id": "ffa7ee6091c10a9c46ce417c307e8532",
+      "ts": "2026-10-27T14:12:00.976521Z",
+      "nonce": "b09cdd4730f3e48b5c882f059a6bda58",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "5OdOC9jQfAToap6SsAwMxeuSIzug8mAsNhKZF3IytqUcmYR37HgAnsZkGHrL0nTW9xyW49bSCEtCJm6gO6GhCA=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.quote",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        }
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "run_shell_command": "shell",
+      "shell": "shell",
+      "local_shell": "shell",
+      "container.exec": "shell",
+      "run_terminal_cmd": "shell",
+      "terminal": "shell",
+      "Write": "fs",
+      "Edit": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "Grep": "fs",
+      "Glob": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "srt:request": "http",
+      "transfer_funds": "payment",
+      "send_payment": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_transfer": "payment",
+      "create_refund": "payment",
+      "create_charge": "payment",
+      "pay_invoice": "payment",
+      "get_balance": "payment",
+      "list_transactions": "payment",
+      "get_transaction": "payment",
+      "list_payments": "payment",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "gmail_send_message": "email",
+      "run_sql": "sql",
+      "execute_sql": "sql",
+      "execute_query": "sql",
+      "query_database": "sql",
+      "sql_db_query": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "http_request": "http",
+      "http_get": "http",
+      "http_post": "http",
+      "requests_get": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "requests_patch": "http",
+      "requests_delete": "http",
+      "fetch": "http",
+      "web_fetch": "http",
+      "mcp:fetch/fetch": "http",
+      "bash": "shell"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-27T14:12:01.976697Z",
+      "replay": {
+        "window_s": null,
+        "started": "2026-10-27T14:11:00.976336Z",
+        "per_sender": 1,
+        "seen": [
+          {
+            "from": {
+              "agent": "uid:990101",
+              "run": "bb650aec66cc29fb4ee0de297fd3392f",
+              "tenant": "default"
+            },
+            "to": {
+              "agent": "uid:990102"
+            },
+            "intent": {
+              "type": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+              "args": {
+                "amount": 12000,
+                "order": 81
+              }
+            },
+            "pcm": 0,
+            "id": "b986eb9b22290785979d89e99741c612",
+            "ts": "2026-10-27T14:12:00.976697Z",
+            "nonce": "6e7f1a3da53e31599e0dc01854392e3a",
+            "sig": {
+              "key": "example.com/pcm-test-log+0bb91e66",
+              "sig": "Wlt+/qOD/WnBE0Qa5Q6dhR0FPiQ9FJIM6cxCpTjILAfu/wwpYhfA5fOcEtM+2oqmJNHfLQ+v9DU9jKopefeyCw=="
+            }
+          },
+          {
+            "from": {
+              "agent": "uid:990101",
+              "run": "bb650aec66cc29fb4ee0de297fd3392f",
+              "tenant": "default"
+            },
+            "to": {
+              "agent": "uid:990102"
+            },
+            "intent": {
+              "type": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+              "args": {
+                "amount": 12000,
+                "order": 81
+              }
+            },
+            "pcm": 0,
+            "id": "c748a9e26d9f2a2db49ea8893b7854a6",
+            "ts": "2026-10-27T14:12:00.976336Z",
+            "nonce": "cd5ac770fa2f07d4ae1d3a2b3f55930b",
+            "sig": {
+              "key": "example.com/pcm-test-log+0bb91e66",
+              "sig": "1j8fsAym/eDhW6JLpU5LmyHAVIvbV2/O0PQXNVXE9XVVNqQ3RCpEGrgtptK5CvI/xcxBS4STWQbkGXnyEpPjAA=="
+            }
+          }
+        ]
+      }
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": false,
+      "detail": "older than the messages this receiver remembers from the sender"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+      "errors": []
+    },
+    "grants": {
+      "result": "none",
+      "steps": 0,
+      "root": null,
+      "problems": []
+    },
+    "claims": [],
+    "verdict": "reject",
+    "reasons": [
+      "replay: older than the messages this receiver remembers from the sender"
+    ]
+  }
+}

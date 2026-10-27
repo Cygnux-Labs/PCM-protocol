@@ -12,7 +12,8 @@ Each part of this document carries one of two marks:
 - **[Draft]**: specified here, implemented nowhere yet.
 
 Where the Tracekit code and its design notes or user docs disagree, this document follows the code. Appendix A lists
-each such place.
+each such place. Where the code itself should change, this document still says what it does, and Appendix B lists
+the place.
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT
 RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14 [RFC2119] [RFC8174]
@@ -39,6 +40,7 @@ when, and only when, they appear in all capitals, as shown here.
 17. Registrations
 18. References
 Appendix A. Where this document departs from Tracekit's docs and design
+Appendix B. Open issues
 
 ## 1. Overview and the problem
 
@@ -156,18 +158,18 @@ The message, with its claim and grant shown in sections 6.6 and 7.1:
 
 ```json
 {
- "from": {"agent": "uid:990101", "run": "1c92cb9af9a815998eef6a1bd32be3af", "tenant": "default"},
+ "from": {"agent": "uid:990101", "run": "bb650aec66cc29fb4ee0de297fd3392f", "tenant": "default"},
  "to": {"agent": "uid:990102"},
  "intent": {"type": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
             "args": {"amount": 12000, "order": 81}},
  "claims": ["... one approved_by claim, section 6.6 ..."],
  "grants": ["... alice's root grant, section 7.1 ..."],
  "pcm": 0,
- "id": "52bf587fdf27afa0960a246c7814dcd4",
- "ts": "2026-10-27T13:37:17.622902Z",
- "nonce": "a012a1eb260531d3744baf343dd3845d",
+ "id": "3bbe19efad3c109917731d71bd8bdfe6",
+ "ts": "2026-10-27T14:11:57.612864Z",
+ "nonce": "270bfcc642e6360e64b4e3c51a92c506",
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "J4JYFKhzkumGzJpGcGgCMdy1NtRysdlqjHg8d7x36Y0H/haA2GFLUjP4dzWhkqpUEFlJ35mpAv/cX+U6c2XQCA=="}
+         "sig": "kifSgYHZQo0HMTspKWXTcA8A/M5qv36s4GLO5oLUTCQuW/tlscekbjNmzN+qCu/lFtQLCOgChfAULJng1IuWAA=="}
 }
 ```
 
@@ -206,7 +208,7 @@ The bytes signed for the message in 3.4 start:
 and further on, in JCS key order:
 
 ```
-..."nonce":"a012a1eb260531d3744baf343dd3845d","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
+..."nonce":"270bfcc642e6360e64b4e3c51a92c506","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
 ```
 
 The note's line breaks appear as the two characters `\n`: JCS escapes them.
@@ -460,15 +462,15 @@ The fields each checker reads:
 A real `approval` record, as evidence carries it:
 
 ```json
-{"schema_version": "tracekit.event.v2", "id": "6f244e3868442f573030d00ad7eef1f9", "seq": 5,
- "prev_hash": "sha256:74a93304c4e1a6ef4d30b6407c850d559fde4e9f8da90a29dc31dfcd24285c59",
- "ts": "2026-10-27T13:37:17.595418Z", "run_id": "1c92cb9af9a815998eef6a1bd32be3af", "agent_id": "main",
+{"schema_version": "tracekit.event.v2", "id": "355a699d3b9517be68b62f40dcaff0bd", "seq": 5,
+ "prev_hash": "sha256:cd50e5be123d0cbb792581b0b878096000231b2245cec964d0ac123782abd181",
+ "ts": "2026-10-27T14:11:57.591019Z", "run_id": "bb650aec66cc29fb4ee0de297fd3392f", "agent_id": "main",
  "parent_id": null, "source": "sdk", "type": "approval",
- "data": {"tool_use_id": "grant-1", "approval_id": "apr-19572003567fcde0288f480c7769ed1c", "decision": "approve",
+ "data": {"tool_use_id": "grant-1", "approval_id": "apr-f64cebe370aa43f2c14051fa70226929", "decision": "approve",
           "approver": "uid:990001", "approver_identity": {"scheme": "uid", "subject": "990001", "attested": true},
           "channel": "rpc", "self_approved": false, "person": "alice"},
- "tenant": "default", "log_id": "cb6c86e59bf5c19b83bf756f7d4d9534", "run_seq": 3,
- "run_prev_hash": "sha256:74a93304c4e1a6ef4d30b6407c850d559fde4e9f8da90a29dc31dfcd24285c59",
+ "tenant": "default", "log_id": "4b583d8211fe9891e76921977c9d6f37", "run_seq": 3,
+ "run_prev_hash": "sha256:cd50e5be123d0cbb792581b0b878096000231b2245cec964d0ac123782abd181",
  "request_id": "r4", "tool_call_id": "grant-1"}
 ```
 
@@ -502,13 +504,13 @@ holds an opened decision and its result, both recorded through the tool executor
 ```json
 [{"event": {"type": "policy.decision", "seq": 10, "source": "gateway", "tier": "T2", "...": "...",
             "data": {"tool_use_id": "call-9", "tool": "Bash", "decision": "allow",
-                     "decision_id": "dec-a100398e7fe03bdf01e0353d8a4416de", "via": "mtls:spiffe://example/executor",
-                     "args_commitment": "hmac-sha256:12293f11903acb3dfb77b210bcfafe7fa39226ebdbceeb5c263dbe5c9a3f7baf",
+                     "decision_id": "dec-6f24de7a414a186e04e9f2a8895ecd6a", "via": "mtls:spiffe://example/executor",
+                     "args_commitment": "hmac-sha256:73d99aec597b8b4d7c370d3f009f7baaf221c25189ca6495a35c95b566815ad8",
                      "...": "..."}},
-  "salt": "252d50ea082f4f862fadd6310a72c5db435771ae3808de125070f6143a09c485",
+  "salt": "09e381912a1cac093f63e0b22261446f4796d480b3b882438df786426c7ba2a1",
   "args": {"command": "pytest -q tests/test_refund.py"}, "hash": "...", "proof": ["..."]},
  {"event": {"type": "tool.result", "seq": 11, "source": "gateway", "tier": "T2", "...": "...",
-            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-a100398e7fe03bdf01e0353d8a4416de",
+            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-6f24de7a414a186e04e9f2a8895ecd6a",
                      "via": "mtls:spiffe://example/executor", "...": "..."}},
   "hash": "...", "proof": ["..."]}]
 ```
@@ -567,13 +569,13 @@ The claim of `accept-approved-by`, with its evidence:
 ```json
 {"type": "approved_by", "args": {"person": "alice", "call": "grant-1"},
  "evidence": {
-  "checkpoint": "example.com/pcm-test-log\n9\nPJg+L3WYpU7/NE6XqVGFOlCdvizA64+YL6VY05wz7uw=\n\n— example.com/pcm-test-log C7keZvgVsTyG76lVPJfjgtbQ8A5aWdLzkBJHgW4fjdO/FjAtXq72qnobHOJPtE7kwajTdDyCbCwDm17A0a84rKgGKwE=\n",
+  "checkpoint": "example.com/pcm-test-log\n9\nZXhZWXHeS0bz3YSEmavclQ625T/zTkJWtlj3/UlZ+wQ=\n\n— example.com/pcm-test-log C7keZnFJpPe6KxvhUXDapyf7QZJdtlzTv0SDuxIlD64H7S6IE97K6Xm5kP8T8oS2i/l1n5X0wObT6q5ghWvaowA7fgU=\n",
   "records": [{"event": {"...": "the approval record of 6.4"},
-               "hash": "sha256:401175a8435ffb0531e843fb2734bb9cb0219bd761fc055d1b4a9ec7657c9f85",
-               "proof": ["SYk+99GyLxYTXD0wWmEo2cIbGxI2dwSFzUzE6FWiBgE=",
-                         "NaSaoajLtz6Sm20wfeiXUJWnBSxgaQAR8lhNaLlhIfM=",
-                         "LVkW/qKLHnNWnruXK54hb1RuyGb28TJp1f5SaGYyeR4=",
-                         "q2O0mwwrufZeM9OeviJrEpEMqZ84apDTHzUht+AZm/A="]}]}}
+               "hash": "sha256:28f907f8a23ad9da3c6e8c13628ac6f3ddf1917a16e82887c3851c98cd5056ff",
+               "proof": ["z37pA0XQSZRpEOunXdL8E9y90bPpvcvqsuKsjeIF4JU=",
+                         "wR29D4XHHgZQ6WrODvNbSPZnh6yrg7QBlEJlDHfEgFQ=",
+                         "HLiOLzvRXW9DnSkqg/8Zd/4fQxgKsOZzT44slptKTEg=",
+                         "uARbbqEXw3+3ZhPuu9TNSX3t4aLteFhrKkVXzJEBCtg="]}]}}
 ```
 
 Result: `{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of grant-1"}`. The vectors
@@ -657,15 +659,15 @@ A grant says: this subject may send this intent, within these caveats, until thi
 The root grant of `accept-approved-by`, signed by a Tracekit signer after alice approved it:
 
 ```json
-{"pcm_grant": 0, "ts": "2026-10-27T13:37:17.596343Z",
- "issuer": {"kind": "person", "id": "uid:990001", "run": "1c92cb9af9a815998eef6a1bd32be3af", "tenant": "default",
-            "approval_id": "apr-19572003567fcde0288f480c7769ed1c", "person": "alice"},
+{"pcm_grant": 0, "ts": "2026-10-27T14:11:57.591727Z",
+ "issuer": {"kind": "person", "id": "uid:990001", "run": "bb650aec66cc29fb4ee0de297fd3392f", "tenant": "default",
+            "approval_id": "apr-f64cebe370aa43f2c14051fa70226929", "person": "alice"},
  "subject": "uid:990101",
  "intent": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
  "caveats": [{"field": "amount", "op": "<=", "value": 20000}, {"field": "order", "op": "==", "value": 81}],
- "expires_at": "2026-10-27T14:37:17.594267Z", "delegable": false, "parent": null,
+ "expires_at": "2026-10-27T15:11:57.589997Z", "delegable": false, "parent": null,
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "5ejeWL/Hf8WYp89CE12YCFPLFgmmR1CScAH31blej8nT/I0PjmT8kf+JsO9iyTBLFc+tawqma+0Slmtf0+nABA=="}}
+         "sig": "p1Ce1ce1N/4FwzNPBTRB8/TQ45mjQHqYZRpYcZc9qtFGwyYQrpt4YpX9ZEO+4q7zbpCFb5lAcLkAhXwaGhh8Bg=="}}
 ```
 
 ### 7.2 Caveats
@@ -951,7 +953,8 @@ The verifier places tools with a fixed table, `{tool name: class}`. It MUST ship
 operator. It MUST NOT take it from a message, a bundle or a sender. The reference table is `registry/tools.json`,
 generated from Tracekit's `tracekit.pcm.claims.placed()`: the tool names the policy packs shipped with Tracekit map,
 leaving out patterns and names two packs class differently. For example `Bash`, `bash`, `shell` and `container.exec`
-are `shell`; `WebFetch`, `fetch` and `http_get` are `http`. A tool not in the table is unplaced. **[Tracekit]**
+are `shell`; `WebFetch`, `fetch` and `http_get` are `http`. A tool not in the table is unplaced. **[Tracekit]** The
+standalone verifier ships a copy of the reference table and uses it unless its operator passes another.
 
 ## 11. Transport bindings
 
@@ -1043,7 +1046,7 @@ are the ones that ran.
 - **Level 2**: Level 1, plus evidence (6.2, 6.3), the evidence profile (6.4) and the four claim checkers (6.5, 6.6).
 - The transfer extension (12) is separate and DRAFT.
 
-Tracekit's `pcm.verify` is a Level 2 verifier.
+Tracekit's `pcm.verify` is a Level 2 verifier, and so is the standalone verifier in `verifier/python`.
 
 ### 13.2 Test vectors
 
@@ -1293,6 +1296,7 @@ The table from tool name to class is `registry/tools.json` (10.2).
 - [RFC4648] Josefsson, S., "The Base16, Base32, and Base64 Data Encodings", RFC 4648, 2006.
 - [RFC8259] Bray, T., "The JavaScript Object Notation (JSON) Data Interchange Format", RFC 8259, 2017.
 - [FIPS180-4] NIST, "Secure Hash Standard (SHS)", FIPS 180-4, 2015.
+- [FIPS205] NIST, "Stateless Hash-Based Digital Signature Standard", FIPS 205, 2024.
 - [C2SP-NOTE] C2SP, "signed-note", https://c2sp.org/signed-note
 - [C2SP-CKPT] C2SP, "tlog-checkpoint", https://c2sp.org/tlog-checkpoint
 - [C2SP-COSIG] C2SP, "tlog-cosignature", https://c2sp.org/tlog-cosignature
@@ -1310,15 +1314,15 @@ The table from tool name to class is `registry/tools.json` (10.2).
 
 ## Appendix A. Where this document departs from Tracekit's docs and design
 
-The code wins. These places differ from Tracekit's design notes or its user docs (`docs/pcm.md`, `docs/limits.md`) at
-the time of writing:
+The code wins. These places differ from Tracekit's design notes at the time of writing. Tracekit's user docs
+(`docs/pcm.md`, `docs/limits.md`) already match the code on each of them.
 
-- **Signature tags.** The design and `docs/pcm.md` say `tracekit.pcm.v2` and `tracekit.pcm-grant.v2`. The code
-  (`format/sigmsg.py` `TAGS`) signs `pcm.message.v0` and `pcm.grant.v0`. This document follows the code.
-- **Media type.** The design and `docs/pcm.md` say `application/vnd.tracekit.pcm+json`. The code (`pcm.MEDIA_TYPE`)
-  says `application/vnd.pcm+json`.
-- **Tool placement.** The design and a `docs/limits.md` row say any call with a `command` or `url` member counts as a
-  shell or http call. The code places tools with the fixed table (`claims.placed()`).
+- **Signature tags.** The design says `tracekit.pcm.v2` and `tracekit.pcm-grant.v2`. The code (`format/sigmsg.py`
+  `TAGS`) signs `pcm.message.v0` and `pcm.grant.v0`. This document follows the code.
+- **Media type.** The design says `application/vnd.tracekit.pcm+json`. The code (`pcm.MEDIA_TYPE`) says
+  `application/vnd.pcm+json`.
+- **Tool placement.** The design says any opened call with a `command` field is a shell call (and a `url` field an
+  http call). The code places tools with the fixed table (`claims.placed()`).
 - **Root grants.** The design first let agent approvers issue root grants. The code (and the design's binding
   amendment) requires a person.
 - **Grant issuer tenant and `delegable`.** Not in the design's first grant shape; both are required in the code.
@@ -1328,3 +1332,38 @@ the time of writing:
 - **`tests_passed`.** The design matched a test-command pattern. The code requires a single simple command that the
   reference recognizer classes as a test run.
 - **Held runs.** The design refused quarantined runs only; the code refuses held runs too.
+
+## Appendix B. Open issues
+
+In the reference implementation. This document describes what Tracekit does today; each item below is a place where
+that should change. The first two are open attacks (section 14).
+
+1. **Grants from another pinned log are accepted** (14.18). `pcm.verify_grants` checks each grant against every
+   pinned log. The fix is to check grants only against the key named by the message's `sig.key`.
+2. **A `#` inside a word hides `|| true` from `tests_passed`** (14.19). `findings_text._simple` uses `shlex`, which
+   starts a comment at any `#` outside quotes.
+3. **`approved_by` matches a raw identity.** `person` is compared with `data.approver` as well as `data.person`, so
+   without an approvals configuration a claim can be `proven` with no person involved (6.6). Matching `data.person`
+   only would let `approved_by` mean what its name says.
+4. **Base64 is not canonical everywhere.** `sig.sig` and proof entries ignore padding bits (4.3); note lines don't.
+5. **A `ts` that is no real date makes the replay check raise** `ValueError` instead of refusing the message (3.2).
+   Only a signer can produce such a `ts`, so this needs a hostile pinned log.
+6. **A deep value in an enum field makes `verify` raise** `RecursionError`: the error message shows the value with
+   `repr`. Only a caller that passes an already-parsed object reaches it; the CLI's parser stops first.
+7. **Claim checkers index record fields directly** (`e["data"]`, `d["decision"]`, `x["source"]`), so a record from a
+   hostile pinned log that lacks one raises `KeyError` instead of failing the claim.
+8. **The host of a URL depends on the Python version.** Whether `urlsplit` refuses a bracket changed in Python
+   3.11.4 (6.6, step 2), so another language can't reproduce the rule exactly until it is spelled out without
+   `urlsplit`.
+
+Questions for 0.2:
+
+1. Should every grant be signed by the message's own log, and should a sender be (log, agent)? (14.18)
+2. Should base64 be canonical everywhere? (4.3)
+3. Should `reached_host` use the WHATWG host with IDNA, so a claim can name `xn--bcher-kva.example`? (6.6)
+4. Should `file_written` compare absolute paths only, so `a.txt` is not proven by a Write of `../../a.txt`? (6.6)
+5. Should the `tests_passed` recognizer get a complete, portable definition, and should `proven` refuse flags such
+   as `--co` and `--help` that run no tests? (6.6)
+6. Should `approved_by` prove only a configured person (item 3 above)?
+7. Should PCM get its own key, pinned in trust.json, instead of the log key? (14.5)
+8. Should replay state be shared between replicas, and through what store? (14.14)
