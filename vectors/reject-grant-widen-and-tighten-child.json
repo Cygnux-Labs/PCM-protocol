@@ -1,0 +1,222 @@
+{
+  "name": "reject-grant-widen-and-tighten-child",
+  "description": "A's child to B raises the cap to 30000 and adds amount >= 100; the signer refuses it, so it is the real child edited and re-signed with the test log key.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990102",
+        "run": "dc2b33cc4b22108902be987ea9876fba",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990103"
+      },
+      "intent": {
+        "type": "refund.passed@sha256:7caec9ad65e3cdc40ea059d076e182427496bef14614fbf14ead9c3e0549dd60",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "grants": [
+        {
+          "pcm_grant": 0,
+          "ts": "2026-10-27T13:37:20.865761Z",
+          "issuer": {
+            "kind": "person",
+            "id": "uid:990001",
+            "run": "1c92cb9af9a815998eef6a1bd32be3af",
+            "tenant": "default",
+            "approval_id": "apr-d5d24c532ea08fae64f6e4a65f2be451",
+            "person": "alice"
+          },
+          "subject": "uid:990101",
+          "intent": "refund.passed@sha256:7caec9ad65e3cdc40ea059d076e182427496bef14614fbf14ead9c3e0549dd60",
+          "caveats": [
+            {
+              "field": "amount",
+              "op": "<=",
+              "value": 20000
+            },
+            {
+              "field": "order",
+              "op": "==",
+              "value": 81
+            }
+          ],
+          "expires_at": "2026-10-27T14:37:20.864431Z",
+          "delegable": true,
+          "parent": null,
+          "sig": {
+            "key": "example.com/pcm-test-log+0bb91e66",
+            "sig": "IPT70Phzh7aef1+cgeM0R3xEOeMvo6Zw17FCt6xypSoWbNCvt73JKQ10wQYwgOCwSdZ1NnEJZLbuDb6xdBD4Ag=="
+          }
+        },
+        {
+          "pcm_grant": 0,
+          "ts": "2026-10-27T13:37:20.866602Z",
+          "issuer": {
+            "kind": "agent",
+            "id": "uid:990101",
+            "run": "1c92cb9af9a815998eef6a1bd32be3af",
+            "tenant": "default"
+          },
+          "subject": "uid:990102",
+          "intent": "refund.passed@sha256:7caec9ad65e3cdc40ea059d076e182427496bef14614fbf14ead9c3e0549dd60",
+          "caveats": [
+            {
+              "field": "amount",
+              "op": "<=",
+              "value": 30000
+            },
+            {
+              "field": "amount",
+              "op": ">=",
+              "value": 100
+            },
+            {
+              "field": "order",
+              "op": "==",
+              "value": 81
+            }
+          ],
+          "expires_at": "2026-10-27T14:37:20.864431Z",
+          "delegable": false,
+          "parent": "sha256:bd57db228e0bc0088cf49a539596ff4368e4e8001fe05c1d7345886b688515eb",
+          "sig": {
+            "key": "example.com/pcm-test-log+0bb91e66",
+            "sig": "N/uCFl6LpF7H03RuqkvrK5tnsHf8hRjP6f2Az9UXjk+ruQPigtVcy7UMbZ+m9V2vXS+8/wlLyechfoj8qoTQBw=="
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "a136cfbab5fb3f88930088e596d95dd3",
+      "ts": "2026-10-27T13:37:20.868137Z",
+      "nonce": "650142dcbb01b319460af27a487c02b4",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "xc3JlmfBiINjfDBktHSeRxgYoQF8rIxz7tR5C0j6hZuSD0rAGhWsCPW9A1LyvDDqKYZYrHk7jwXueD05oEWcBA=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.passed",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        },
+        "grant": true
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "run_shell_command": "shell",
+      "shell": "shell",
+      "local_shell": "shell",
+      "container.exec": "shell",
+      "run_terminal_cmd": "shell",
+      "terminal": "shell",
+      "Write": "fs",
+      "Edit": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "Grep": "fs",
+      "Glob": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "srt:request": "http",
+      "transfer_funds": "payment",
+      "send_payment": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_transfer": "payment",
+      "create_refund": "payment",
+      "create_charge": "payment",
+      "pay_invoice": "payment",
+      "get_balance": "payment",
+      "list_transactions": "payment",
+      "get_transaction": "payment",
+      "list_payments": "payment",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "gmail_send_message": "email",
+      "run_sql": "sql",
+      "execute_sql": "sql",
+      "execute_query": "sql",
+      "query_database": "sql",
+      "sql_db_query": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "http_request": "http",
+      "http_get": "http",
+      "http_post": "http",
+      "requests_get": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "requests_patch": "http",
+      "requests_delete": "http",
+      "fetch": "http",
+      "web_fetch": "http",
+      "mcp:fetch/fetch": "http",
+      "bash": "shell"
+    },
+    "options": {
+      "me": "uid:990103",
+      "strict": false,
+      "now": "2026-10-27T13:37:21.868137Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.passed@sha256:7caec9ad65e3cdc40ea059d076e182427496bef14614fbf14ead9c3e0549dd60",
+      "errors": []
+    },
+    "grants": {
+      "result": "failed",
+      "steps": 2,
+      "root": {
+        "kind": "person",
+        "id": "uid:990001",
+        "person": "alice"
+      },
+      "problems": [
+        "grant 1: amount <= 20000: dropped or widened"
+      ]
+    },
+    "claims": [],
+    "verdict": "reject",
+    "reasons": [
+      "grant: grant 1: amount <= 20000: dropped or widened"
+    ]
+  }
+}

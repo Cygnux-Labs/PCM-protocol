@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pcm:0.1:schema:evidence",
+  "title": "PCM 0.1 evidence",
+  "description": "Records of the sender's run, each with its inclusion proof under a signed checkpoint note. A record's salt and args open a policy.decision's args commitment; a record with only one of them fails its claim. Every pattern matches the whole value, with ASCII classes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "checkpoint",
+    "records"
+  ],
+  "properties": {
+    "checkpoint": {
+      "type": "string",
+      "maxLength": 16384,
+      "minLength": 1
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event",
+          "hash",
+          "proof"
+        ],
+        "properties": {
+          "event": {},
+          "hash": {
+            "type": "string",
+            "maxLength": 71,
+            "pattern": "^sha256:[0-9a-f]{64}(?![\\s\\S])"
+          },
+          "proof": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "string",
+              "maxLength": 44
+            }
+          },
+          "salt": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+          },
+          "args": {}
+        }
+      }
+    }
+  }
+}

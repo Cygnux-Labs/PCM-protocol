@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pcm:0.1:schema:claim",
+  "title": "PCM 0.1 claim",
+  "description": "Something the sender says happened in its run. Its args are checked per claim type by the verifier; a claim whose args don't fit fails, it does not break the envelope.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "args"
+  ],
+  "properties": {
+    "type": {
+      "enum": [
+        "tests_passed",
+        "approved_by",
+        "reached_host",
+        "file_written"
+      ]
+    },
+    "args": {},
+    "evidence": {
+      "$ref": "urn:pcm:0.1:schema:evidence"
+    }
+  }
+}

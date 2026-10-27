@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pcm:0.1:schema:message",
+  "title": "PCM 0.1 message",
+  "description": "A message one agent sends another (media type application/vnd.pcm+json). The signature covers every field but sig. Integers are written without a fraction or exponent: a verifier rejects 0.0 where JSON Schema's integer would take it. Every pattern matches the whole value, with ASCII classes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pcm",
+    "id",
+    "ts",
+    "nonce",
+    "sig",
+    "from",
+    "to",
+    "intent"
+  ],
+  "properties": {
+    "to": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent"
+      ],
+      "properties": {
+        "agent": {
+          "type": "string",
+          "maxLength": 256,
+          "pattern": "^[a-z0-9_]+:.+(?![\\s\\S])"
+        }
+      }
+    },
+    "intent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "maxLength": 136,
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}@sha256:[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "args": {}
+      }
+    },
+    "claims": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "urn:pcm:0.1:schema:claim"
+      }
+    },
+    "grants": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "urn:pcm:0.1:schema:grant"
+      }
+    },
+    "payload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "text"
+          ],
+          "properties": {
+            "kind": {
+              "const": "text"
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 65536
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "data"
+          ],
+          "properties": {
+            "kind": {
+              "const": "data"
+            },
+            "data": {}
+          }
+        }
+      ]
+    },
+    "from": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent",
+        "run",
+        "tenant"
+      ],
+      "properties": {
+        "agent": {
+          "type": "string",
+          "maxLength": 256,
+          "pattern": "^[a-z0-9_]+:.+(?![\\s\\S])"
+        },
+        "run": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:-]+(?![\\s\\S])"
+        },
+        "tenant": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:-]+(?![\\s\\S])"
+        }
+      }
+    },
+    "pcm": {
+      "type": "integer",
+      "const": 0
+    },
+    "id": {
+      "type": "string",
+      "maxLength": 32,
+      "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+    },
+    "ts": {
+      "type": "string",
+      "maxLength": 27,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{6}Z(?![\\s\\S])"
+    },
+    "nonce": {
+      "type": "string",
+      "maxLength": 32,
+      "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+    },
+    "sig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "sig"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "maxLength": 300,
+          "minLength": 1
+        },
+        "sig": {
+          "type": "string",
+          "maxLength": 88
+        }
+      }
+    }
+  }
+}

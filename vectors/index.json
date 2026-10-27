@@ -1,0 +1,242 @@
+[
+  {
+    "name": "accept-approved-by",
+    "file": "accept-approved-by.json",
+    "description": "A refund request under alice's root grant, with an approved_by claim her approval record proves; replay checked.",
+    "verdict": "accept"
+  },
+  {
+    "name": "accept-tests-passed-t2",
+    "file": "accept-tests-passed-t2.json",
+    "description": "The accept message plus tests_passed proven by a result the tool executor wrote (T2).",
+    "verdict": "accept"
+  },
+  {
+    "name": "accept-unproven-no-evidence",
+    "file": "accept-unproven-no-evidence.json",
+    "description": "The accept message plus a tests_passed claim with no evidence.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-t1-result",
+    "file": "accept-unproven-t1-result.json",
+    "description": "tests_passed whose only result is the agent's own report (T1).",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-unplaced-tool",
+    "file": "accept-unproven-unplaced-tool.json",
+    "description": "tests_passed run by the executor through mcp:ci/run, a tool the placement table does not list as shell.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "reject-strict-required-unproven",
+    "file": "reject-strict-required-unproven.json",
+    "description": "strict: the schema requires approved_by and the claim has no evidence.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-envelope-extra-field",
+    "file": "reject-envelope-extra-field.json",
+    "description": "A field the envelope does not have, added after signing.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-envelope-pcm-false",
+    "file": "reject-envelope-pcm-false.json",
+    "description": "pcm set to false after signing: it must be the integer 0.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-forged-signature",
+    "file": "reject-forged-signature.json",
+    "description": "amount changed after signing, signature kept.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-unpinned-key",
+    "file": "reject-unpinned-key.json",
+    "description": "A valid message; trust pins only another log's key.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-signature-as-message",
+    "file": "reject-grant-signature-as-message.json",
+    "description": "The message body signed for the grant purpose (pcm.grant.v0) with the test log key, offline.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-unknown-schema",
+    "file": "reject-unknown-schema.json",
+    "description": "A valid refund.quote; the receiver has only the refund.request schema.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-schema-extra-field",
+    "file": "reject-schema-extra-field.json",
+    "description": "Args with an arg the schema does not list.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-schema-int-as-string",
+    "file": "reject-schema-int-as-string.json",
+    "description": "Args with order as the string \"81\".",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-schema-bool-as-int",
+    "file": "reject-schema-bool-as-int.json",
+    "description": "Args with order as true, a bool for an int field.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-schema-money-over-max",
+    "file": "reject-schema-money-over-max.json",
+    "description": "Args with amount 1000001, over the max 1000000.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-replay-duplicate-nonce",
+    "file": "reject-replay-duplicate-nonce.json",
+    "description": "The receiver already took this message: its nonce was seen.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-replay-outside-window",
+    "file": "reject-replay-outside-window.json",
+    "description": "Checked 600 s after it was signed, with a 300 s window.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-replay-before-started",
+    "file": "reject-replay-before-started.json",
+    "description": "Signed 1 s before the receiver started.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-wrong-recipient",
+    "file": "reject-wrong-recipient.json",
+    "description": "Addressed to uid:990102, checked by uid:990103.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-amount-over-caveat",
+    "file": "reject-grant-amount-over-caveat.json",
+    "description": "amount 50000 under a grant of amount <= 20000.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-expired",
+    "file": "reject-grant-expired.json",
+    "description": "Signed after its root grant expired (a grant made to expire in 3 s).",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-cross-tenant",
+    "file": "reject-grant-cross-tenant.json",
+    "description": "A root grant carol approved in a run of tenant acme, used by a sender in tenant default.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-root-by-agent",
+    "file": "reject-grant-root-by-agent.json",
+    "description": "The root grant's issuer kind edited to agent and re-signed with the test log key (the signer issues root grants only from a person's approval).",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-subject-not-sender",
+    "file": "reject-grant-subject-not-sender.json",
+    "description": "A root grant for uid:990102, sent by uid:990101.",
+    "verdict": "reject"
+  },
+  {
+    "name": "accept-delegation-narrowing",
+    "file": "accept-delegation-narrowing.json",
+    "description": "Two steps: alice's delegable grant to A (amount <= 20000), A's child to B (amount <= 15000); B asks for 12000.",
+    "verdict": "accept"
+  },
+  {
+    "name": "reject-delegation-over-child-cap",
+    "file": "reject-delegation-over-child-cap.json",
+    "description": "The same chain; B asks for 18000, within the root's cap but over the child's.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-widening-child",
+    "file": "reject-grant-widening-child.json",
+    "description": "A's child to B raises the cap to 30000; the signer refuses it, so it is the real child edited and re-signed with the test log key.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-widen-and-tighten-child",
+    "file": "reject-grant-widen-and-tighten-child.json",
+    "description": "A's child to B raises the cap to 30000 and adds amount >= 100; the signer refuses it, so it is the real child edited and re-signed with the test log key.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-missing-caveat-child",
+    "file": "reject-grant-missing-caveat-child.json",
+    "description": "A's child to B drops order == 81; the signer refuses it, so it is the real child edited and re-signed with the test log key.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-below-non-delegable",
+    "file": "reject-grant-below-non-delegable.json",
+    "description": "A child below alice's grant that can't be passed on; the signer refuses it, so it is the real child edited and re-signed with the test log key under the non-delegable root.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-broken-parent",
+    "file": "reject-grant-broken-parent.json",
+    "description": "A real child placed under another real root, so its parent hash names another grant.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-changed-record-hash",
+    "file": "reject-claim-changed-record-hash.json",
+    "description": "approved_by whose record hash has one hex digit changed.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-cut-proof",
+    "file": "reject-claim-cut-proof.json",
+    "description": "approved_by whose inclusion proof lost its last hash.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-unpinned-log-note",
+    "file": "reject-claim-unpinned-log-note.json",
+    "description": "approved_by under a checkpoint note of a log trust does not pin.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-evidence-from-another-log",
+    "file": "reject-claim-evidence-from-another-log.json",
+    "description": "The same claim, with trust pinning both logs: the note is not of the log that signed the message.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-witnesses-required-unmet",
+    "file": "reject-claim-witnesses-required-unmet.json",
+    "description": "approved_by under a note with no cosignature; trust requires one witness.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-wrong-person",
+    "file": "reject-claim-wrong-person.json",
+    "description": "approved_by naming bob; the approval record is alice's.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-approval-of-another-call",
+    "file": "reject-claim-approval-of-another-call.json",
+    "description": "approved_by of call grant-2, with alice's approval of grant-1 as evidence.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-pytest-or-true",
+    "file": "reject-claim-pytest-or-true.json",
+    "description": "tests_passed of `pytest ... || true`, run by the executor (T2): its status is not the tests'.",
+    "verdict": "reject"
+  }
+]

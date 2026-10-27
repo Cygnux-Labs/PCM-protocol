@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pcm:0.1:schema:grant",
+  "title": "PCM 0.1 grant",
+  "description": "Who may ask for which intent, within which caveats, until when. A caveat's value is checked against the intent's schema document, not here. Integers are written without a fraction or exponent: a verifier rejects 0.0 where JSON Schema's integer would take it. Every pattern matches the whole value, with ASCII classes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pcm_grant",
+    "ts",
+    "issuer",
+    "subject",
+    "intent",
+    "caveats",
+    "expires_at",
+    "delegable",
+    "parent",
+    "sig"
+  ],
+  "properties": {
+    "pcm_grant": {
+      "type": "integer",
+      "const": 0
+    },
+    "ts": {
+      "type": "string",
+      "maxLength": 27,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{6}Z(?![\\s\\S])"
+    },
+    "issuer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "run",
+        "tenant"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "person",
+            "agent"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "person": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "run": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:-]+(?![\\s\\S])"
+        },
+        "tenant": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:-]+(?![\\s\\S])"
+        },
+        "approval_id": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._:-]+(?![\\s\\S])"
+        }
+      }
+    },
+    "subject": {
+      "type": "string",
+      "maxLength": 256,
+      "pattern": "^[a-z0-9_]+:.+(?![\\s\\S])"
+    },
+    "intent": {
+      "type": "string",
+      "maxLength": 136,
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}@sha256:[0-9a-f]{64}(?![\\s\\S])"
+    },
+    "caveats": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "op",
+          "value"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*(?![\\s\\S])"
+          },
+          "op": {
+            "enum": [
+              "==",
+              "<=",
+              ">=",
+              "<",
+              ">",
+              "in"
+            ]
+          },
+          "value": {}
+        }
+      }
+    },
+    "expires_at": {
+      "type": "string",
+      "maxLength": 27,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{6}Z(?![\\s\\S])"
+    },
+    "delegable": {
+      "type": "boolean"
+    },
+    "parent": {
+      "oneOf": [
+        {
+          "type": "string",
+          "maxLength": 71,
+          "pattern": "^sha256:[0-9a-f]{64}(?![\\s\\S])"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "sig"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "maxLength": 300,
+          "minLength": 1
+        },
+        "sig": {
+          "type": "string",
+          "maxLength": 88
+        }
+      }
+    }
+  }
+}
