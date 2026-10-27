@@ -13,7 +13,7 @@ dependencies = ["rfc8785", "cryptography"]
 packages = ["pcm_verify"]
 
 [tool.setuptools.package-data]
-pcm_verify = ["tools.json"]
+pcm_verify = ["tools.json", "tracekit.event.v2.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

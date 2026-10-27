@@ -1,4 +1,5 @@
-"""Write schemas/*.schema.json (JSON Schema 2020-12) and registry/tools.json from Tracekit, the reference
+"""Write schemas/*.schema.json (JSON Schema 2020-12), registry/tools.json and registry/tracekit.event.v2.json (the
+evidence profile's event schema, as Tracekit ships it) from Tracekit, the reference
 implementation of PCM. The shapes are Tracekit's own (tracekit/signer/rpc_schema.py and tracekit/pcm), translated
 as they are, so the two can't drift by hand. From the repo root, with Tracekit importable:
 
@@ -9,6 +10,7 @@ import os
 
 from tracekit.pcm import SCHEMA_DOC
 from tracekit.pcm.claims import placed
+from tracekit.schema import V2, schema
 from tracekit.signer.rpc_schema import _CLAIM, _EVIDENCE, PCM_GRANT, PCM_MESSAGE
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -63,8 +65,9 @@ def main():
                 if alt["properties"]["type"] == {"const": "enum"}:
                     alt["properties"]["values"]["uniqueItems"] = True
         write(os.path.join(ROOT, "schemas", f"{name}.schema.json"), out)
-    for path in (("registry",), ("verifier", "python", "pcm_verify")):   # the verifier ships it as its default
+    for path in (("registry",), ("verifier", "python", "pcm_verify")):   # the verifier ships both, the table as default
         write(os.path.join(ROOT, *path, "tools.json"), dict(sorted(placed().items())))
+        write(os.path.join(ROOT, *path, f"{V2}.json"), schema(V2))   # the evidence profile's event schema (6.4)
 
 
 if __name__ == "__main__":

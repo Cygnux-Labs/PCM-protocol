@@ -64,6 +64,8 @@ another. It prints the verdict: `accept`, `accept-unproven` or `reject`, with th
 
 The CLI does not check replay: it has no memory of earlier messages. That is fine for an audit. A receiver that acts
 on messages keeps one `pcm_verify.Replay` for its whole life and passes it to `pcm_verify.verify` (SPEC section 9).
+A receiver takes each message once per identity, across all its replicas; `pcm_verify.Replay` lives in one process,
+so replicas that answer for one identity must route each sender to one replica or share the state.
 
 ## What is here
 
@@ -73,6 +75,7 @@ on messages keeps one `pcm_verify.Replay` for its whole life and passes it to `p
 | [`schemas/`](schemas) | JSON Schemas of the message, grant, claim, evidence and schema document |
 | [`vectors/`](vectors) | test vectors: inputs and the results a verifier must give |
 | [`registry/tools.json`](registry/tools.json) | the reference tool placement table |
+| [`registry/tracekit.event.v2.json`](registry/tracekit.event.v2.json) | the event schema of the evidence profile `tracekit.event.v2`, as Tracekit ships it |
 | [`verifier/python`](verifier/python) | the standalone verifier, `pcm_verify`: Python, with no Tracekit code |
 | [`docs/ts-verifier-plan.md`](docs/ts-verifier-plan.md) | the plan for a TypeScript verifier |
 
@@ -85,7 +88,9 @@ produced every vector here. Where this repo and Tracekit disagree, that is a bug
 ## Status
 
 Draft 0.1, experimental. The wire format (`"pcm": 0`) can change in any 0.x draft. Don't build anything you can't
-change on it yet. What Tracekit implements today and what is still draft is marked in `SPEC.md`.
+change on it yet. What Tracekit implements today and what is still draft is marked in `SPEC.md`; the questions
+earlier drafts left open (base64, hosts, paths, test commands, senders, keys) are decided rules, marked
+"(decided, 0.1)", and Appendix B lists what remains open.
 
 ## License
 

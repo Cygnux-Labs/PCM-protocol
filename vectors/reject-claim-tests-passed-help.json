@@ -1,0 +1,264 @@
+{
+  "name": "reject-claim-tests-passed-help",
+  "description": "tests_passed of `pytest --help -q`, run by the executor (T2): with --help a runner runs no tests, so it is no test command.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "c2e3a81bde2be8ba7090d2c3499900b8",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "claims": [
+        {
+          "type": "tests_passed",
+          "args": {
+            "suite": "pytest --help -q"
+          },
+          "evidence": {
+            "checkpoint": "example.com/pcm-test-log\n112\nyNZTw98SDZYVSWwKu7zH3zgYvtYY7S3sTm4epwwa4fg=\n\n— example.com/pcm-test-log C7keZrz1rhvgyyE37tAvD37a5UkxFzjYXvPY3wV9ZuO9BgVatrBTggx0GWgSUyy8myUniVxqb4QUBiGVIEWSg9e8JQY=\n",
+            "records": [
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "bc75c7e3775df6365a566433be05bd41",
+                  "seq": 110,
+                  "prev_hash": "sha256:29e9737b826876eb941051b7b32a77284cba1a4f50cfd1ca0c3bffcdbf09cd9d",
+                  "ts": "2026-10-27T15:31:41.349056Z",
+                  "run_id": "c2e3a81bde2be8ba7090d2c3499900b8",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "gateway",
+                  "type": "policy.decision",
+                  "data": {
+                    "tool_use_id": "call-118",
+                    "tool": "Bash",
+                    "policy_hash": "sha256:3ff3f19e4716ecac4c7a1ab9372bb8f34c479ffb6b2da392449420a69dea01c5",
+                    "engine": "re2@1.1.20251105",
+                    "expires_at": "2026-10-27T15:36:41.349026Z",
+                    "via": "mtls:spiffe://example/executor",
+                    "caller": "uid:990101",
+                    "decision_id": "dec-83c7f72e99b9d294e6400bbc3e607afd",
+                    "nonce": "20b8ac5e425098a8e348e049cab8fa06",
+                    "decision": "allow",
+                    "rule_ids": [],
+                    "args_commitment": "hmac-sha256:5bc7a31db2beefe377a8025cf633fe8f234e9e903fab8f61ab4fad01454cdf5b"
+                  },
+                  "tenant": "default",
+                  "log_id": "6a5c01e86e07863391078b7fb1d7ca56",
+                  "run_seq": 94,
+                  "run_prev_hash": "sha256:29e9737b826876eb941051b7b32a77284cba1a4f50cfd1ca0c3bffcdbf09cd9d",
+                  "request_id": "r119",
+                  "stream": "gw",
+                  "client_seq": 16,
+                  "tool_call_id": "call-118",
+                  "attempt": 0,
+                  "args_source": "parsed",
+                  "tier": "T2"
+                },
+                "hash": "sha256:74c37e66b4bfdcd2e185ef7b304f8e04085e659339fe65f971d3c575eb7d4164",
+                "proof": [
+                  "lYgmNNo3ogzvaPiAT+A8isg1caqyRTIp/TCTzAHrVm4=",
+                  "/me0W4nkJ1dwHbwkL5vN1KEAelF1Vpbd0jaM7heZJxQ=",
+                  "XlSzPt4onDWEsn6tkRv54pHT5jkYh++/qfKgWzExY+U=",
+                  "MDS5jQOH38e/FeCmRLZ4kezYiIaaVAZ7LqQvW2BKaOg=",
+                  "6v8UU0NcnPN5q+8CI+ffzbCtj9MbUaK1PRG9BkPypmk=",
+                  "M6HB3sU9vIAxkdURRvvM1GfKrf7ACbN3uy+6RW9ACKU="
+                ],
+                "salt": "3b49a3ec9d76921c53f9c1cf24afaa40cbbac52d8d2c0aacb10679473527cda5",
+                "args": {
+                  "command": "pytest --help -q"
+                }
+              },
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "8ea2afc9254388b24b245ea8e59efdde",
+                  "seq": 111,
+                  "prev_hash": "sha256:74c37e66b4bfdcd2e185ef7b304f8e04085e659339fe65f971d3c575eb7d4164",
+                  "ts": "2026-10-27T15:31:41.349210Z",
+                  "run_id": "c2e3a81bde2be8ba7090d2c3499900b8",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "gateway",
+                  "type": "tool.result",
+                  "data": {
+                    "tool_use_id": "call-118",
+                    "ok": true,
+                    "output": {
+                      "hash": "hmac-sha256:c83f294b639e0b805bb43ab8a3ef5da92b2c14f9007c9b2e91a93f7e0406108b",
+                      "size": 2,
+                      "redacted": false
+                    },
+                    "decision_id": "dec-83c7f72e99b9d294e6400bbc3e607afd",
+                    "redaction": {
+                      "rules": [],
+                      "count": 0,
+                      "client_claimed": false
+                    },
+                    "via": "mtls:spiffe://example/executor"
+                  },
+                  "tenant": "default",
+                  "log_id": "6a5c01e86e07863391078b7fb1d7ca56",
+                  "run_seq": 95,
+                  "run_prev_hash": "sha256:74c37e66b4bfdcd2e185ef7b304f8e04085e659339fe65f971d3c575eb7d4164",
+                  "request_id": "r120",
+                  "stream": "gw",
+                  "client_seq": 17,
+                  "tool_call_id": "call-118",
+                  "attempt": 0,
+                  "tier": "T2"
+                },
+                "hash": "sha256:34dfc03453135eff3c6c4e3b5c856f7bda64f579dcca0b71f79dc644be654602",
+                "proof": [
+                  "QgtyfsQ1xRZvEH9YBiwassaN3Nxi+zYn9YMSunZrbxs=",
+                  "/me0W4nkJ1dwHbwkL5vN1KEAelF1Vpbd0jaM7heZJxQ=",
+                  "XlSzPt4onDWEsn6tkRv54pHT5jkYh++/qfKgWzExY+U=",
+                  "MDS5jQOH38e/FeCmRLZ4kezYiIaaVAZ7LqQvW2BKaOg=",
+                  "6v8UU0NcnPN5q+8CI+ffzbCtj9MbUaK1PRG9BkPypmk=",
+                  "M6HB3sU9vIAxkdURRvvM1GfKrf7ACbN3uy+6RW9ACKU="
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "5675642d19af955a19ee4db803f54483",
+      "ts": "2026-10-27T15:31:41.353768Z",
+      "nonce": "80975feedbddf1e4992b41c8a482459b",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "OqigE788IFmq/1uqhW23LJXROU8IiLoda4eHZxCZ7DqPwuTWMD35U9/qkHo2GVih8nGVba2oZbwzpe25b2WoCQ=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.quote",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        }
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "run_shell_command": "shell",
+      "shell": "shell",
+      "local_shell": "shell",
+      "container.exec": "shell",
+      "run_terminal_cmd": "shell",
+      "terminal": "shell",
+      "Write": "fs",
+      "Edit": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "Grep": "fs",
+      "Glob": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "srt:request": "http",
+      "transfer_funds": "payment",
+      "send_payment": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_transfer": "payment",
+      "create_refund": "payment",
+      "create_charge": "payment",
+      "pay_invoice": "payment",
+      "get_balance": "payment",
+      "list_transactions": "payment",
+      "get_transaction": "payment",
+      "list_payments": "payment",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "gmail_send_message": "email",
+      "run_sql": "sql",
+      "execute_sql": "sql",
+      "execute_query": "sql",
+      "query_database": "sql",
+      "sql_db_query": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "http_request": "http",
+      "http_get": "http",
+      "http_post": "http",
+      "requests_get": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "requests_patch": "http",
+      "requests_delete": "http",
+      "fetch": "http",
+      "web_fetch": "http",
+      "mcp:fetch/fetch": "http",
+      "bash": "shell"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-27T15:31:42.353768Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+      "errors": []
+    },
+    "grants": {
+      "result": "none",
+      "steps": 0,
+      "root": null,
+      "problems": []
+    },
+    "claims": [
+      {
+        "type": "tests_passed",
+        "result": "failed",
+        "detail": "'pytest --help -q' is not a single test command"
+      }
+    ],
+    "verdict": "reject",
+    "reasons": [
+      "tests_passed: failed ('pytest --help -q' is not a single test command)"
+    ]
+  }
+}

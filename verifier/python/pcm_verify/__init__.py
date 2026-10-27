@@ -10,6 +10,7 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import pathlib
 import posixpath
 import re
 import shlex
@@ -113,6 +114,8 @@ _TYPES = {"object": dict, "array": list, "string": str, "boolean": bool, "null":
 
 
 def _is(v, t):
+    if isinstance(t, list):
+        return any(_is(v, x) for x in t)
     if t == "integer":
         return type(v) is int
     if t == "number":
@@ -120,9 +123,11 @@ def _is(v, t):
     return isinstance(v, _TYPES[t])
 
 
-def errors(schema, v, path="$"):
-    """The ways `v` breaks `schema` (empty when it fits)."""
+def errors(schema, v, path="$", root=None):
+    """The ways `v` breaks `schema` (empty when it fits). A `$ref` names one of `root`'s `$defs`."""
     out, s = [], schema
+    if "$ref" in s:
+        return errors(root["$defs"][s["$ref"].removeprefix("#/$defs/")], v, path, root)
     if "type" in s and not _is(v, s["type"]):
         return [f"{path}: expected {s['type']}, got {type(v).__name__}"]
     if "const" in s and v != s["const"]:
@@ -149,23 +154,27 @@ def errors(schema, v, path="$"):
             out.append(f"{path}: fewer than {s['minItems']} items")
         if "items" in s:
             for i, x in enumerate(v):
-                out += errors(s["items"], x, f"{path}[{i}]")
+                out += errors(s["items"], x, f"{path}[{i}]", root)
     if isinstance(v, dict):
         out += [f"{path}: missing required '{k}'" for k in s.get("required", []) if k not in v]
         props, more = s.get("properties", {}), s.get("additionalProperties", True)
         for k, x in v.items():
             if k in props:
-                out += errors(props[k], x, f"{path}.{k}")
+                out += errors(props[k], x, f"{path}.{k}", root)
             elif more is False:
                 out.append(f"{path}: unexpected field {k[:64]!r}")
             elif isinstance(more, dict):
-                out += errors(more, x, f"{path}.{k}")
+                out += errors(more, x, f"{path}.{k}", root)
             if "propertyNames" in s:
-                out += errors(s["propertyNames"], k, f"{path}.{k}")
+                out += errors(s["propertyNames"], k, f"{path}.{k}", root)
     if "oneOf" in s:
-        n = sum(not errors(alt, v, path) for alt in s["oneOf"])
+        n = sum(not errors(alt, v, path, root) for alt in s["oneOf"])
         if n != 1:
             out.append(f"{path}: must match exactly one alternative (matched {n})")
+    for sub in s.get("allOf", []):
+        out += errors(sub, v, path, root)
+    if "if" in s and "then" in s and not errors(s["if"], v, path, root):
+        out += errors(s["then"], v, path, root)
     return out
 
 
@@ -380,8 +389,8 @@ def check_sig(obj, tag, trust):
         except NotJCS as e:
             return f"not JSON that RFC 8785 can encode ({e})"
         try:
-            sig = base64.b64decode(obj["sig"]["sig"], validate=True)
-        except ValueError:
+            sig = _unb64(obj["sig"]["sig"])   # canonical only (SPEC 4.3), so a signature has one text form
+        except NoteError:
             return "bad signature"
         return None if _ed25519(public, text, sig) else "bad signature"
     return f"signed by {obj['sig']['key']}, a key trust does not pin"
@@ -479,6 +488,10 @@ def verify_inclusion(index, size, leaf, proof, root):
 
 
 # ---------------------------------------------------------------------------------------------------- evidence
+PROFILE = "tracekit.event.v2"   # the one evidence profile (SPEC 6.4): every record is a valid event of its schema
+EVENT = json.loads(pathlib.Path(__file__).with_name(f"{PROFILE}.json").read_text(encoding="utf-8"))
+
+
 class EvidenceError(ValueError):
     pass
 
@@ -502,14 +515,17 @@ def evidence(ev, msg, trust):
         if not isinstance(e, dict) or record_hash(e) != r["hash"]:
             raise EvidenceError(f"record {i}: hash does not match the event")
         try:
-            proof = [base64.b64decode(p, validate=True) for p in r["proof"]]
-        except ValueError:   # bad base64, or a non-ASCII entry
+            proof = [_unb64(p) for p in r["proof"]]   # canonical only (SPEC 4.3)
+        except NoteError:
             proof = None
         leaf = hashlib.sha256(b"\x00" + bytes.fromhex(r["hash"][7:])).digest()
         if type(e.get("seq")) is not int or proof is None or not verify_inclusion(e["seq"], size, leaf, proof, root):
             raise EvidenceError(f"record {i}: not in the checkpoint")
         if (e.get("tenant"), e.get("run_id")) != (msg["from"]["tenant"], msg["from"]["run"]):
             raise EvidenceError(f"record {i}: from run {str(e.get('run_id'))[:128]}, not the sender's")
+        errs = errors(EVENT, e, "event", EVENT) if e.get("schema_version") == PROFILE else [f"not a {PROFILE} event"]
+        if errs:
+            raise EvidenceError(f"record {i}: not a valid event ({errs[0][:256]})")
         args = None
         if "salt" in r or "args" in r:
             d = _data(e)
@@ -535,12 +551,17 @@ _RANK = {"proven": 0, "unproven": 1, "failed": 2}
 
 def _ran(recs, match, what, tools, cls=None):
     """(result, detail) of "a call whose opened args match ran and succeeded": proven by a result the signer recorded
-    as T2, unproven by the agent's own (T1) result or by a tool the table does not place as `cls`."""
+    as T2, unproven by the agent's own (T1) result, by a tool the table does not place as `cls`, or by a call `match`
+    can't tell (None)."""
     best = ("failed", f"no call in the evidence {what}")
     for e, args in recs:
         d = _data(e)
-        if not isinstance(args, dict) or type(d.get("tool")) is not str or d.get("decision") == "deny" \
-                or not match(d["tool"], args):
+        m = isinstance(args, dict) and type(d.get("tool")) is str and "decision_id" in d \
+            and d.get("decision") != "deny" and match(d["tool"], args)
+        if m is None:
+            best = min(("unproven", f"the verifier can't tell whether call {d.get('tool_use_id')} {what}"), best,
+                       key=lambda o: _RANK[o[0]])
+        if not m:
             continue
         if cls and tools.get(d["tool"]) != cls:
             best = min(("unproven", f"a tool the verifier can't place as a {cls} tool"), best, key=lambda o: _RANK[o[0]])
@@ -564,15 +585,21 @@ def _first(args, *keys):
     return next((args[k] for k in keys if args.get(k) is not None), None)
 
 
-# What runs tests: the reference recognizer, Tracekit's "test" family of findings_text.command_facts.
 SEPARATORS = frozenset((";", ";;", "&&", "||", "|", "|&", "&", "(", ")"))
-PREFIXES = frozenset(("sudo", "doas", "env", "time", "nice", "nohup", "command", "exec", "npx", "bunx", "pnpx",
-                      "timeout", "stdbuf", "xargs"))
-RUNNERS = {"uv": "run", "poetry": "run", "pipenv": "run", "pdm": "run", "hatch": "run", "rye": "run",
-           "bundle": "exec", "npm": "exec"}
-PYTHONS = re.compile(r"python(?:3(?:\.\d+)?)?|py|pypy3?")
-TEST_PROGS = frozenset(("pytest", "py.test", "jest", "vitest", "mocha", "rspec", "tox", "nox", "phpunit", "ctest",
-                        "ava", "karma", "nose2", "trial", "behave", "cucumber", "unittest"))
+# SPEC 6.6: the leading words of a test command, its first word by base name, and the flags with which a runner runs
+# no tests
+TEST_RUNNERS = [r.split() for r in (
+    "pytest", "py.test", "python -m pytest", "python3 -m pytest", "python -m unittest", "python3 -m unittest", "tox",
+    "nox", "nose2", "trial", "behave", "jest", "vitest", "mocha", "ava", "karma", "cucumber", "playwright test",
+    "phpunit", "rspec", "ctest", "npm test", "npm run test", "yarn test", "yarn run test", "pnpm test", "pnpm run test",
+    "bun test", "go test", "cargo test", "cargo nextest run", "dotnet test", "deno test", "swift test", "mix test",
+    "bazel test", "make test", "make check", "mvn test", "mvn verify", "gradle test", "gradle check")]
+NO_TESTS = frozenset(("--co", "--collect-only", "--help", "-h", "--version"))
+
+
+class _Lexer(shlex.shlex):
+    """shlex with a `#` starting a comment only at the start of a word, as in a shell: `a#b` is one word."""
+    commenters = property(lambda self: "#" if self.state == " " else "", lambda self, _: None)
 
 
 def simple_commands(cmd):
@@ -583,7 +610,7 @@ def simple_commands(cmd):
         if not line.strip():
             continue
         try:
-            lex = shlex.shlex(line, posix=True, punctuation_chars=True)
+            lex = _Lexer(line, posix=True, punctuation_chars=True)
             lex.whitespace_split = True
             words = list(lex)
         except ValueError:   # unbalanced quotes: the words whitespace leaves
@@ -598,45 +625,11 @@ def simple_commands(cmd):
     return out
 
 
-def runs_tests(words):
-    """Whether one simple command runs tests: past variable assignments and wrappers (sudo, env, timeout, uv run...),
-    and `python -m <module>`, the program is a test runner or a build tool's test subcommand."""
-    i = 0
-    while i < len(words):
-        w, base = words[i], posixpath.basename(words[i])
-        if "=" in w and w.split("=", 1)[0].isidentifier():
-            i += 1
-        elif base in PREFIXES:
-            i += 1
-            while i < len(words) and (words[i].startswith("-") or words[i][:1].isdigit()):
-                i += 1
-        elif RUNNERS.get(base) and i + 1 < len(words) and words[i + 1] == RUNNERS[base]:
-            i += 2
-        else:
-            break
-    if i >= len(words):
-        return False
-    prog, args = posixpath.basename(words[i]).lower(), words[i + 1:]
-    plain = [a for a in args if not a.startswith("-")]
-    sub, nxt = [a.lower() for a in (plain + ["", ""])[:2]]
-    if PYTHONS.fullmatch(prog) and "-m" in args:   # `nxt` stays the one before -m, as in the reference
-        j = args.index("-m") + 1
-        prog, args = (args[j].lower() if j < len(args) else ""), args[j + 1:]
-        plain = [a for a in args if not a.startswith("-")]
-        sub = plain[0].lower() if plain else ""
-    return (prog in TEST_PROGS or prog == "playwright" and sub == "test"
-            or prog in ("npm", "yarn", "pnpm", "bun") and (sub in ("test", "t") or sub == "run" and nxt.startswith(
-                "test"))
-            or prog in ("go", "cargo", "dotnet", "deno", "swift", "mix", "bazel") and sub in ("test", "nextest")
-            or prog in ("make", "gmake") and sub in ("test", "tests", "check")
-            or prog in ("mvn", "mvnw", "gradle", "gradlew") and bool(
-                {a.lower().rsplit(":", 1)[-1] for a in plain} & {"test", "verify", "check"}))
-
-
 def tests_passed(a, recs, tools):
     # one simple command: in `pytest || true` or `pytest; true` the call's status is not the tests'
     cmds = simple_commands(a["suite"])
-    if len(cmds) != 1 or not runs_tests(cmds[0]):
+    words = [posixpath.basename(cmds[0][0]), *cmds[0][1:]] if len(cmds) == 1 else []
+    if NO_TESTS & set(words) or not any(words[:len(r)] == r for r in TEST_RUNNERS):
         return "failed", f"{a['suite'][:64]!r} is not a single test command"
     return _ran(recs, lambda tool, args: _first(args, "command", "cmd", "commands") == a["suite"],
                 f"ran {a['suite'][:64]!r}", tools, "shell")
@@ -646,7 +639,7 @@ def approved_by(a, recs, tools):
     for e, _ in recs:
         d = _data(e)
         if e.get("type") == "approval" and d.get("decision") == "approve" and d.get("tool_use_id") == a["call"] \
-                and a["person"] in (d.get("person"), d.get("approver")) \
+                and d.get("person") == a["person"] \
                 and d.get("approver_kind", "person") == "person" and d.get("self_approved") is not True:
             return "proven", f"approval seq {e.get('seq')} by {a['person']} of {a['call']}"
     return "failed", f"no approval of {a['call']} by the person {a['person']}"
@@ -717,30 +710,64 @@ def _canonical_host(host):
     return f"[{ip}]" if ip.version == 6 else str(ip)
 
 
-def url_host(url):
-    """The canonical host of a URL (http:// in front when it has no scheme); None when it has none, or when Python's
-    urlsplit refuses the URL (a `[` it can't read)."""
-    if not isinstance(url, str):
-        return None
+def url_info(url):
+    """{} when the URL (http:// in front when it has no scheme) has no host; {"host": None} when Python's urlsplit
+    refuses it (a `[` it can't read); else {"host": the canonical host, or _BAD, "ambiguous": whether a browser and
+    urlsplit read different hosts}."""
     if not re.match(r"(?i)[\x00-\x20]*((https?|wss?|ftp|file):|[a-z][a-z0-9+.-]*:(?![0-9])|[/\\]{2})",
                     re.sub(r"[\t\n\r]", "", url)):
         url = "http://" + url
     try:
         rh = urlsplit(url).hostname
     except ValueError:
-        return None
+        return {"host": None}
     hosts = [_canonical_host(h) for h in (_whatwg_host(url), rh) if h]
-    return hosts[0] if hosts and hosts[0] is not _BAD else None
+    return {"host": hosts[0], "ambiguous": len(set(hosts)) > 1} if hosts else {}
+
+
+def _a_label(h):
+    """A canonical host as SPEC 6.6 compares hosts: an address as it is, a name without its one trailing dot and in
+    ASCII by Python's `idna` codec (IDNA 2003); None when it won't parse."""
+    if h is None or h is _BAD or h.startswith("["):
+        return None if h is _BAD else h
+    name = h[:-1] if h.endswith(".") else h
+    # lean: IDNA 2003 (the stdlib), as the reference runs it, not UTS 46; follow the SPEC if it moves to UTS 46
+    try:
+        return name.encode("idna").decode("ascii") if name and not name.endswith(".") else None
+    except UnicodeError:
+        return None
+
+
+def _host(host):
+    """A claim's or an effect's host (a name or address, maybe with a port) in compared form; None when it won't
+    parse."""
+    if not isinstance(host, str) or re.search(r"[/\\?#@\s\[\]]", host):
+        return None
+    return _a_label(url_info(f"http://[{host}]/" if host.count(":") > 1 else f"http://{host}/").get("host"))
 
 
 def reached_host(a, recs, tools):
+    want = _host(a["host"])
+    if want is None:
+        return "unproven", f"{a['host'][:64]} is no host the verifier can read"
+    seen = ("failed", "")
     for e, _ in recs:
         d = _data(e)
-        if e.get("type") == "effect.observed" and d.get("host") == a["host"] and d.get("kind") in ("net", "connect") \
-                and not d.get("denied"):
-            return "proven", f"effect.observed seq {e.get('seq')}: {d.get('observer')} saw the run reach {a['host']}"
-    return _ran(recs, lambda tool, args: url_host(_first(args, "url")) == a["host"], f"reached {a['host']}",
-                tools, "http")
+        if e.get("type") == "effect.observed" and d.get("kind") in ("net", "connect") and not d.get("denied"):
+            got = _host(d.get("host"))
+            if got == want:
+                return "proven", f"effect.observed seq {e.get('seq')}: {d.get('observer')} saw the run reach " \
+                                 f"{a['host']}"
+            if got is None:
+                seen = ("unproven", f"effect.observed seq {e.get('seq')}: a host the verifier can't read")
+
+    def match(tool, args):
+        info = url_info(args["url"]) if isinstance(args.get("url"), str) else {}
+        if "host" not in info:   # no URL, or one with no host (file:, mailto:)
+            return False
+        got = None if info.get("ambiguous") else _a_label(info["host"])
+        return None if got is None else got == want
+    return min(_ran(recs, match, f"reached {a['host']}", tools, "http"), seen, key=lambda o: _RANK[o[0]])
 
 
 def fs_path(raw):
@@ -757,15 +784,27 @@ def fs_path(raw):
 WRITE_TOOLS = ("Write",)   # the tools whose name says they write a whole file; an `op` in the args is the agent's word
 
 
+_ABSOLUTE = re.compile(r"/|[A-Za-z]:/")   # what fs_path keeps absolute
+
+
 def file_written(a, recs, tools):
-    if ".." in a["path"].replace("\\", "/").split("/"):
+    path = a["path"].replace("\\", "/")
+    if ".." in path.split("/"):
         return "failed", f"{a['path'][:64]} has a `..`: name the file's own path"
+    if not _ABSOLUTE.match(path):
+        return "failed", f"{a['path'][:64]} is relative: name the file's absolute path"
+    want = fs_path(path)
 
     def match(tool, args):
-        path, content = _first(args, "file_path", "notebook_path", "path"), args.get("content")
-        return tool in WRITE_TOOLS and isinstance(path, str) and fs_path(path) == fs_path(a["path"]) \
-            and isinstance(content, str) \
-            and "sha256:" + hashlib.sha256(content.encode("utf-8")).hexdigest() == a["digest"]
+        got, content = _first(args, "file_path", "notebook_path", "path"), args.get("content")
+        if not (tool in WRITE_TOOLS and isinstance(got, str) and isinstance(content, str)
+                and "sha256:" + hashlib.sha256(content.encode("utf-8")).hexdigest() == a["digest"]):
+            return False
+        got = fs_path(got)
+        if got == want:
+            return True
+        # a relative path (or what follows a `..`) may be this file, from a working directory the record doesn't hold
+        return None if not _ABSOLUTE.match(got) and ("/" + want).endswith("/" + got) else False
     return _ran(recs, match, f"wrote {a['path'][:64]} with {a['digest']}", tools)
 
 
@@ -797,7 +836,9 @@ def verify_grants(msg, doc, trust):
                 "problems": ["the intent needs a grant"] if need else []}
     for i, g in enumerate(grants):
         at = f"grant {i}"
-        if e := check_sig(g, GRANT_TAG, trust):
+        if g["sig"]["key"] != msg["sig"]["key"]:   # another pinned log's grant holds nothing here
+            out.append(f"{at}: signed by {g['sig']['key']}, not the log that signed the message ({msg['sig']['key']})")
+        elif e := check_sig(g, GRANT_TAG, trust):
             out.append(f"{at}: {e}")
         if g["intent"] != msg["intent"]["type"]:
             out.append(f"{at}: for {g['intent']}, not this intent")
@@ -847,8 +888,8 @@ def _secs(t):
 
 class Replay:
     """One receiver's replay state, in memory. A message passes once: within `window_s` of the receiver's clock, not
-    sent before it started, newer than the sender's floor and with a new nonce. Past `per_sender` nonces the oldest
-    is forgotten and raises the floor. `window_s=None` skips the clocks (an auditor of a saved conversation).
+    sent before it started, newer than the sender's floor and with a new nonce. A sender is the pair (sig.key,
+    from.agent). Past `per_sender` nonces the oldest is forgotten and raises the floor. `window_s=None` skips the clocks (an auditor of a saved conversation).
     `started` and a check's `now` are unix seconds or TS strings; None is the current time."""
 
     def __init__(self, window_s=300, per_sender=4096, started=None):
@@ -857,7 +898,7 @@ class Replay:
 
     def check(self, msg, now=None):
         """(ok, detail) for a message whose signature passed; a passing one is remembered."""
-        now, sender = _secs(now), msg["from"]["agent"]
+        now, sender = _secs(now), (msg["sig"]["key"], msg["from"]["agent"])   # SPEC 9
         try:
             t = epoch(msg["ts"])
         except ValueError:

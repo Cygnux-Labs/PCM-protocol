@@ -16,7 +16,7 @@ copyright). It has no dependencies and runs on WebCrypto. These parts cover PCM'
 |---|---|---|
 | strict parsing (3.3) | `jcs.ts` `strictParse`, `strictParseBytes` | rejects duplicate keys, unsafe integers, lone surrogates, deep nesting; its `Floats` map tells `0.0` from `0` |
 | JCS (4.1) | `jcs.ts` `canonicalize` | |
-| SHA-256, base64 (strict and canonical) | `primitives.ts` `sha256`, `b64decode`, `unb64` | |
+| SHA-256, base64 (canonical, 4.3) | `primitives.ts` `sha256`, `unb64` | every PCM base64 value is canonical: use `unb64` for `sig.sig` and proof entries too, never the lenient `b64decode` |
 | Ed25519 with the v2 rules (4.3) | `primitives.ts` `ed25519Verify`, `verifyV2` | S < L, canonical non-small-order key, as Python |
 | vkeys, key ids (4.3) | `primitives.ts` `parseVkey`, `keyId` | |
 | checkpoint notes, cosignatures (6.2) | `primitives.ts` `openNote` | always with `anchored` true. WebCrypto has no SLH-DSA, so a pinned hybrid key's line comes back `unchecked`: the PCM verifier must then fail the evidence, not pass it |
@@ -38,11 +38,12 @@ About 600 to 800 lines, mapping one to one onto `tracekit/pcm/__init__.py` and `
    - string lengths count code points (`[...s].length`), not UTF-16 units.
 3. **Caveats and grants** (7): `checkCaveats`, `norm`, `implies`, `narrows`, `satisfies`, `verifyGrants`. Small and
    exact; the vectors cover each narrowing rule.
-4. **Replay** (9): the `Replay` class with `window_s`, `started`, `per_sender`, the floor.
+4. **Replay** (9): the `Replay` class with `window_s`, `started`, `per_sender`, the floor, each sender keyed by
+   (`sig.key`, `from.agent`), and a `ts` that is no real date refused, not thrown.
 5. **Verdict** (8): the order of checks and the `reasons` order.
-6. **Evidence and claims** (6): the note origin rule, inclusion, the sender's run, openings (HMAC-SHA256 with WebCrypto,
-   compared in constant time), `Ran`, and the four checkers with the tool placement table from
-   `registry/tools.json`.
+6. **Evidence and claims** (6): the note origin rule, inclusion, the sender's run, each record a valid event of
+   `registry/tracekit.event.v2.json`, openings (HMAC-SHA256 with WebCrypto, compared in constant time), `Ran` with
+   its "can't tell" answer, and the four checkers with the tool placement table from `registry/tools.json`.
 7. **CLI**: `pcm-verify MESSAGE --trust TRUST --schema SCHEMA`, exit 0 accept, 3 accept-unproven, 1 reject, 2 for
    unreadable input, matching the Python verifier.
 
@@ -52,12 +53,20 @@ Three checkers lean on Tracekit helpers that are not small. A TypeScript port mu
 vector, so each is ported with its own tests:
 
 - **`tests_passed`**: splitting a command line into simple commands (Python `shlex` in POSIX mode with
-  `punctuation_chars`) and the test-runner recognizer (`findings_text.command_facts`). Port only what the claim needs:
-  "exactly one simple command" and "its program, after wrappers, is a test runner".
-- **`reached_host`**: the canonical host of a URL. `new URL()` gives the WHATWG host; Tracekit then canonicalises it
-  (`classes._canonical_host`). Compare on the vectors and on Tracekit's own URL test cases.
-- **`file_written`**: `fs_path` normalisation (`\` as `/`, the suffix after the last `..`). Small, but easy to get
-  subtly wrong.
+  `punctuation_chars`; a `#` starts a comment only at the start of a word), then SPEC 6.8: the words begin with one
+  of the fixed runner sequences (first word by base name) and carry none of the flags that run no tests. A table,
+  no recognizer to port.
+- **`reached_host`**: the compared form of SPEC 6.7, step by step. Don't use `new URL()` or `URL.hostname` for it:
+  they apply UTS 46, which differs from the IDNA 2003 the spec fixes (`faß.example` stays `xn--fa-hia.example` there
+  and is `fass.example` here), refuse some hosts the spec reads, and know nothing of `urlsplit`'s refusals or the
+  rule that a browser's and `urlsplit`'s readings must agree. Port the two readings, the canonical form and the
+  A-label step as the spec writes them: the browser reading is a few regular expressions; `urlsplit(url).hostname`
+  (netloc after `//` up to `/?#`, after the last `@`, before the port, lower case) and the cases where it raises
+  (unbalanced `[`/`]`, a bracketed host that is no IPv6 address, a non-ASCII netloc whose NFKC form gains one of
+  `/?#@:`) need their own tests; the IDNA 2003 step needs Nameprep with Unicode 3.2 tables and Punycode (a small
+  vendored port; the vectors only exercise `bücher.example`, so add Tracekit's own host cases as tests).
+- **`file_written`**: `fs_path` normalisation (`\` as `/`, the suffix after the last `..`), the absolute-path rule
+  and the relative-call "can't tell" result. Small, but easy to get subtly wrong.
 - **`id` patterns**: schema documents' patterns run as JavaScript `RegExp`. Python `re` and JavaScript differ (`\d`
   is Unicode in Python, ASCII in JavaScript). Until the spec fixes a dialect, the verifier uses the `u` flag and the
   vectors avoid patterns the two read differently.
@@ -76,9 +85,9 @@ against the Python and TypeScript verifiers, so a vector change that one of them
 | copy and adapt the primitives, schema validator with a root | 0.5 |
 | envelope, signature, schema documents, grants, replay, verdict (Level 1 vectors pass) | 1.5 |
 | evidence, openings, approved_by, the `Ran` rule | 1 |
-| tests_passed (shell splitting, recognizer), reached_host (URL host), file_written | 1.5 |
+| tests_passed (shell splitting, runner list), reached_host (two host readings, IDNA 2003), file_written | 2 |
 | CLI, package, README | 0.5 |
-| **total** | **about 5 days** |
+| **total** | **about 5.5 days** |
 
 ## Open choices
 

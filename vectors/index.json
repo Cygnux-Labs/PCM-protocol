@@ -120,6 +120,12 @@
     "verdict": "reject"
   },
   {
+    "name": "reject-replay-no-real-time",
+    "file": "reject-replay-no-real-time.json",
+    "description": "ts set to month 13 and re-signed with the test log key (the signer takes ts from its clock): the TS pattern lets it through, the replay check refuses it.",
+    "verdict": "reject"
+  },
+  {
     "name": "reject-grant-amount-over-caveat",
     "file": "reject-grant-amount-over-caveat.json",
     "description": "amount 50000 under a grant of amount <= 20000.",
@@ -216,6 +222,24 @@
     "verdict": "reject"
   },
   {
+    "name": "reject-grant-from-another-log",
+    "file": "reject-grant-from-another-log.json",
+    "description": "A root grant alice approved on the other log, for uid:990101 there, sent by uid:990101 of the test log; trust pins both logs. Identities are names inside one log: the grant is not this sender's.",
+    "verdict": "reject"
+  },
+  {
+    "name": "accept-replay-same-agent-other-log",
+    "file": "accept-replay-same-agent-other-log.json",
+    "description": "The receiver first took a message from uid:990101 of the other log with the nonce of this one (re-signed with the other log's test key); trust pins both logs. A sender is the pair (log key, agent), so uid:990101 of the test log is another sender and its nonce is new.",
+    "verdict": "accept"
+  },
+  {
+    "name": "reject-claim-proof-non-canonical-base64",
+    "file": "reject-claim-proof-non-canonical-base64.json",
+    "description": "approved_by whose first proof entry has an unused bit of its last base64 character set: the same 32 bytes, but only canonical base64 is taken.",
+    "verdict": "reject"
+  },
+  {
     "name": "reject-claim-witnesses-required-unmet",
     "file": "reject-claim-witnesses-required-unmet.json",
     "description": "approved_by under a note with no cosignature; trust requires one witness.",
@@ -240,6 +264,12 @@
     "verdict": "reject"
   },
   {
+    "name": "reject-claim-approved-by-unmapped-identity",
+    "file": "reject-claim-approved-by-unmapped-identity.json",
+    "description": "approved_by naming uid:990009, an approver no person in the signer's approvals configuration maps to, with its approval record as evidence: only a person's name proves it.",
+    "verdict": "reject"
+  },
+  {
     "name": "accept-witnessed",
     "file": "accept-witnessed.json",
     "description": "approved_by under a note cosigned by the pinned witness; trust requires one witness.",
@@ -249,6 +279,12 @@
     "name": "reject-claim-malformed-unpinned-note-line",
     "file": "reject-claim-malformed-unpinned-note-line.json",
     "description": "approved_by under a note with an extra signature line of a key trust does not pin, whose signature is 3 bytes: a malformed line fails the note even when its key is not pinned.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-record-not-an-event",
+    "file": "reject-claim-record-not-an-event.json",
+    "description": "approved_by whose approval record lost data.decision, under a checkpoint the test log key signs offline over the edited record: a record that is no valid tracekit.event.v2 event fails.",
     "verdict": "reject"
   },
   {
@@ -264,15 +300,63 @@
     "verdict": "accept"
   },
   {
-    "name": "accept-tests-passed-collect-only",
-    "file": "accept-tests-passed-collect-only.json",
-    "description": "tests_passed of `pytest --co -q`, run by the executor (T2): proven means this exact command line exited 0, and `--co` only lists the tests.",
-    "verdict": "accept"
+    "name": "reject-claim-hash-inside-word",
+    "file": "reject-claim-hash-inside-word.json",
+    "description": "tests_passed of `pytest ...py#|| true`, run by the executor (T2): a `#` inside a word starts no comment, so the shell runs `|| true` and the line is two commands.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-co",
+    "file": "reject-claim-tests-passed-co.json",
+    "description": "tests_passed of `pytest --co -q`, run by the executor (T2): with --co a runner runs no tests, so it is no test command.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-collect-only",
+    "file": "reject-claim-tests-passed-collect-only.json",
+    "description": "tests_passed of `pytest --collect-only -q`, run by the executor (T2): with --collect-only a runner runs no tests, so it is no test command.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-help",
+    "file": "reject-claim-tests-passed-help.json",
+    "description": "tests_passed of `pytest --help -q`, run by the executor (T2): with --help a runner runs no tests, so it is no test command.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-h",
+    "file": "reject-claim-tests-passed-h.json",
+    "description": "tests_passed of `pytest -h -q`, run by the executor (T2): with -h a runner runs no tests, so it is no test command.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-version",
+    "file": "reject-claim-tests-passed-version.json",
+    "description": "tests_passed of `pytest --version -q`, run by the executor (T2): with --version a runner runs no tests, so it is no test command.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-wrapper",
+    "file": "reject-claim-tests-passed-wrapper.json",
+    "description": "tests_passed of `uv run pytest -q`, run by the executor (T2): a wrapper in front is not in the list of test commands.",
+    "verdict": "reject"
   },
   {
     "name": "accept-tests-passed-npm-test",
     "file": "accept-tests-passed-npm-test.json",
     "description": "tests_passed of `npm test`, run by the executor (T2).",
+    "verdict": "accept"
+  },
+  {
+    "name": "accept-tests-passed-python-m-pytest",
+    "file": "accept-tests-passed-python-m-pytest.json",
+    "description": "tests_passed of `python3 -m pytest -q`, run by the executor (T2).",
+    "verdict": "accept"
+  },
+  {
+    "name": "accept-tests-passed-runner-path",
+    "file": "accept-tests-passed-runner-path.json",
+    "description": "tests_passed of `.venv/bin/pytest -q`, run by the executor (T2): the first word is compared by its base name.",
     "verdict": "accept"
   },
   {
@@ -294,6 +378,12 @@
     "verdict": "reject"
   },
   {
+    "name": "reject-claim-decision-without-id",
+    "file": "reject-claim-decision-without-id.json",
+    "description": "tests_passed whose policy.decision record lost data.decision_id, under a checkpoint the test log key signs offline over the edited records: a decision without its id matches no call.",
+    "verdict": "reject"
+  },
+  {
     "name": "accept-file-written",
     "file": "accept-file-written.json",
     "description": "file_written of /work/report.txt by a Write of /work/report.txt the executor ran (T2), with the SHA-256 of the content written.",
@@ -312,15 +402,45 @@
     "verdict": "reject"
   },
   {
+    "name": "reject-claim-file-written-relative",
+    "file": "reject-claim-file-written-relative.json",
+    "description": "file_written of work/report.txt by a Write of /work/report.txt the executor ran (T2), naming a relative path, which fails as malformed.",
+    "verdict": "reject"
+  },
+  {
+    "name": "accept-unproven-file-written-relative-call",
+    "file": "accept-unproven-file-written-relative-call.json",
+    "description": "file_written of /work/report.txt by a Write of report.txt the executor ran (T2): the record doesn't hold the working directory, so the relative path may name this file or another.",
+    "verdict": "accept-unproven"
+  },
+  {
     "name": "accept-reached-host-observed",
     "file": "accept-reached-host-observed.json",
     "description": "reached_host proven by the effect.observed record an egress observer reported to the signer.",
     "verdict": "accept"
   },
   {
+    "name": "accept-unproven-reached-host-unreadable-claim",
+    "file": "accept-unproven-reached-host-unreadable-claim.json",
+    "description": "reached_host of a..example with the observed evidence: a host with an empty label won't parse, so the claim is unproven.",
+    "verdict": "accept-unproven"
+  },
+  {
     "name": "accept-reached-host-http",
     "file": "accept-reached-host-http.json",
     "description": "reached_host api.example.com by a WebFetch of https://API.Example.COM:8443/v1/refunds the executor ran (T2): the host is read lower case, without the port.",
+    "verdict": "accept"
+  },
+  {
+    "name": "accept-reached-host-claim-port",
+    "file": "accept-reached-host-claim-port.json",
+    "description": "reached_host api.example.com:443 by a WebFetch of https://api.example.com/v1/refunds the executor ran (T2): a port in the claim is ignored too.",
+    "verdict": "accept"
+  },
+  {
+    "name": "accept-reached-host-trailing-dot",
+    "file": "accept-reached-host-trailing-dot.json",
+    "description": "reached_host api.example.com by a WebFetch of https://api.example.com./v1/refunds the executor ran (T2): the host loses its one trailing dot.",
     "verdict": "accept"
   },
   {
@@ -330,16 +450,28 @@
     "verdict": "accept"
   },
   {
-    "name": "reject-claim-reached-host-bracket",
-    "file": "reject-claim-reached-host-bracket.json",
-    "description": "reached_host good.com by a WebFetch of http://[x]@good.com/ the executor ran (T2): a `[` in the userinfo: Python's urlsplit refuses the URL, so it has no host.",
+    "name": "accept-reached-host-idn",
+    "file": "accept-reached-host-idn.json",
+    "description": "reached_host xn--bcher-kva.example by a WebFetch of http://bücher.example/ the executor ran (T2): the host goes to ASCII by IDNA, so it is the punycode name the claim carries.",
+    "verdict": "accept"
+  },
+  {
+    "name": "reject-claim-reached-host-other-host",
+    "file": "reject-claim-reached-host-other-host.json",
+    "description": "reached_host api.example.org by a WebFetch of https://api.example.com/v1/refunds the executor ran (T2): another host.",
     "verdict": "reject"
   },
   {
-    "name": "reject-claim-reached-host-idn",
-    "file": "reject-claim-reached-host-idn.json",
-    "description": "reached_host xn--bcher-kva.example by a WebFetch of http://bücher.example/ the executor ran (T2): the host is read as bücher.example, without IDNA, so the punycode name a claim can carry does not match.",
-    "verdict": "reject"
+    "name": "accept-unproven-reached-host-bracket",
+    "file": "accept-unproven-reached-host-bracket.json",
+    "description": "reached_host good.com by a WebFetch of http://[x]@good.com/ the executor ran (T2): a `[` in the userinfo: Python's urlsplit refuses the URL, so its host won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-ambiguous",
+    "file": "accept-unproven-reached-host-ambiguous.json",
+    "description": "reached_host b.example by a WebFetch of http://a.example\\@b.example/ the executor ran (T2): a browser reads the host a.example and Python's urllib b.example, so it won't parse.",
+    "verdict": "accept-unproven"
   },
   {
     "name": "reject-claim-reached-host-too-long",
@@ -348,10 +480,10 @@
     "verdict": "reject"
   },
   {
-    "name": "accept-sig-non-canonical-base64",
-    "file": "accept-sig-non-canonical-base64.json",
-    "description": "sig.sig with a padding bit set in its last base64 character: it decodes to the same 64 bytes, and Tracekit ignores padding bits.",
-    "verdict": "accept"
+    "name": "reject-sig-non-canonical-base64",
+    "file": "reject-sig-non-canonical-base64.json",
+    "description": "sig.sig with an unused bit of its last base64 character set: the same 64 bytes, but only canonical base64 is taken, so a signature has one text form.",
+    "verdict": "reject"
   },
   {
     "name": "reject-small-order-key",

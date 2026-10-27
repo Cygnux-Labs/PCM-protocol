@@ -1,0 +1,247 @@
+{
+  "name": "reject-claim-approved-by-unmapped-identity",
+  "description": "approved_by naming uid:990009, an approver no person in the signer's approvals configuration maps to, with its approval record as evidence: only a person's name proves it.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "c2e3a81bde2be8ba7090d2c3499900b8",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "claims": [
+        {
+          "type": "approved_by",
+          "args": {
+            "person": "uid:990009",
+            "call": "grant-dave"
+          },
+          "evidence": {
+            "checkpoint": "example.com/pcm-test-log\n91\nfwiBScRJMR0kmdHxLFB6iiKFBRb3mEpkppisMu0gxRI=\n\n— example.com/pcm-test-log C7keZjjjqnqzDdxyZf2ZdY1Lum6oyJiDHaWObiRN4eTXHp2SXFN0jmky1zGsN+kS/UPUYIKXIkq+za48NirUDQwevws=\n",
+            "records": [
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "a0a9498672924924ae822a889df31fd3",
+                  "seq": 90,
+                  "prev_hash": "sha256:17a4e75700176c763b9da1da9ae77ccf19833a00326d778cd3f69f2a84018dfc",
+                  "ts": "2026-10-27T15:31:41.320833Z",
+                  "run_id": "c2e3a81bde2be8ba7090d2c3499900b8",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "sdk",
+                  "type": "approval",
+                  "data": {
+                    "tool_use_id": "grant-dave",
+                    "approval_id": "apr-2f649a43f4b862bea0fa8ade8cf3e8eb",
+                    "decision": "approve",
+                    "approver": "uid:990009",
+                    "approver_identity": {
+                      "scheme": "uid",
+                      "subject": "990009",
+                      "attested": true
+                    },
+                    "channel": "rpc",
+                    "self_approved": false
+                  },
+                  "tenant": "default",
+                  "log_id": "6a5c01e86e07863391078b7fb1d7ca56",
+                  "run_seq": 74,
+                  "run_prev_hash": "sha256:17a4e75700176c763b9da1da9ae77ccf19833a00326d778cd3f69f2a84018dfc",
+                  "request_id": "r93",
+                  "tool_call_id": "grant-dave"
+                },
+                "hash": "sha256:3eca3d5721cec80a555f8deb3d99ddf47ac84254677b0fc8673ae26fd99dbf3b",
+                "proof": [
+                  "ocV5LI9excdP/Zaltbxoi1s/oZomKinvskOI36yMi6c=",
+                  "k4wIu8NzaiTpFUxhnA0sbNJAPCLSL5WlOhTvIk0uUdQ=",
+                  "ywtmwRZ6ExXfyvaAi3a8kmlHjvb08FBN0MFK2vh4cXc=",
+                  "M6HB3sU9vIAxkdURRvvM1GfKrf7ACbN3uy+6RW9ACKU="
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "grants": [
+        {
+          "pcm_grant": 0,
+          "ts": "2026-10-27T15:31:38.025657Z",
+          "issuer": {
+            "kind": "person",
+            "id": "uid:990001",
+            "run": "c2e3a81bde2be8ba7090d2c3499900b8",
+            "tenant": "default",
+            "approval_id": "apr-6ea2f4da0d8d2c00b2bd8b9d2d302ecb",
+            "person": "alice"
+          },
+          "subject": "uid:990101",
+          "intent": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
+          "caveats": [
+            {
+              "field": "amount",
+              "op": "<=",
+              "value": 20000
+            },
+            {
+              "field": "order",
+              "op": "==",
+              "value": 81
+            }
+          ],
+          "expires_at": "2026-10-27T16:31:38.023759Z",
+          "delegable": false,
+          "parent": null,
+          "sig": {
+            "key": "example.com/pcm-test-log+0bb91e66",
+            "sig": "COjP3ZVVl2XntISWWGdm0omAyHefB2O8e1M23nw83nPZQbtOQWaupAG+PVt+43WTdZyQYO4VVwfbDZjdR0TxDw=="
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "306192aa8e222225eb4b334d74033c40",
+      "ts": "2026-10-27T15:31:41.325700Z",
+      "nonce": "1e0bac5e5f2c97bab284ad07cc545f5b",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "ZNlnyz15WgR1T/ro9HtHHNKpTeQtoBoq00WnB4wcOBqsHqTxflbZt+Osih9Wu+lDRQ9ytx8QTWmEa/onC5UBDg=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.request",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        },
+        "claims": [
+          "approved_by"
+        ],
+        "grant": true
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "run_shell_command": "shell",
+      "shell": "shell",
+      "local_shell": "shell",
+      "container.exec": "shell",
+      "run_terminal_cmd": "shell",
+      "terminal": "shell",
+      "Write": "fs",
+      "Edit": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "Grep": "fs",
+      "Glob": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "srt:request": "http",
+      "transfer_funds": "payment",
+      "send_payment": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_transfer": "payment",
+      "create_refund": "payment",
+      "create_charge": "payment",
+      "pay_invoice": "payment",
+      "get_balance": "payment",
+      "list_transactions": "payment",
+      "get_transaction": "payment",
+      "list_payments": "payment",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "gmail_send_message": "email",
+      "run_sql": "sql",
+      "execute_sql": "sql",
+      "execute_query": "sql",
+      "query_database": "sql",
+      "sql_db_query": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "http_request": "http",
+      "http_get": "http",
+      "http_post": "http",
+      "requests_get": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "requests_patch": "http",
+      "requests_delete": "http",
+      "fetch": "http",
+      "web_fetch": "http",
+      "mcp:fetch/fetch": "http",
+      "bash": "shell"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-27T15:31:42.325700Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
+      "errors": []
+    },
+    "grants": {
+      "result": "ok",
+      "steps": 1,
+      "root": {
+        "kind": "person",
+        "id": "uid:990001",
+        "person": "alice"
+      },
+      "problems": []
+    },
+    "claims": [
+      {
+        "type": "approved_by",
+        "result": "failed",
+        "detail": "no approval of grant-dave by the person uid:990009"
+      }
+    ],
+    "verdict": "reject",
+    "reasons": [
+      "approved_by: failed (no approval of grant-dave by the person uid:990009)"
+    ]
+  }
+}

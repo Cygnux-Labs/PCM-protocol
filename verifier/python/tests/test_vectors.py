@@ -3,6 +3,7 @@ failed and never raise; the CLI's exit codes."""
 import base64
 import copy
 import hashlib
+import hmac
 import json
 import pathlib
 import subprocess
@@ -60,8 +61,14 @@ KID = hashlib.sha256(NAME.encode() + b"\n\x01" + PUB).digest()[:4].hex()
 VKEY = NAME + "+" + KID + "+" + base64.b64encode(b"\x01" + PUB).decode()
 TRUST = {"logs": [VKEY], "witnesses": [], "witnesses_required": 0}
 DOC = {"pcm_schema": 0, "name": "note", "fields": {"n": {"type": "int", "min": 0, "max": 10}}}
-EVENT = {"seq": 0, "tenant": "t", "run_id": "r1", "type": "approval",
-         "data": {"tool_use_id": "call-1", "decision": "approve", "approver": "uid:1", "person": "alice"}}
+RUN = "0" * 32
+ZERO = "sha256:" + "0" * 64
+EVENT = {"schema_version": "tracekit.event.v2", "id": "1" * 32, "seq": 0, "prev_hash": ZERO,
+         "ts": "2026-10-27T12:00:00.000000Z", "run_id": RUN, "agent_id": "main", "parent_id": None, "source": "sdk",
+         "type": "approval", "data": {"tool_use_id": "call-1", "approval_id": "apr-1", "decision": "approve",
+                                      "approver": "uid:3", "channel": "rpc", "self_approved": False,
+                                      "person": "alice"},
+         "log_id": "2" * 32, "tenant": "t", "run_seq": 0, "run_prev_hash": ZERO}
 
 
 def b64(raw):
@@ -73,15 +80,22 @@ def signed(obj, tag):
     return {**body, "sig": {"key": f"{NAME}+{KID}", "sig": b64(KEY.sign(rfc8785.dumps({**body, "t": tag})))}}
 
 
+def leaf(event):
+    return hashlib.sha256(b"\x00" + bytes.fromhex(pcm_verify.record_hash(event)[7:])).digest()
+
+
+def note(size, root):
+    text = f"{NAME}\n{size}\n{b64(root)}\n"
+    return text + f"\n— {NAME} {b64(bytes.fromhex(KID) + KEY.sign(text.encode()))}\n"
+
+
 def message(args=None, claim_args=None, event=EVENT, proof=()):
     h = pcm_verify.record_hash(event) if isinstance(event, dict) else "sha256:" + "0" * 64
-    leaf = hashlib.sha256(b"\x00" + bytes.fromhex(h[7:])).digest()
-    text = f"{NAME}\n1\n{b64(leaf)}\n"
-    note = text + f"\n— {NAME} {b64(bytes.fromhex(KID) + KEY.sign(text.encode()))}\n"
     claim = {"type": "approved_by", "args": {"person": "alice", "call": "call-1"} if claim_args is None else claim_args,
-             "evidence": {"checkpoint": note, "records": [{"event": event, "hash": h, "proof": list(proof)}]}}
+             "evidence": {"checkpoint": note(1, hashlib.sha256(b"\x00" + bytes.fromhex(h[7:])).digest()),
+                          "records": [{"event": event, "hash": h, "proof": list(proof)}]}}
     return signed({"pcm": 0, "id": "0" * 32, "ts": "2026-10-27T12:00:00.000000Z", "nonce": "1" * 32,
-                   "from": {"agent": "uid:1", "run": "r1", "tenant": "t"}, "to": {"agent": "uid:2"},
+                   "from": {"agent": "uid:1", "run": RUN, "tenant": "t"}, "to": {"agent": "uid:2"},
                    "intent": {"type": pcm_verify.schema_ref(DOC), "args": {"n": 1} if args is None else args},
                    "claims": [claim]}, pcm_verify.MESSAGE_TAG)
 
@@ -96,10 +110,62 @@ def test_own_log_accepts():
 
 
 @pytest.mark.parametrize("kw", [{"claim_args": []}, {"claim_args": "alice"}, {"proof": ["%%%"]}, {"proof": ["é"]},
-                                {"proof": ["AAAA"]}, {"event": 5}, {"event": [EVENT]}])
+                                {"proof": ["AAAA"]}, {"event": 5}, {"event": [EVENT]},
+                                {"event": dict(EVENT, schema_version="tracekit.event.v1")},
+                                {"event": dict(EVENT, prev_hash=5)}, {"event": dict(EVENT, data=[])}])
 def test_hostile_claim_fails(kw):
     out = check(message(**kw))
     assert out["verdict"] == "reject" and out["claims"][0]["result"] == "failed", out
+
+
+def test_a_decision_without_its_id_matches_nothing():
+    salt, args = "ab" * 32, {"command": "pytest -q"}
+    digest = pcm_verify.record_hash({"tool": "Bash", "args": args}).encode()
+    t2 = {"source": "gateway", "tier": "T2"}
+    dec = {**EVENT, **t2, "type": "policy.decision", "data": {
+        "tool_use_id": "call-1", "tool": "Bash", "decision": "allow", "rule_ids": [], "decision_id": "dec-1",
+        "args_commitment": "hmac-sha256:" + hmac.new(bytes.fromhex(salt), digest, "sha256").hexdigest()}}
+    res = {**EVENT, **t2, "seq": 1, "type": "tool.result",
+           "data": {"tool_use_id": "call-1", "ok": True, "decision_id": "dec-1",
+                    "output": {"hash": "hmac-sha256:" + "0" * 64, "size": 0, "redacted": False}}}
+
+    def result(dec, res):
+        leaves = [leaf(dec), leaf(res)]
+        records = [{"event": e, "hash": pcm_verify.record_hash(e), "proof": [b64(leaves[1 - i])]}
+                   for i, e in enumerate((dec, res))]
+        records[0].update(salt=salt, args=args)
+        msg = message()
+        msg["claims"] = [{"type": "tests_passed", "args": {"suite": "pytest -q"}, "evidence": {
+            "checkpoint": note(2, hashlib.sha256(b"\x01" + leaves[0] + leaves[1]).digest()), "records": records}}]
+        out = pcm_verify.verify(signed(msg, pcm_verify.MESSAGE_TAG), TRUST, [DOC], {"Bash": "shell"})
+        return out["claims"][0]
+
+    def no_id(e):
+        return {**e, "data": {k: v for k, v in e["data"].items() if k != "decision_id"}}
+    assert result(dec, res)["result"] == "proven", result(dec, res)
+    assert result(no_id(dec), no_id(res))["result"] == "failed"
+
+
+EFFECT = {**EVENT, "type": "effect.observed", "data": {
+    "observer": "uid:4", "kind": "net", "host": "api.example.com", "port": 443, "bytes_out": 1, "bytes_in": 1,
+    "connections": 1, "first_ts": EVENT["ts"], "last_ts": EVENT["ts"], "attribution": "token"}}
+
+
+@pytest.mark.parametrize("host, claim, result", [
+    ("API.Example.com.", "api.example.com", "proven"), ("bücher.example", "xn--bcher-kva.example", "proven"),
+    ("a..example", "api.example.com", "unproven"), ("api.example.org", "api.example.com", "failed")])
+def test_an_effects_host_is_compared_in_canonical_form(host, claim, result):
+    msg = message(event={**EFFECT, "data": {**EFFECT["data"], "host": host}})
+    msg["claims"][0].update(type="reached_host", args={"host": claim})
+    assert check(signed(msg, pcm_verify.MESSAGE_TAG))["claims"][0]["result"] == result
+
+
+@pytest.mark.parametrize("cmd, words", [
+    ("pytest x.py#|| true", [["pytest", "x.py#"], ["true"]]), ("pytest x.py # || true", [["pytest", "x.py"]]),
+    ("echo a#b; npm test", [["echo", "a#b"], ["npm", "test"]]), ("pytest '#x'#y", [["pytest", "#x#y"]]),
+    ("pytest||#x", [["pytest"]])])
+def test_a_hash_starts_a_comment_only_at_the_start_of_a_word(cmd, words):
+    assert pcm_verify.simple_commands(cmd) == words
 
 
 @pytest.mark.parametrize("args", [[1], "n", None, {"n": 2 ** 60}, {"n": 1.0}, {"n": True}])
@@ -161,9 +227,9 @@ def test_bad_trust_raises_value_error(trust):
         pcm_verify.verify(message(), trust, [DOC], {})
 
 
-def test_packaged_tool_table_is_the_registry():
-    assert (HERE.parent / "pcm_verify" / "tools.json").read_text() == (HERE.parents[2] / "registry" /
-                                                                       "tools.json").read_text()
+@pytest.mark.parametrize("name", ["tools.json", "tracekit.event.v2.json"])
+def test_packaged_copies_are_the_registry(name):
+    assert (HERE.parent / "pcm_verify" / name).read_text() == (HERE.parents[2] / "registry" / name).read_text()
 
 
 # ---------------------------------------------------------------------------------------------------- CLI

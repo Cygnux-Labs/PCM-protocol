@@ -1,11 +1,11 @@
 {
-  "name": "accept-sig-non-canonical-base64",
-  "description": "sig.sig with a padding bit set in its last base64 character: it decodes to the same 64 bytes, and Tracekit ignores padding bits.",
+  "name": "accept-replay-same-agent-other-log",
+  "description": "The receiver first took a message from uid:990101 of the other log with the nonce of this one (re-signed with the other log's test key); trust pins both logs. A sender is the pair (log key, agent), so uid:990101 of the test log is another sender and its nonce is new.",
   "input": {
     "message": {
       "from": {
         "agent": "uid:990101",
-        "run": "bb650aec66cc29fb4ee0de297fd3392f",
+        "run": "c2e3a81bde2be8ba7090d2c3499900b8",
         "tenant": "default"
       },
       "to": {
@@ -19,12 +19,12 @@
         }
       },
       "pcm": 0,
-      "id": "8037e6cad267fd2b75363507c5193b63",
-      "ts": "2026-10-27T14:11:57.658981Z",
-      "nonce": "693096ecd54078ece61d00b4ad5665cf",
+      "id": "5ef9e88f92e57855e9d0f9a77577390e",
+      "ts": "2026-10-27T15:31:38.062537Z",
+      "nonce": "96f041196e49819594dd36eb4a783225",
       "sig": {
         "key": "example.com/pcm-test-log+0bb91e66",
-        "sig": "SrU5piShOJTQF2PnJhq5NOGC/WNhxhHK+VD5YC9C27qqt0WJrFK0W8YQv7DVVTHqqsg8HuxlKhm0O99fPxCjDx=="
+        "sig": "njwxRM3PyIrP2wZrLiIfv1t7UY1WX3iTT0uXLWNwThLfsNDSSVY5MAa43nnXT+3QkoMOu+3H2qQsE/GqLxogAA=="
       }
     },
     "schemas": [
@@ -47,7 +47,8 @@
     ],
     "trust": {
       "logs": [
-        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C",
+        "example.com/pcm-other-log+41df8b1c+AcYwS/zjLaPO5sYq1U6fQPsGfnEVSeuOQoOIvupndmk2"
       ],
       "witnesses": [],
       "witnesses_required": 0
@@ -111,8 +112,39 @@
     "options": {
       "me": "uid:990102",
       "strict": false,
-      "now": "2026-10-27T14:11:58.658981Z",
-      "replay": null
+      "now": "2026-10-27T15:31:39.062537Z",
+      "replay": {
+        "window_s": 300,
+        "started": "2026-10-27T15:30:38.062537Z",
+        "per_sender": 4096,
+        "seen": [
+          {
+            "from": {
+              "agent": "uid:990101",
+              "run": "75257c7171f721dba41707ca02a9131c",
+              "tenant": "default"
+            },
+            "to": {
+              "agent": "uid:990102"
+            },
+            "intent": {
+              "type": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+              "args": {
+                "amount": 12000,
+                "order": 81
+              }
+            },
+            "pcm": 0,
+            "id": "c8e81a17128627cba66a44fbbf970d05",
+            "ts": "2026-10-27T15:31:41.305041Z",
+            "nonce": "96f041196e49819594dd36eb4a783225",
+            "sig": {
+              "key": "example.com/pcm-other-log+41df8b1c",
+              "sig": "+VFgLitNGKI9Wh4wzXjsETFPQiDIHXFuWnPVcKGaPOz2ePHpqRUVGPZBXa4aNNzL39MaYJ4zrvRPFELTMm7PAA=="
+            }
+          }
+        ]
+      }
     }
   },
   "expected": {
@@ -121,8 +153,8 @@
       "key": "example.com/pcm-test-log+0bb91e66"
     },
     "replay": {
-      "ok": null,
-      "detail": "not checked"
+      "ok": true,
+      "detail": "fresh"
     },
     "schema": {
       "ok": true,

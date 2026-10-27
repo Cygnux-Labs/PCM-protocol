@@ -60,8 +60,11 @@ The `detail`, `reasons` and `problems` strings are informative: they say why, an
 writes the records that claims point to. `expected` is what `tracekit.pcm.verify` returns for the input.
 
 Some cases can't come from the signer, because it refuses to make them: a widening child grant, a child below a
-grant that can't be passed on, a root grant issued by an agent. These are a valid output edited, then re-signed with
-the test log key. Envelope and signature cases are edited without re-signing. Each one's description says so.
+grant that can't be passed on, a root grant issued by an agent, a `ts` in month 13. These are a valid output edited,
+then re-signed with the test log key (or the other log's, for a message of the other log). Records a hostile pinned
+log could send (an event that is no valid event, a decision without its id) are edited and put under a checkpoint
+the test log key signs offline. Envelope and signature cases, such as a non-canonical base64 signature, are edited
+without re-signing. Each one's description says so.
 
 The log, other-log and witness keys come from a fixed seed, so `trust` is the same on every run. Run ids, message
 ids, nonces and timestamps come from the signer's clock and randomness, so they and the signatures change each time
@@ -74,7 +77,7 @@ With a Tracekit checkout:
 
 ```sh
 cd <this repo>
-PYTHONPATH=<tracekit checkout> python tools/gen_schemas.py   # schemas/ and registry/tools.json
+PYTHONPATH=<tracekit checkout> python tools/gen_schemas.py   # schemas/ and registry/
 PYTHONPATH=<tracekit checkout> python tools/gen_vectors.py   # vectors/
 ```
 

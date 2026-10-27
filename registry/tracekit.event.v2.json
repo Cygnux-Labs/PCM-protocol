@@ -1,0 +1,4852 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Cygnux-Labs/Tracekit/schema/tracekit.event.v2.json",
+  "title": "Tracekit event v2",
+  "description": "One event in a format v2 record log. Additive over tracekit.event.v1: new optional fields and types, and bounds on every string and array. Validated with full-match ASCII patterns.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "seq",
+    "prev_hash",
+    "ts",
+    "run_id",
+    "agent_id",
+    "parent_id",
+    "source",
+    "type",
+    "data",
+    "log_id",
+    "tenant",
+    "run_seq",
+    "run_prev_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tracekit.event.v2"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$",
+      "description": "Random 128-bit id, hex.",
+      "maxLength": 4096
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "description": "Signer's monotonic counter. Assigned by tracekitd, never by the client."
+    },
+    "prev_hash": {
+      "$ref": "#/$defs/hash",
+      "description": "Hash of the previous record in this log; sha256: and 64 zeros for seq 0."
+    },
+    "ts": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+      "description": "Client-reported time, UTC, microseconds.",
+      "maxLength": 4096
+    },
+    "ts_signed": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+      "description": "Time the signer accepted the event.",
+      "maxLength": 4096
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "agent_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "\"main\" for the top-level agent, otherwise the harness's sub-agent id."
+    },
+    "parent_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 200,
+      "description": "agent_id of the spawning agent, or null."
+    },
+    "source": {
+      "enum": [
+        "hook",
+        "proxy",
+        "transcript",
+        "signer",
+        "sdk",
+        "migrated",
+        "import",
+        "gateway"
+      ],
+      "description": "Capture path. transcript = harness-reported, lower trust; import = received over OTLP, or another system's decision (decision_import) (tier T3): receipt only; gateway = model.exchange recorded by the LLM gateway, or a tool call (policy.decision, approval.request, tool.result) or an input (input.observed) the MCP gateway or a tool executor decided, ran or received for its client (tier T2)."
+    },
+    "type": {
+      "enum": [
+        "run.start",
+        "run.end",
+        "tool.call",
+        "policy.decision",
+        "approval",
+        "tool.result",
+        "error",
+        "review",
+        "trace.tamper",
+        "capture.gap",
+        "checkpoint",
+        "user.prompt",
+        "model.message",
+        "model.exchange",
+        "run.registered",
+        "run.closing",
+        "run.final",
+        "approval.request",
+        "approval.consumed",
+        "approval.expired",
+        "approval.refused",
+        "approval.binding_mismatch",
+        "approval.abandoned",
+        "approval.escalated",
+        "approval.revoked",
+        "approval.suggested",
+        "approval.agents",
+        "input.observed",
+        "state.write",
+        "signer.epoch",
+        "key.retire",
+        "log.closed",
+        "reconcile.hook_missing",
+        "reconcile.fabricated",
+        "reconcile.args_mismatch",
+        "reconcile.result_without_call",
+        "reconcile.unexplained_effect",
+        "reconcile.args_unparseable",
+        "reconcile.result_mismatch",
+        "refusal.summary",
+        "policy.external",
+        "content.accessed",
+        "content.erased",
+        "why.finding",
+        "run.child",
+        "incident.opened",
+        "incident.updated",
+        "incident.capped",
+        "run.held",
+        "run.resumed",
+        "run.quarantined",
+        "incident.resolved",
+        "incident.response",
+        "identity.suspension",
+        "effect.observed",
+        "constraint.added",
+        "ext"
+      ]
+    },
+    "data": {
+      "type": "object"
+    },
+    "transcript": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "length",
+        "hash"
+      ],
+      "description": "C2: what the hook read of the harness transcript at this point (prefix hash). Lets the signer detect later edits, truncation or deletion.",
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hash": {
+          "$ref": "#/$defs/commitment"
+        },
+        "prefix_length": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Length the signer last acknowledged for this path."
+        },
+        "prefix_hash": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/commitment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Hash of the first prefix_length bytes as read now."
+        },
+        "missing": {
+          "type": "boolean"
+        }
+      }
+    },
+    "log_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$",
+      "description": "The record log this event belongs to.",
+      "maxLength": 4096
+    },
+    "tenant": {
+      "$ref": "#/$defs/id"
+    },
+    "tenant_attested": {
+      "type": "boolean"
+    },
+    "principal": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "principal_attested": {
+      "type": "boolean"
+    },
+    "request_id": {
+      "$ref": "#/$defs/id"
+    },
+    "stream": {
+      "$ref": "#/$defs/id"
+    },
+    "client_seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "tool_call_id": {
+      "$ref": "#/$defs/id"
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "step": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "run_seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "run_prev_hash": {
+      "$ref": "#/$defs/hash"
+    },
+    "capture_layer": {
+      "enum": [
+        "L1",
+        "L2",
+        "L3",
+        "L4",
+        "L5",
+        "L6"
+      ]
+    },
+    "tier": {
+      "enum": [
+        "T1",
+        "T2",
+        "T3"
+      ]
+    },
+    "span_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$",
+      "maxLength": 16,
+      "description": "source import: the OpenTelemetry span the record was imported from"
+    },
+    "args_commitment": {
+      "type": "string",
+      "pattern": "^hmac-sha256:[0-9a-f]{64}$",
+      "maxLength": 4096
+    },
+    "args_source": {
+      "enum": [
+        "raw",
+        "parsed",
+        "coerced"
+      ]
+    },
+    "engine": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._-]+@[A-Za-z0-9._+-]+$",
+      "description": "Policy engine id@version."
+    },
+    "ext": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/ext_name"
+      },
+      "description": "Non-critical fields (format 1.4), on any record: {name: any strict JSON value}. A verifier that does not interpret a name still checks the record's signature, chain and inclusion, and says it did not interpret the name (docs/format-v2.md section 9)."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.start"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/run_start"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.end"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/run_end"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "tool.call"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/tool_call"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "policy.decision"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/policy_decision"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "approval"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/approval"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "tool.result"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/tool_result"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "error"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/error"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "review"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/review"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "trace.tamper"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/trace_tamper"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "capture.gap"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/capture_gap"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "checkpoint"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/checkpoint"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "user.prompt"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/user_prompt"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "model.message"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/model_message"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "model.exchange"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/model_exchange"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.registered"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/run_registered"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.closing"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/run_closing"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.final"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/run_final"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "approval.request"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/approval_request"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "approval.consumed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/approval_consumed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "approval.expired"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/approval_expired"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "approval.refused"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/approval_refused"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "approval.binding_mismatch"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/approval_binding_mismatch"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "approval.abandoned"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/approval_abandoned"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "approval.escalated"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/approval_escalated"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "approval.revoked"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/approval_revoked"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "approval.suggested"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/approval_suggested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "approval.agents"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/approval_agents"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "input.observed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/input_observed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "state.write"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/state_write"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "signer.epoch"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/signer_epoch"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "key.retire"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/key_retire"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "log.closed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/log_closed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "reconcile.hook_missing"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/reconcile"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "reconcile.fabricated"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/reconcile"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "reconcile.args_mismatch"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/reconcile"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "reconcile.result_without_call"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/reconcile"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "reconcile.unexplained_effect"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/reconcile_effect"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "reconcile.args_unparseable"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/reconcile"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "reconcile.result_mismatch"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/reconcile"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "refusal.summary"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/refusal_summary"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "policy.external"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/policy_external"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "content.accessed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/content_accessed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "content.erased"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/content_erased"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "why.finding"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/why_finding"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.child"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/run_child"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "incident.opened"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/incident_opened"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "incident.updated"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/incident_updated"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "incident.capped"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/incident_capped"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.held"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/run_held"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.resumed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/run_resumed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.quarantined"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/run_quarantined"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "incident.resolved"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/incident_resolved"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "incident.response"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/incident_response"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "identity.suspension"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/identity_suspension"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "effect.observed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/effect_observed"
+              },
+              {
+                "$ref": "#/$defs/sensor_effect"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "constraint.added"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/constraint_added"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "ext"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/ext"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "maxLength": 71
+    },
+    "commitment": {
+      "type": "string",
+      "pattern": "^hmac-sha256:[0-9a-f]{64}$",
+      "maxLength": 76,
+      "description": "HMAC-SHA256 of a sha256: digest of agent content under a per-record salt the signer keeps and can reveal for that one record (tracekit signer reveal)"
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rules",
+        "count",
+        "client_claimed"
+      ],
+      "description": "what the signer redacted from this record's content before committing to it; never the values",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "description": "the redaction rules that fired"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "client_claimed": {
+          "type": "boolean",
+          "description": "the client said it redacted the content already"
+        },
+        "client": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "the client's own manifest, as it claimed it",
+          "properties": {
+            "rules": {
+              "type": "array",
+              "maxItems": 32,
+              "items": {
+                "type": "string",
+                "maxLength": 64
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "client_redaction_incomplete": {
+          "const": true,
+          "description": "the client claimed redaction and the signer still found a secret"
+        }
+      }
+    },
+    "content": {
+      "description": "Either the (redacted) value or a reference to it. Which one is decided by docs/privacy.md, never by the caller.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "redacted"
+          ],
+          "properties": {
+            "value": {},
+            "redacted": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hash",
+            "size",
+            "redacted"
+          ],
+          "properties": {
+            "hash": {
+              "$ref": "#/$defs/commitment"
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "redacted": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    },
+    "run_start": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent",
+        "host",
+        "os_user",
+        "fail_mode",
+        "policy",
+        "capture_sources",
+        "sandbox",
+        "content_capture",
+        "signer_isolation"
+      ],
+      "properties": {
+        "agent": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "version": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 4096
+            }
+          }
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 4096
+        },
+        "repo": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 4096
+        },
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 4096
+        },
+        "cwd": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 4096
+        },
+        "host": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "os_user": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "fail_mode": {
+          "enum": [
+            "open",
+            "closed"
+          ]
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "version",
+            "hash"
+          ],
+          "properties": {
+            "version": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "hash": {
+              "$ref": "#/$defs/hash"
+            }
+          }
+        },
+        "capture_sources": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "hook",
+              "proxy",
+              "transcript",
+              "sdk"
+            ]
+          },
+          "maxItems": 1024
+        },
+        "sandbox": {
+          "enum": [
+            "none",
+            "unknown",
+            "self-reported-active"
+          ]
+        },
+        "content_capture": {
+          "enum": [
+            "hashed",
+            "full"
+          ]
+        },
+        "reasoning_capture": {
+          "type": "boolean"
+        },
+        "signer_isolation": {
+          "enum": [
+            "separate-user",
+            "same-user"
+          ]
+        },
+        "os_user_attested": {
+          "type": "boolean",
+          "description": "true when tracekitd set os_user from the socket peer's credentials rather than trusting the client."
+        },
+        "harness": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "0.3: set only by the signer. The registered harness instance the run.start came from (pid + kernel start time), found from the kernel's view of the sender's process tree.",
+          "required": [
+            "name",
+            "exe",
+            "pid",
+            "attested"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "exe": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "pid": {
+              "type": "integer"
+            },
+            "start_time": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "attested": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "run_end": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      }
+    },
+    "tool_call": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_use_id",
+        "name",
+        "input"
+      ],
+      "properties": {
+        "tool_use_id": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/content"
+          }
+        },
+        "salt_id": {
+          "$ref": "#/$defs/id",
+          "description": "the signer's salt id for this record's commitments (salt label <type>:<salt_id>)"
+        }
+      }
+    },
+    "policy_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_use_id",
+        "decision",
+        "rule_ids"
+      ],
+      "properties": {
+        "tool_use_id": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "decision": {
+          "enum": [
+            "allow",
+            "deny",
+            "flag",
+            "ask"
+          ]
+        },
+        "rule_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "maxItems": 1024
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "maxItems": 1024
+        },
+        "policy_hash": {
+          "$ref": "#/$defs/hash",
+          "description": "hash of the policy that produced this decision"
+        },
+        "policy_version": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "tool": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "tool name the decision is for"
+        },
+        "decision_id": {
+          "$ref": "#/$defs/id",
+          "description": "signer-assigned; `complete` consumes it once"
+        },
+        "args_commitment": {
+          "type": "string",
+          "pattern": "^hmac-sha256:[0-9a-f]{64}$",
+          "maxLength": 76,
+          "description": "HMAC of the signer's args digest under a per-decision salt the signer can reveal to an auditor; absent when the args failed strict parsing"
+        },
+        "engine": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "matching engine id@version"
+        },
+        "nonce": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$",
+          "maxLength": 32
+        },
+        "expires_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+          "maxLength": 27
+        },
+        "nondeterministic": {
+          "type": "boolean",
+          "description": "a fallback-engine match ran out of time and denied"
+        },
+        "provenance": {
+          "type": "array",
+          "maxItems": 16,
+          "description": "argument values that only untrusted content brought into the run: the top-level argument, the kind of value and the record that brought it; never the value",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "field",
+              "kind",
+              "source"
+            ],
+            "properties": {
+              "field": {
+                "type": "string",
+                "maxLength": 256
+              },
+              "kind": {
+                "enum": [
+                  "email",
+                  "url",
+                  "host",
+                  "path",
+                  "digits",
+                  "string"
+                ]
+              },
+              "source": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "run_seq"
+                ],
+                "properties": {
+                  "run_seq": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "tool": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "tool_call_id": {
+                    "$ref": "#/$defs/id"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "provenance_state": {
+          "enum": [
+            "complete",
+            "partial",
+            "truncated",
+            "unavailable",
+            "timeout"
+          ],
+          "description": "the run's provenance index: complete, partial (an untrusted tool's result came as a digest), truncated (more values than it reads), unavailable (lost in a signer restart) or timeout (this call's values took past the decision's deadline); when not complete, from: untrusted rules match whenever their pattern does"
+        },
+        "provenance_reason": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "why provenance_state is not complete"
+        },
+        "detect": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sequences",
+            "limits",
+            "state"
+          ],
+          "description": "format 1.2: what the policy's sequences and limits saw of this call (signer/detect.py): the step each sequence it advanced reached, the count (a sum limit: the total of the call's currency) and window start of each limit it counted, and whether the detector's state is complete or was lost in a restart (unavailable)",
+          "properties": {
+            "rule_ids": {
+              "type": "array",
+              "maxItems": 1024,
+              "items": {
+                "type": "string",
+                "maxLength": 256
+              },
+              "description": "the rule ids of both class readings, when the client's class hint disagreed and they differ from rule_ids"
+            },
+            "sums": {
+              "type": "object",
+              "description": "per sum limit: [amount in minor units, currency] of this call",
+              "additionalProperties": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": [
+                    "integer",
+                    "string"
+                  ],
+                  "maxLength": 16
+                }
+              }
+            },
+            "sequences": {
+              "type": "array",
+              "maxItems": 1024,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "step"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "step": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            },
+            "limits": {
+              "type": "array",
+              "maxItems": 1024,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "count",
+                  "window_start"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "window_start": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+                    "maxLength": 27
+                  }
+                }
+              }
+            },
+            "state": {
+              "enum": [
+                "complete",
+                "unavailable"
+              ]
+            }
+          }
+        },
+        "via": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "format 1.2: the gateway or tool executor (its identity, scheme:subject) that wrote this record for the run's client (source gateway, tier T2); the signer takes the call's later steps from it only"
+        },
+        "caller": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "format 1.2, with via: the client (scheme:subject) the gateway or tool executor decided the call for"
+        },
+        "incident_id": {
+          "$ref": "#/$defs/id",
+          "description": "format 1.2: the incident whose hold (ask, TK-HOLD) or quarantine (deny, TK-QUARANTINE) decided the call"
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_use_id",
+        "decision",
+        "approver",
+        "channel"
+      ],
+      "properties": {
+        "tool_use_id": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "decision": {
+          "enum": [
+            "approve",
+            "reject",
+            "timeout",
+            "self_approval_refused"
+          ]
+        },
+        "approver": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "channel": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "approver_uid": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "wait_ms": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "same_user": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "true when the approver is the agent's own OS user (dev mode only; not trustworthy)"
+        },
+        "approval_id": {
+          "$ref": "#/$defs/id"
+        },
+        "self_approved": {
+          "type": "boolean",
+          "description": "the approver is the requester (dev mode only); caps assurance at dev"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "approver_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scheme",
+            "subject",
+            "attested"
+          ],
+          "properties": {
+            "scheme": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "subject": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "attested": {
+              "type": "boolean"
+            },
+            "person": {
+              "type": "string",
+              "maxLength": 256,
+              "description": "an OIDC identity's stable person id"
+            }
+          },
+          "description": "the approver as the signer's transport established it"
+        },
+        "break_glass": {
+          "type": "boolean",
+          "description": "answered under the break-glass role, which may answer any approval"
+        },
+        "via": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scheme",
+            "subject",
+            "attested"
+          ],
+          "properties": {
+            "scheme": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "subject": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "attested": {
+              "type": "boolean"
+            },
+            "person": {
+              "type": "string",
+              "maxLength": 256,
+              "description": "an OIDC identity's stable person id"
+            }
+          },
+          "description": "the bridge (Slack, or the viewer's approval pages) that answered for the approver, as the signer's transport established it"
+        },
+        "groups": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "description": "user groups the bridge found the approver in"
+        },
+        "person": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "the person id the signer's config maps the approver to"
+        },
+        "passkey": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "credential_id",
+            "user_verified"
+          ],
+          "properties": {
+            "credential_id": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "user_verified": {
+              "const": true
+            }
+          },
+          "description": "the WebAuthn credential whose assertion over the approval's binding digest the signer verified"
+        },
+        "approver_kind": {
+          "const": "agent",
+          "description": "format 1.2: an agent approver (approvals.agents) answered; absent for people"
+        },
+        "asserted": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "attested"
+          ],
+          "properties": {
+            "model": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "version": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "prompt_hash": {
+              "$ref": "#/$defs/hash"
+            },
+            "attested": {
+              "const": false
+            }
+          },
+          "description": "format 1.2: what the agent approver says it runs; its own word, never checked"
+        },
+        "spent": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "description": "format 1.2: rule id -> the argument value this agent approval takes from the rule's sum budget"
+        },
+        "not_before": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+          "maxLength": 4096,
+          "description": "format 1.2: an agent's approval is consumed from then on (after the rule's veto_s), so people may revoke it first"
+        },
+        "consume_by": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+          "maxLength": 4096,
+          "description": "format 1.2: an agent's approval is consumed before then (approvals.agent_consume_s), or never"
+        },
+        "incident_id": {
+          "$ref": "#/$defs/id",
+          "description": "format 1.2: the answer to a call held by this incident, by the person `person`"
+        }
+      }
+    },
+    "tool_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_use_id",
+        "ok",
+        "output"
+      ],
+      "properties": {
+        "tool_use_id": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "output": {
+          "$ref": "#/$defs/content"
+        },
+        "duration_ms": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "decision_id": {
+          "$ref": "#/$defs/id",
+          "description": "the policy.decision this result consumes"
+        },
+        "redaction": {
+          "$ref": "#/$defs/redaction"
+        },
+        "salt_id": {
+          "$ref": "#/$defs/id",
+          "description": "the signer's salt id for this record's commitments (salt label <type>:<salt_id>)"
+        },
+        "via": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "format 1.2: the gateway or tool executor (its identity, scheme:subject) that wrote this record for the run's client (source gateway, tier T2); the signer takes the call's later steps from it only"
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": [
+        "message"
+      ],
+      "properties": {
+        "message": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "reviewer",
+        "verdict"
+      ],
+      "properties": {
+        "reviewer": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "verdict": {
+          "type": "object"
+        },
+        "cites": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "run_seq",
+              "hash"
+            ],
+            "properties": {
+              "run_seq": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "hash": {
+                "$ref": "#/$defs/hash"
+              }
+            }
+          },
+          "description": "A signed finding (format 1.4; review_finding), in a findings run: the records of the analysed run it rests on, by run_seq and record hash. A review without cites (a migrated v1 judge verdict) is imported, not checked."
+        }
+      }
+    },
+    "trace_tamper": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "before",
+        "after"
+      ],
+      "properties": {
+        "tenant_level": {
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "before": {
+          "type": "object",
+          "properties": {
+            "hash": {
+              "$ref": "#/$defs/hash"
+            },
+            "length": {
+              "type": "integer"
+            }
+          }
+        },
+        "after": {
+          "type": "object",
+          "properties": {
+            "hash": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 4096
+            },
+            "length": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          }
+        },
+        "kind": {
+          "enum": [
+            "deleted",
+            "truncated",
+            "edited",
+            "prefix_unverifiable",
+            "rollback"
+          ]
+        }
+      }
+    },
+    "capture_gap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "tenant_level": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "from_ts": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 4096
+        },
+        "to_ts": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 4096
+        },
+        "missed_events": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "signer_unavailable",
+            "client_counter_gap",
+            "retry_conflict",
+            "run_abandoned",
+            "witness_late",
+            "witness_failed",
+            "degraded_unanchored",
+            "format_upgrade",
+            "policy_timeout",
+            "decision_flip",
+            "class_mismatch",
+            "args_coerced",
+            "reconcile.hook_missing",
+            "reconcile.fabricated",
+            "reconcile.args_mismatch",
+            "reconcile.result_without_call",
+            "reconcile.unexplained_effect",
+            "state_tamper",
+            "tailer_lost",
+            "rollback",
+            "clock_skew",
+            "key_retired",
+            "key_revoked",
+            "log_closed",
+            "quota_refused",
+            "identity_refused",
+            "approval_expired",
+            "executed_against_policy",
+            "decision_mismatch",
+            "decided_not_completed",
+            "late_activity",
+            "concurrent_run",
+            "tailer_redelegated",
+            "reask_after_reject",
+            "held_call_unresolved",
+            "observer_lost",
+            "effect_outside_run",
+            "result_unchecked",
+            "constraint_refused"
+          ],
+          "description": "Gap and tamper kinds (signer-written only)."
+        },
+        "run_id": {
+          "$ref": "#/$defs/id",
+          "description": "format 1.2: the other run the gap is about (late_activity: the final run that was written to; concurrent_run: the open run this one overlaps; client_counter_gap in a tenant's signer run: the final run whose stream it is; effect_outside_run: the run the client named, its token valid or not, or the effect was attributed to)"
+        },
+        "tool_use_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 4096
+        },
+        "sensor": {
+          "enum": [
+            "tetragon",
+            "falco",
+            "openshell"
+          ],
+          "description": "format 1.4: the sensor (a kernel sensor, or OpenShell) whose import an observer_lost gap is about"
+        }
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "head_seq",
+        "head_hash",
+        "kid",
+        "witnesses"
+      ],
+      "properties": {
+        "head_seq": {
+          "type": "integer"
+        },
+        "head_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "maxLength": 4096
+        },
+        "kid": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "witnesses": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "maxItems": 1024
+        }
+      }
+    },
+    "user_prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "content"
+      ],
+      "properties": {
+        "content": {
+          "$ref": "#/$defs/content"
+        }
+      }
+    },
+    "model_message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "content"
+      ],
+      "description": "Self-reported model output read from the harness transcript. Opt-in, off by default, lower trust.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "text",
+            "thinking",
+            "thinking_withheld"
+          ]
+        },
+        "message_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 4096
+        },
+        "content": {
+          "$ref": "#/$defs/content"
+        }
+      }
+    },
+    "model_exchange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exchange_id",
+        "phase",
+        "streamed"
+      ],
+      "description": "C3: one model API request/response recorded by the proxy (source=proxy) before the request was forwarded and when the response completed.",
+      "properties": {
+        "salt_id": {
+          "$ref": "#/$defs/id",
+          "description": "the signer's salt id for this record's commitments (salt label <type>:<salt_id>); absent on records written before salt_id existed"
+        },
+        "exchange_id": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "phase": {
+          "enum": [
+            "request",
+            "response"
+          ]
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 4096
+        },
+        "request": {
+          "$ref": "#/$defs/content"
+        },
+        "response": {
+          "$ref": "#/$defs/content"
+        },
+        "status": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "streamed": {
+          "type": "boolean"
+        },
+        "duration_ms": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "first_byte_ms": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "added_latency_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tool_uses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 4096
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 4096
+              },
+              "executed_by": {
+                "enum": [
+                  "client",
+                  "provider"
+                ]
+              },
+              "args_source": {
+                "enum": [
+                  "raw",
+                  "parsed",
+                  "coerced"
+                ]
+              },
+              "args_commitment": {
+                "type": "string",
+                "pattern": "^hmac-sha256:[0-9a-f]{64}$",
+                "maxLength": 76
+              },
+              "args_unparseable": {
+                "const": true,
+                "description": "the raw arguments string failed strict parsing"
+              },
+              "id_synthetic": {
+                "const": true,
+                "description": "the provider gave no id; the reporting client made this one"
+              }
+            }
+          },
+          "maxItems": 1024
+        },
+        "said_only": {
+          "const": true,
+          "description": "format 1.4: a response recorded with what the model said and without the calls it asked for (a harness whose hooks name no call); reconciliation reads no call from it"
+        },
+        "tool_results_sent": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "description": "tool_use ids whose results the harness sent back in this request",
+          "maxItems": 1024
+        },
+        "stop_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 4096
+        },
+        "upstream": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 4096
+        },
+        "attribution": {
+          "enum": [
+            "metadata",
+            "tool_use_id",
+            "none"
+          ]
+        },
+        "usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "input_tokens",
+            "output_tokens"
+          ],
+          "description": "Token usage on the response (optional). input_tokens excludes cache reads; reasoning_tokens is part of output_tokens.",
+          "properties": {
+            "input_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "output_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cache_read_tokens": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "cache_write_tokens": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "reasoning_tokens": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "content_digest": {
+          "$ref": "#/$defs/commitment"
+        }
+      }
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "run_registered": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent",
+        "identity"
+      ],
+      "properties": {
+        "agent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "version": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        },
+        "identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scheme",
+            "subject",
+            "attested"
+          ],
+          "properties": {
+            "scheme": {
+              "enum": [
+                "uid",
+                "harness",
+                "token",
+                "k8s_sa",
+                "mtls",
+                "oidc"
+              ]
+            },
+            "subject": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "attested": {
+              "type": "boolean"
+            },
+            "person": {
+              "type": "string",
+              "maxLength": 256,
+              "description": "an OIDC identity's stable person id"
+            }
+          }
+        },
+        "signer_isolation": {
+          "enum": [
+            "same-user",
+            "separate-user",
+            "remote",
+            "unknown"
+          ],
+          "description": "measured by the signer from the caller's identity, never taken from the client"
+        },
+        "harness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "exe",
+            "pid",
+            "start_time",
+            "attested"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "exe": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "pid": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "start_time": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "attested": {
+              "const": true
+            }
+          },
+          "description": "the registered harness process the caller descends from, found by the signer through the harness helper"
+        },
+        "fail_modes": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": [
+              "open",
+              "closed"
+            ]
+          },
+          "description": "tool class -> fail mode, from the signer's config, never from the client"
+        },
+        "analyzes": {
+          "$ref": "#/$defs/id",
+          "description": "a findings run: the run_id of the run of the same tenant it analyses"
+        },
+        "replay_of": {
+          "$ref": "#/$defs/id",
+          "description": "a tracekit why replay run: the run_id of the run of the same tenant it replays"
+        },
+        "investigation": {
+          "$ref": "#/$defs/id",
+          "description": "with replay_of: the investigation the replay run is an arm of"
+        },
+        "parent_run": {
+          "$ref": "#/$defs/id",
+          "description": "format 1.2: the run of the same tenant that started this one, whose run token the caller presented"
+        },
+        "session": {
+          "$ref": "#/$defs/id",
+          "description": "with parent_run: the root run of the chain of parents (a run without parent_run is its own session)"
+        },
+        "fidelity": {
+          "enum": [
+            "none"
+          ],
+          "description": "an imported run (source import): what its records say about the calls beyond their receipt"
+        },
+        "posture": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "network",
+            "tool_calls",
+            "gateway_mandatory",
+            "attested"
+          ],
+          "description": "format 1.2: the deployment's posture as the operator asserts it in signer.yaml: whether the agent's network is enforced through the egress proxy, whether it acts only through the executor and the MCP gateway, and whether the LLM gateway is its only way to its model (gateway_mandatory); never attested",
+          "properties": {
+            "network": {
+              "enum": [
+                "enforced",
+                "open"
+              ]
+            },
+            "tool_calls": {
+              "enum": [
+                "enforced",
+                "open"
+              ]
+            },
+            "gateway_mandatory": {
+              "type": "boolean"
+            },
+            "attested": {
+              "const": false
+            }
+          }
+        }
+      }
+    },
+    "run_closing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "reason": {
+          "enum": [
+            "close_run",
+            "idle_timeout",
+            "quarantine"
+          ]
+        }
+      }
+    },
+    "run_child": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id"
+      ],
+      "description": "format 1.2: a run bound to the same harness process registered with this run as its parent_run (signer-written)",
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "run_final": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "head_run_seq",
+        "head_hash"
+      ],
+      "properties": {
+        "head_run_seq": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "head_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "provider_executed": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "format 1.2: tool uses the model's provider ran itself (executed_by provider), which no decide covers"
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "layers",
+            "reconciled",
+            "unreconciled"
+          ],
+          "description": "the capture layers that reported for the run and the tool calls the signer reconciled",
+          "properties": {
+            "layers": {
+              "type": "array",
+              "maxItems": 6,
+              "items": {
+                "enum": [
+                  "L1",
+                  "L2",
+                  "L3",
+                  "L4",
+                  "L5",
+                  "L6"
+                ]
+              }
+            },
+            "reconciled": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "unreconciled": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "reconcile.* records of the run, by kind",
+              "properties": {
+                "hook_missing": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "fabricated": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "args_mismatch": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "args_unparseable": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "result_without_call": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "unexplained_effect": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "result_mismatch": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                }
+              }
+            }
+          }
+        },
+        "paired_by_args": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "format 1.2: calls reconciled by pairing a decide with the model's tool use of the same turn by their arguments, the adapter having had no tool-call id"
+        },
+        "matrix": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model_calls",
+            "tool_calls",
+            "network",
+            "processes",
+            "services"
+          ],
+          "description": "format 1.2: per action class, how the run was covered: enforced (custody: the only way to act records it), observed (an observer outside the agent saw it and it was reconciled), reported (only the agent's own process reported it) or none; and the layers behind it",
+          "properties": {
+            "model_calls": {
+              "$ref": "#/$defs/coverage_class"
+            },
+            "tool_calls": {
+              "$ref": "#/$defs/coverage_class"
+            },
+            "network": {
+              "$ref": "#/$defs/coverage_class"
+            },
+            "processes": {
+              "$ref": "#/$defs/coverage_class"
+            },
+            "services": {
+              "$ref": "#/$defs/coverage_class"
+            }
+          }
+        }
+      }
+    },
+    "approval_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approval_id",
+        "policy_hash",
+        "rule_ids",
+        "expires_at",
+        "requester",
+        "decision_id",
+        "binding",
+        "binding_digest"
+      ],
+      "properties": {
+        "salt_id": {
+          "$ref": "#/$defs/id",
+          "description": "the signer's salt id for this record's commitments (salt label <type>:<salt_id>); absent on records written before salt_id existed"
+        },
+        "approval_id": {
+          "$ref": "#/$defs/id"
+        },
+        "policy_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "rule_ids": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "expires_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+          "maxLength": 4096
+        },
+        "requester": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "requester_person": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "the requester's stable person id, when an OIDC identity"
+        },
+        "decision_id": {
+          "$ref": "#/$defs/id"
+        },
+        "binding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "v",
+            "approval_id",
+            "tenant",
+            "run_id",
+            "tool_call_id",
+            "attempt",
+            "tool",
+            "args_commitment",
+            "args_source",
+            "policy_hash",
+            "nonce",
+            "expires_at"
+          ],
+          "description": "what the approval is bound to; binding_digest is sha256(JCS(binding)), the args bound through args_commitment",
+          "properties": {
+            "v": {
+              "const": 1
+            },
+            "approval_id": {
+              "$ref": "#/$defs/id"
+            },
+            "tenant": {
+              "$ref": "#/$defs/id"
+            },
+            "run_id": {
+              "$ref": "#/$defs/id"
+            },
+            "tool_call_id": {
+              "$ref": "#/$defs/id"
+            },
+            "attempt": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "tool": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "args_commitment": {
+              "type": "string",
+              "pattern": "^hmac-sha256:[0-9a-f]{64}$",
+              "maxLength": 76
+            },
+            "args_source": {
+              "enum": [
+                "raw",
+                "parsed",
+                "coerced"
+              ]
+            },
+            "policy_hash": {
+              "$ref": "#/$defs/hash"
+            },
+            "nonce": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$",
+              "maxLength": 32
+            },
+            "expires_at": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+              "maxLength": 4096
+            }
+          }
+        },
+        "binding_digest": {
+          "$ref": "#/$defs/hash"
+        },
+        "executor": {
+          "enum": [
+            "t1",
+            "t2"
+          ],
+          "description": "t2: approval_consume returns the approved arguments and its caller runs exactly those"
+        },
+        "agent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "eligible",
+            "reason",
+            "rules",
+            "conditions_hash",
+            "args_key"
+          ],
+          "description": "format 1.2: whether an agent approver may answer this approval, computed by the signer from the call's arguments and the run",
+          "properties": {
+            "eligible": {
+              "type": "boolean"
+            },
+            "reason": {
+              "type": "string",
+              "maxLength": 1024
+            },
+            "rules": {
+              "type": "array",
+              "maxItems": 32,
+              "items": {
+                "type": "string",
+                "maxLength": 64
+              },
+              "description": "the rules it asked by with approval.agent"
+            },
+            "conditions_hash": {
+              "$ref": "#/$defs/hash",
+              "description": "sha256 of JCS of those rules' approval.agent sections"
+            },
+            "args_key": {
+              "type": "string",
+              "pattern": "^hmac-sha256:[0-9a-f]{64}$",
+              "maxLength": 76,
+              "description": "an HMAC of the call's arguments under a key of this run: the same in this run for the same arguments, so a call an agent said no to is a person's to answer when asked again"
+            }
+          }
+        },
+        "via": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "format 1.2: the gateway or tool executor (its identity, scheme:subject) that wrote this record for the run's client (source gateway, tier T2); the signer takes the call's later steps from it only"
+        },
+        "incident_id": {
+          "$ref": "#/$defs/id",
+          "description": "format 1.2: the call is held by this incident: only a person who is not the run's owner, principal or requester answers it"
+        },
+        "passkey": {
+          "const": true,
+          "description": "the approval needs a passkey (approval: {passkey: required})"
+        }
+      }
+    },
+    "approval_consumed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approval_id"
+      ],
+      "properties": {
+        "approval_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "approval_expired": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approval_id"
+      ],
+      "properties": {
+        "approval_id": {
+          "$ref": "#/$defs/id"
+        },
+        "reason": {
+          "enum": [
+            "ttl",
+            "run_final",
+            "consume_window",
+            "hold",
+            "quarantine"
+          ],
+          "description": "format 1.2, on approvals an agent may answer: approvals.ttl_s passed, the run ended, or an agent's approval was not consumed within approvals.agent_consume_s; on any approval: its run was held or quarantined (hold, quarantine)"
+        }
+      }
+    },
+    "approval_refused": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_use_id",
+        "rule_ids",
+        "reason"
+      ],
+      "properties": {
+        "tool_use_id": {
+          "$ref": "#/$defs/id"
+        },
+        "approval_id": {
+          "$ref": "#/$defs/id"
+        },
+        "rule_ids": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
+    "approval_binding_mismatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approval_id",
+        "tool_use_id",
+        "approved_commitment",
+        "args_commitment"
+      ],
+      "properties": {
+        "salt_id": {
+          "$ref": "#/$defs/id",
+          "description": "the signer's salt id for this record's commitments (salt label <type>:<salt_id>); absent on records written before salt_id existed"
+        },
+        "approval_id": {
+          "$ref": "#/$defs/id"
+        },
+        "tool_use_id": {
+          "$ref": "#/$defs/id"
+        },
+        "approved_commitment": {
+          "type": "string",
+          "pattern": "^hmac-sha256:[0-9a-f]{64}$",
+          "maxLength": 76
+        },
+        "args_commitment": {
+          "type": "string",
+          "pattern": "^hmac-sha256:[0-9a-f]{64}$",
+          "maxLength": 76
+        },
+        "decision_id": {
+          "$ref": "#/$defs/id",
+          "description": "the decision the approval was for (without salt_id: the decision whose salt both commitments are under)"
+        }
+      }
+    },
+    "approval_abandoned": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approval_id"
+      ],
+      "properties": {
+        "approval_id": {
+          "$ref": "#/$defs/id"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      },
+      "description": "the adapter will never resume the paused call; the approval ends at once"
+    },
+    "approval_escalated": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approval_id",
+        "by"
+      ],
+      "properties": {
+        "approval_id": {
+          "$ref": "#/$defs/id"
+        },
+        "by": {
+          "enum": [
+            "agent",
+            "signer"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "approver_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scheme",
+            "subject",
+            "attested"
+          ],
+          "properties": {
+            "scheme": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "subject": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "attested": {
+              "type": "boolean"
+            },
+            "person": {
+              "type": "string",
+              "maxLength": 256,
+              "description": "an OIDC identity's stable person id"
+            }
+          },
+          "description": "the approver as the signer's transport established it"
+        }
+      },
+      "description": "format 1.2: only people answer this approval from now on: an agent approver handed it over, or the signer did (no agent answered within agent_timeout_s, a budget ran out)"
+    },
+    "approval_revoked": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approval_id",
+        "by"
+      ],
+      "properties": {
+        "approval_id": {
+          "$ref": "#/$defs/id"
+        },
+        "by": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      },
+      "description": "format 1.2: a person (or the kill switch, by signer) vetoed an agent's approval before it was consumed"
+    },
+    "approval_suggested": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_use_id",
+        "approval_id",
+        "decision",
+        "approver",
+        "approver_identity",
+        "channel",
+        "approver_kind"
+      ],
+      "properties": {
+        "tool_use_id": {
+          "$ref": "#/$defs/id"
+        },
+        "approval_id": {
+          "$ref": "#/$defs/id"
+        },
+        "decision": {
+          "enum": [
+            "approve",
+            "reject",
+            "escalate"
+          ]
+        },
+        "approver": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "approver_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scheme",
+            "subject",
+            "attested"
+          ],
+          "properties": {
+            "scheme": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "subject": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "attested": {
+              "type": "boolean"
+            },
+            "person": {
+              "type": "string",
+              "maxLength": 256,
+              "description": "an OIDC identity's stable person id"
+            }
+          },
+          "description": "the approver as the signer's transport established it"
+        },
+        "channel": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "approver_kind": {
+          "const": "agent"
+        },
+        "asserted": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "attested"
+          ],
+          "properties": {
+            "model": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "version": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "prompt_hash": {
+              "$ref": "#/$defs/hash"
+            },
+            "attested": {
+              "const": false
+            }
+          },
+          "description": "format 1.2: what the agent approver says it runs; its own word, never checked"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      },
+      "description": "format 1.2: a shadow-mode agent approver's answer, recorded only: it changes nothing"
+    },
+    "approval_agents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "by"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "by": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      },
+      "description": "format 1.2: the operator's kill switch for agent approvals (in the signer run); switching off revokes every agent approval not consumed yet"
+    },
+    "input_observed": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "content that entered the run other than as a tool result (observe RPC), indexed for provenance; the value itself is only committed to",
+      "required": [
+        "source",
+        "trust",
+        "output",
+        "redaction",
+        "salt_id"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "the caller's name for where the content came from"
+        },
+        "trust": {
+          "enum": [
+            "trusted",
+            "untrusted"
+          ],
+          "description": "the caller's claim; it only decides how this content's own values count"
+        },
+        "output": {
+          "$ref": "#/$defs/content"
+        },
+        "redaction": {
+          "$ref": "#/$defs/redaction"
+        },
+        "salt_id": {
+          "$ref": "#/$defs/id",
+          "description": "the signer's salt id for this record's commitments (salt label <type>:<salt_id>)"
+        },
+        "via": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "format 1.2: the gateway or tool executor (its identity, scheme:subject) that wrote this record for the run's client (source gateway, tier T2); the signer takes the call's later steps from it only"
+        }
+      }
+    },
+    "state_write": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "store",
+        "key",
+        "digest"
+      ],
+      "properties": {
+        "salt_id": {
+          "$ref": "#/$defs/id",
+          "description": "the signer's salt id for this record's commitments (salt label <type>:<salt_id>); absent on records written before salt_id existed"
+        },
+        "store": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "key": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "prev_digest": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/commitment"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "digest": {
+          "$ref": "#/$defs/commitment"
+        }
+      }
+    },
+    "signer_epoch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "keys"
+      ],
+      "properties": {
+        "keys": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kid",
+              "alg",
+              "spki"
+            ],
+            "properties": {
+              "kid": {
+                "$ref": "#/$defs/hash"
+              },
+              "alg": {
+                "type": "string",
+                "maxLength": 32,
+                "pattern": "^[a-z0-9-]+$"
+              },
+              "spki": {
+                "type": "string",
+                "maxLength": 4096,
+                "pattern": "^[A-Za-z0-9+/]+={0,2}$",
+                "description": "base64 DER SubjectPublicKeyInfo"
+              },
+              "cert": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "certificate",
+                  "index",
+                  "inclusion",
+                  "checkpoint"
+                ],
+                "description": "the key's issuance entry from a record-key issuer (tracekit.format.cert, docs/issuer.md)",
+                "properties": {
+                  "certificate": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "cert",
+                      "sig"
+                    ],
+                    "properties": {
+                      "cert": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kid",
+                          "spki",
+                          "log_id",
+                          "tenants",
+                          "not_before",
+                          "not_after",
+                          "serial"
+                        ],
+                        "properties": {
+                          "kid": {
+                            "$ref": "#/$defs/hash"
+                          },
+                          "spki": {
+                            "type": "string",
+                            "maxLength": 4096,
+                            "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+                          },
+                          "log_id": {
+                            "type": "string",
+                            "maxLength": 64
+                          },
+                          "tenants": {
+                            "type": "array",
+                            "maxItems": 256,
+                            "items": {
+                              "type": "string",
+                              "maxLength": 256
+                            }
+                          },
+                          "not_before": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "not_after": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "serial": {
+                            "type": "string",
+                            "maxLength": 64,
+                            "pattern": "^[0-9a-f]+$"
+                          }
+                        }
+                      },
+                      "sig": {
+                        "type": "string",
+                        "maxLength": 128,
+                        "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+                      }
+                    }
+                  },
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "inclusion": {
+                    "type": "array",
+                    "maxItems": 64,
+                    "items": {
+                      "type": "string",
+                      "maxLength": 64,
+                      "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+                    }
+                  },
+                  "checkpoint": {
+                    "type": "string",
+                    "maxLength": 16384
+                  }
+                }
+              }
+            }
+          }
+        },
+        "bridge": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "v1_kid",
+            "v1_last_seq",
+            "v1_head"
+          ],
+          "description": "the v1 ledger this log continues: its key, the seq and hash of its last (key retirement) record",
+          "properties": {
+            "v1_kid": {
+              "type": "string",
+              "maxLength": 24,
+              "pattern": "^ed25519:[0-9a-f]{16}$"
+            },
+            "v1_last_seq": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "v1_head": {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "key_retire": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kid",
+        "last_seq"
+      ],
+      "properties": {
+        "kid": {
+          "$ref": "#/$defs/hash"
+        },
+        "last_seq": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "log_closed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "final_seq"
+      ],
+      "properties": {
+        "final_seq": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "reconcile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "layers"
+      ],
+      "properties": {
+        "layers": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "enum": [
+              "L1",
+              "L2",
+              "L3",
+              "L4",
+              "L5",
+              "L6"
+            ]
+          }
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
+    "refusal_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "count",
+        "from_ts",
+        "to_ts"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "from_ts": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+          "maxLength": 4096
+        },
+        "to_ts": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+          "maxLength": 4096
+        },
+        "identity": {
+          "type": "string",
+          "maxLength": 256
+        }
+      }
+    },
+    "policy_external": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system",
+        "decision",
+        "tool_use_id",
+        "tool",
+        "rule_ids",
+        "signature",
+        "record",
+        "identity",
+        "salt_id"
+      ],
+      "description": "Another system's decision about a tool call, imported by an identity authorized for decision_import (tier T3). The signer's own policy.decision stays authoritative.",
+      "properties": {
+        "system": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "decision": {
+          "enum": [
+            "allow",
+            "deny",
+            "ask"
+          ]
+        },
+        "tool_use_id": {
+          "$ref": "#/$defs/id"
+        },
+        "tool": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "rule_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "maxItems": 32
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "the system's reason, redacted"
+        },
+        "signature": {
+          "enum": [
+            "verified",
+            "unverified"
+          ],
+          "description": "verified: the system's Ed25519 signature over its record holds under the key the signer's config pins for it"
+        },
+        "record": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hash",
+            "size"
+          ],
+          "description": "the system's own record: an HMAC of its sha256 under this record's salt (salt_id), and its size in bytes",
+          "properties": {
+            "hash": {
+              "type": "string",
+              "pattern": "^hmac-sha256:[0-9a-f]{64}$",
+              "maxLength": 76
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scheme",
+            "subject",
+            "attested"
+          ],
+          "properties": {
+            "scheme": {
+              "enum": [
+                "uid",
+                "harness",
+                "token",
+                "k8s_sa",
+                "mtls",
+                "oidc"
+              ]
+            },
+            "subject": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "attested": {
+              "type": "boolean"
+            }
+          }
+        },
+        "salt_id": {
+          "$ref": "#/$defs/id",
+          "description": "the signer's salt id for this record's commitments (salt label <type>:<salt_id>)"
+        }
+      }
+    },
+    "content_accessed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "principal",
+        "run_id",
+        "seqs",
+        "purpose"
+      ],
+      "description": "The signer returned retained content of records of a run of this tenant (format 1.1; content_get): who asked, the run, its run_seqs and why. Never the content.",
+      "properties": {
+        "principal": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "run_id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "seqs": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "purpose": {
+          "type": "string",
+          "maxLength": 512
+        }
+      }
+    },
+    "content_erased": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "reason",
+        "by"
+      ],
+      "description": "The signer deleted the retained content of a run of this tenant (format 1.1; content_erase or retention); the run's records are unchanged.",
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "by": {
+          "type": "string",
+          "maxLength": 256
+        }
+      }
+    },
+    "why_finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "intervention",
+        "n",
+        "p_with",
+        "p_without",
+        "effect",
+        "interval",
+        "verdict",
+        "replay_runs",
+        "models",
+        "rung",
+        "off_tape",
+        "investigation",
+        "looks",
+        "family",
+        "min_effect",
+        "applied",
+        "stopped"
+      ],
+      "description": "A finished tracekit why test (format 1.1; why_finding), written in a findings run about the run it analyses: how often the target happened in the control arm (p_with) and with the intervention (p_without) over n paired replays, the interval and verdict with what they were decided on (looks: the sequential test's planned looks, family: the tests corrected for together, min_effect, applied: whether the intervention matched anything, stopped: why the test ended), every replay run with its arm and outcome, and the replay runs of the investigation it does not count (uncounted: the surrogate's ranking calls, arms a budget stop abandoned). rung 1: one recorded model call re-sent; rung 2: the agent loop re-simulated from the recorded run.",
+      "properties": {
+        "target": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "intervention": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "p_with": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "p_without": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "effect": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "interval": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -1,
+            "maximum": 1
+          }
+        },
+        "verdict": {
+          "enum": [
+            "causal",
+            "suppressive",
+            "ruled-out",
+            "inconclusive",
+            "not-applied"
+          ]
+        },
+        "replay_runs": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "run_id",
+              "arm",
+              "hit"
+            ],
+            "properties": {
+              "run_id": {
+                "$ref": "#/$defs/id"
+              },
+              "arm": {
+                "enum": [
+                  "control",
+                  "ablated"
+                ]
+              },
+              "hit": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "rung": {
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "off_tape": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "investigation": {
+          "$ref": "#/$defs/id"
+        },
+        "looks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "family": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "min_effect": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "applied": {
+          "type": "boolean"
+        },
+        "stopped": {
+          "enum": [
+            "decisive",
+            "futility",
+            "n_max",
+            "budget"
+          ]
+        },
+        "uncounted": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "run_id",
+              "reason"
+            ],
+            "properties": {
+              "run_id": {
+                "$ref": "#/$defs/id"
+              },
+              "reason": {
+                "enum": [
+                  "ranking",
+                  "budget"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "incident_opened": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "incident_id",
+        "trigger",
+        "rule_ids",
+        "scope",
+        "cites",
+        "mode",
+        "actions",
+        "would"
+      ],
+      "description": "format 1.2: a trigger of the policy's detection fired (a sequence completed, a limit was exceeded, or a respond trigger), an operator held or quarantined a run (trigger operator), or the detector could not vouch for a decision under an enforced response (detector_unavailable); one open incident per scope, trigger and rule, later matches are incident.updated. mode shadow: no action taken, `would` the configured one; mode enforce: `actions` the ones taken (none while the response engine is paused: then `would` and `reason` say so)",
+      "properties": {
+        "incident_id": {
+          "$ref": "#/$defs/id"
+        },
+        "trigger": {
+          "enum": [
+            "sequence",
+            "limit",
+            "executed_against_policy",
+            "denied_calls",
+            "provenance",
+            "class_mismatch",
+            "refusal_burst",
+            "tamper",
+            "operator",
+            "detector_unavailable",
+            "unexplained_effect"
+          ]
+        },
+        "rule_ids": {
+          "type": "array",
+          "maxItems": 1024,
+          "items": {
+            "type": "string",
+            "maxLength": 256
+          }
+        },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "run",
+                "session",
+                "owner",
+                "principal"
+              ]
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 256
+            }
+          }
+        },
+        "cites": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "run_id",
+              "run_seq"
+            ],
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "run_seq": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "description": "the records that make up the match"
+        },
+        "mode": {
+          "enum": [
+            "shadow",
+            "enforce"
+          ]
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "enum": [
+              "notify",
+              "hold",
+              "quarantine"
+            ]
+          }
+        },
+        "would": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "enum": [
+              "notify",
+              "hold",
+              "quarantine",
+              "suspend"
+            ]
+          }
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024,
+          "description": "why the actions differ from the configured one (paused, no person approvers), or an operator's reason"
+        },
+        "in_flight": {
+          "type": "array",
+          "maxItems": 1024,
+          "description": "format 1.2: calls allowed (or approved and consumed) and not completed when the response took effect: they may complete after it",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "run_id",
+              "tool_call_id",
+              "decision_id"
+            ],
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "tool_call_id": {
+                "$ref": "#/$defs/id"
+              },
+              "decision_id": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        }
+      }
+    },
+    "incident_updated": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "incident_id",
+        "cites"
+      ],
+      "description": "format 1.2: another match of an open incident (at most one per window of its trigger), written in the run whose record matched",
+      "properties": {
+        "incident_id": {
+          "$ref": "#/$defs/id"
+        },
+        "cites": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "run_id",
+              "run_seq"
+            ],
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "run_seq": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "incident_capped": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cap",
+        "max",
+        "trigger",
+        "reason"
+      ],
+      "description": "format 1.2: a cap on opened incidents was reached: the run's per trigger (cap run), or per minute the tenant's or one run's share of it (cap tenant); the incidents after it are not written",
+      "properties": {
+        "cap": {
+          "enum": [
+            "run",
+            "tenant"
+          ]
+        },
+        "trigger": {
+          "enum": [
+            "sequence",
+            "limit",
+            "executed_against_policy",
+            "denied_calls",
+            "provenance",
+            "class_mismatch",
+            "refusal_burst",
+            "tamper",
+            "operator",
+            "detector_unavailable",
+            "unexplained_effect"
+          ],
+          "description": "the trigger of the first incident not written"
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 512
+        }
+      }
+    },
+    "run_held": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "incident_id",
+        "scope",
+        "by",
+        "reason"
+      ],
+      "description": "format 1.2: the run is held: every further call is asked of a person (TK-HOLD) and its live approvals expired; written in each run the incident's scope reaches",
+      "properties": {
+        "incident_id": {
+          "$ref": "#/$defs/id"
+        },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "run",
+                "session",
+                "owner",
+                "principal"
+              ]
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 256
+            }
+          }
+        },
+        "by": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "signer, or the operator's identity"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "in_flight": {
+          "type": "array",
+          "maxItems": 1024,
+          "description": "format 1.2: calls allowed (or approved and consumed) and not completed when the response took effect: they may complete after it",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "run_id",
+              "tool_call_id",
+              "decision_id"
+            ],
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "tool_call_id": {
+                "$ref": "#/$defs/id"
+              },
+              "decision_id": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        },
+        "inherited": {
+          "const": true,
+          "description": "a new run of a held owner and principal (or of a held parent run) took the hold over"
+        },
+        "inherit_until": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+          "maxLength": 27,
+          "description": "until when new runs of this run's owner and attested principal inherit the hold"
+        }
+      }
+    },
+    "run_resumed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "incident_id",
+        "by",
+        "person",
+        "held_by"
+      ],
+      "description": "format 1.2: a person ended the hold of one incident on the run (run_resume, which ends each, or incident_resolve of that incident); held_by: the incidents that still hold it",
+      "properties": {
+        "incident_id": {
+          "$ref": "#/$defs/id"
+        },
+        "by": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "person": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "break_glass": {
+          "const": true
+        },
+        "held_by": {
+          "type": "array",
+          "maxItems": 1024,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "run_quarantined": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "incident_id",
+        "scope",
+        "by",
+        "reason"
+      ],
+      "description": "format 1.2: the run is quarantined for good: decisions are deny (TK-QUARANTINE), approvals are refused, a gateway forwards no more model requests",
+      "properties": {
+        "incident_id": {
+          "$ref": "#/$defs/id"
+        },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "run",
+                "session",
+                "owner",
+                "principal"
+              ]
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 256
+            }
+          }
+        },
+        "by": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "in_flight": {
+          "type": "array",
+          "maxItems": 1024,
+          "description": "format 1.2: calls allowed (or approved and consumed) and not completed when the response took effect: they may complete after it",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "run_id",
+              "tool_call_id",
+              "decision_id"
+            ],
+            "properties": {
+              "run_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "tool_call_id": {
+                "$ref": "#/$defs/id"
+              },
+              "decision_id": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        },
+        "inherited": {
+          "const": true
+        },
+        "inherit_until": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+          "maxLength": 27,
+          "description": "until when new runs of this run's owner and attested principal inherit the hold"
+        }
+      }
+    },
+    "incident_resolved": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "incident_id",
+        "by",
+        "person"
+      ],
+      "description": "format 1.2: a person resolved the incident (in the tenant's signer run): its held runs resume, quarantines stay",
+      "properties": {
+        "incident_id": {
+          "$ref": "#/$defs/id"
+        },
+        "by": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "person": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "break_glass": {
+          "const": true
+        },
+        "resumed": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      }
+    },
+    "incident_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "by"
+      ],
+      "description": "format 1.2: an operator paused (enabled false) or resumed the tenant's response engine; detection keeps recording",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "by": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
+    "identity_suspension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "state",
+        "by"
+      ],
+      "description": "format 1.2: an identity of the tenant is suspended by an operator (written by the signer that changed the shared list), enforced (each signer that starts enforcing an entry) or lifted",
+      "properties": {
+        "identity": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "state": {
+          "enum": [
+            "suspended",
+            "enforced",
+            "lifted"
+          ]
+        },
+        "by": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
+    "effect_observed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observer",
+        "kind",
+        "host",
+        "port",
+        "bytes_out",
+        "bytes_in",
+        "connections",
+        "first_ts",
+        "last_ts",
+        "attribution"
+      ],
+      "description": "format 1.2: network traffic an egress observer outside the agent saw for the run (tracekit.egress), aggregated per host, port and minute; signer-written",
+      "properties": {
+        "observer": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "the egress observer's signer identity (scheme:subject)"
+        },
+        "kind": {
+          "enum": [
+            "net"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "bytes_out": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "bytes_in": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "connections": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "first_ts": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+          "maxLength": 27
+        },
+        "last_ts": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+          "maxLength": 27
+        },
+        "attribution": {
+          "enum": [
+            "token",
+            "identity"
+          ],
+          "description": "token: the client presented the run's token; identity: the observer authenticated the run's owner and the signer picked that owner's latest open run"
+        },
+        "explained_by": {
+          "enum": [
+            "call",
+            "explains"
+          ],
+          "description": "what explains the host: a recorded http or model call to it, or the policy's explains; absent: unexplained (a reconcile.unexplained_effect follows)"
+        }
+      }
+    },
+    "sensor_effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observer",
+        "sensor",
+        "kind",
+        "ts",
+        "pid",
+        "binary",
+        "attribution"
+      ],
+      "description": "format 1.4: what a kernel sensor (Tetragon, Falco) reported a process of the run did, or what OpenShell reported of its sandbox (its connections allowed and blocked, its entrypoint's start), imported under the import's own signer identity (an observer's assertion); signer-written",
+      "properties": {
+        "observer": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "the import's signer identity (scheme:subject)"
+        },
+        "sensor": {
+          "enum": [
+            "tetragon",
+            "falco",
+            "openshell"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "exec",
+            "exit",
+            "connect",
+            "file"
+          ],
+          "description": "exec: the process started; exit: it ended; connect: it connected to host:port; file: the sensor's policy selected a file event of it (a write outside the workspace, in the shipped samples)"
+        },
+        "ts": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$",
+          "maxLength": 27
+        },
+        "pid": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "binary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "exec_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "the sensor's id of the process (Tetragon's exec_id)"
+        },
+        "parent_exec_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "exec: the sensor's id of the process that started this one (Tetragon's parent_exec_id)"
+        },
+        "args_commitment": {
+          "$ref": "#/$defs/commitment",
+          "description": "commitment to sha256 of the arguments string as the sensor reported it"
+        },
+        "salt_id": {
+          "$ref": "#/$defs/id",
+          "description": "the signer's salt id for this record's commitments (salt label <type>:<salt_id>)"
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "signal": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "tool_call_id": {
+          "$ref": "#/$defs/id",
+          "description": "the tool call id the process's environment carried (CODEX_TOOL_CALL_ID): the agent's claim, recorded as it came and checked by no signer (TK-X206 checks it)"
+        },
+        "denied": {
+          "const": true,
+          "description": "the sensor (OpenShell's network policy) blocked it"
+        },
+        "attribution": {
+          "enum": [
+            "token",
+            "identity"
+          ],
+          "description": "identity: the import mapped the process to the run's owner and the signer picked that owner's latest open run"
+        }
+      }
+    },
+    "reconcile_effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "layers",
+        "observer",
+        "kind",
+        "host"
+      ],
+      "description": "format 1.2: a host an observer saw the run reach that no record of the run explains",
+      "properties": {
+        "layers": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "enum": [
+              "L1",
+              "L2",
+              "L3",
+              "L4",
+              "L5",
+              "L6"
+            ]
+          }
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "observer": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "the egress observer's signer identity (scheme:subject)"
+        },
+        "kind": {
+          "enum": [
+            "net"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      }
+    },
+    "coverage_class": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "layers"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "enforced",
+            "observed",
+            "reported",
+            "none"
+          ]
+        },
+        "layers": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "asserted": {
+          "const": true,
+          "description": "the status rests on the operator's posture (signer.yaml), not on anything the signer measured"
+        }
+      }
+    },
+    "constraint_added": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "description": "format 1.4: a live constraint of the run (constraint_add): what the person's request said not to do in the rest of it, as its client reported it (the Claude Code hook, at UserPromptSubmit). From then on the signer raises a call that breaks it to an ask (rule TK-CONSTRAINT) and never lowers a decision, so a made-up constraint can only hold more calls",
+      "properties": {
+        "kind": {
+          "enum": [
+            "keep_away",
+            "only_change",
+            "read_only",
+            "no_push",
+            "no_network"
+          ],
+          "description": "keep_away: writes of the file; only_change: writes of any other file; read_only: any write; no_push: a git push; no_network: a call that reaches the network"
+        },
+        "object_commitment": {
+          "$ref": "#/$defs/commitment",
+          "description": "keep_away and only_change: commitment to sha256 of the file's lower-cased basename; never the name"
+        },
+        "salt_id": {
+          "$ref": "#/$defs/id",
+          "description": "the signer's salt id for this record's commitment (salt label <type>:<salt_id>)"
+        }
+      }
+    },
+    "ext_name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_.-]*$",
+      "maxLength": 64,
+      "description": "The name of a non-critical field or record (format 1.4)."
+    },
+    "ext": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/ext_name"
+        }
+      },
+      "description": "A non-critical record (format 1.4): its name and any other strict JSON fields, checked as the ext field is."
+    }
+  }
+}
