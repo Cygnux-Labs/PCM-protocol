@@ -284,7 +284,19 @@
   {
     "name": "reject-claim-record-not-an-event",
     "file": "reject-claim-record-not-an-event.json",
-    "description": "approved_by whose approval record lost data.decision, under a checkpoint the test log key signs offline over the edited record: a record that is no valid tracekit.event.v2 event fails.",
+    "description": "approved_by whose approval record has the number 5 as its prev_hash, which no claim checker reads, under a checkpoint the test log key signs offline over the edited record: a record that is no valid tracekit.event.v2 event fails.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-malformed-no-evidence",
+    "file": "reject-claim-tests-passed-malformed-no-evidence.json",
+    "description": "tests_passed of `pytest ... || true` with no evidence: a suite that is no test command is malformed, so the claim fails without evidence too.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-file-written-relative-no-evidence",
+    "file": "reject-claim-file-written-relative-no-evidence.json",
+    "description": "file_written of the relative path work/report.txt with no evidence: the claim is malformed, so it fails without evidence too.",
     "verdict": "reject"
   },
   {
@@ -294,45 +306,87 @@
     "verdict": "reject"
   },
   {
-    "name": "accept-tests-passed-comment",
-    "file": "accept-tests-passed-comment.json",
-    "description": "tests_passed of `pytest ... # || true`, run by the executor (T2): the shell reads `# || true` as a comment, so it is one command.",
-    "verdict": "accept"
+    "name": "reject-claim-tests-passed-comment",
+    "file": "reject-claim-tests-passed-comment.json",
+    "description": "tests_passed of `pytest -q tests/test_refund.py # || true`, run by the executor (T2): a suite may hold no `#`, even where the shell reads a comment, so it is no test command.",
+    "verdict": "reject"
   },
   {
     "name": "reject-claim-hash-inside-word",
     "file": "reject-claim-hash-inside-word.json",
-    "description": "tests_passed of `pytest ...py#|| true`, run by the executor (T2): a `#` inside a word starts no comment, so the shell runs `|| true` and the line is two commands.",
+    "description": "tests_passed of `pytest -q tests/test_refund.py#|| true`, run by the executor (T2): a `#` inside a word starts no comment, so the shell runs `|| true`, so it is no test command.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-background",
+    "file": "reject-claim-tests-passed-background.json",
+    "description": "tests_passed of `pytest -q tests/test_refund.py &`, run by the executor (T2): the shell runs the tests in the background and exits 0 whatever they do, so it is no test command.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-ansi-c-quote",
+    "file": "reject-claim-tests-passed-ansi-c-quote.json",
+    "description": "tests_passed of `pytest $'\\'';true #'`, run by the executor (T2): sh reads `$'\\''` as one quote and runs `true`, where Python's shlex reads one word, so it is no test command.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-unbalanced-quote",
+    "file": "reject-claim-tests-passed-unbalanced-quote.json",
+    "description": "tests_passed of `pytest -q 'tests/test_refund.py`, run by the executor (T2): its quotes don't balance, so it is no test command.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-dot-slash",
+    "file": "reject-claim-tests-passed-dot-slash.json",
+    "description": "tests_passed of `./pytest -q`, run by the executor (T2): the program must be the runner's bare name, not a file of that name, so it is no test command.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-runner-path",
+    "file": "reject-claim-tests-passed-runner-path.json",
+    "description": "tests_passed of `.venv/bin/pytest -q`, run by the executor (T2): the program must be the runner's bare name, so it is no test command.",
     "verdict": "reject"
   },
   {
     "name": "reject-claim-tests-passed-co",
     "file": "reject-claim-tests-passed-co.json",
-    "description": "tests_passed of `pytest --co -q`, run by the executor (T2): with --co a runner runs no tests, so it is no test command.",
+    "description": "tests_passed of `pytest --co -q`, run by the executor (T2): --co is a flag with which a runner runs no tests, or a prefix of one, so it is no test command.",
     "verdict": "reject"
   },
   {
     "name": "reject-claim-tests-passed-collect-only",
     "file": "reject-claim-tests-passed-collect-only.json",
-    "description": "tests_passed of `pytest --collect-only -q`, run by the executor (T2): with --collect-only a runner runs no tests, so it is no test command.",
+    "description": "tests_passed of `pytest --collect-only -q`, run by the executor (T2): --collect-only is a flag with which a runner runs no tests, or a prefix of one, so it is no test command.",
     "verdict": "reject"
   },
   {
     "name": "reject-claim-tests-passed-help",
     "file": "reject-claim-tests-passed-help.json",
-    "description": "tests_passed of `pytest --help -q`, run by the executor (T2): with --help a runner runs no tests, so it is no test command.",
+    "description": "tests_passed of `pytest --help -q`, run by the executor (T2): --help is a flag with which a runner runs no tests, or a prefix of one, so it is no test command.",
     "verdict": "reject"
   },
   {
     "name": "reject-claim-tests-passed-h",
     "file": "reject-claim-tests-passed-h.json",
-    "description": "tests_passed of `pytest -h -q`, run by the executor (T2): with -h a runner runs no tests, so it is no test command.",
+    "description": "tests_passed of `pytest -h -q`, run by the executor (T2): -h is a flag with which a runner runs no tests, or a prefix of one, so it is no test command.",
     "verdict": "reject"
   },
   {
     "name": "reject-claim-tests-passed-version",
     "file": "reject-claim-tests-passed-version.json",
-    "description": "tests_passed of `pytest --version -q`, run by the executor (T2): with --version a runner runs no tests, so it is no test command.",
+    "description": "tests_passed of `pytest --version -q`, run by the executor (T2): --version is a flag with which a runner runs no tests, or a prefix of one, so it is no test command.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-V",
+    "file": "reject-claim-tests-passed-V.json",
+    "description": "tests_passed of `pytest -V -q`, run by the executor (T2): -V is a flag with which a runner runs no tests, or a prefix of one, so it is no test command.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-tests-passed-he",
+    "file": "reject-claim-tests-passed-he.json",
+    "description": "tests_passed of `pytest --he -q`, run by the executor (T2): --he is a flag with which a runner runs no tests, or a prefix of one, so it is no test command.",
     "verdict": "reject"
   },
   {
@@ -351,12 +405,6 @@
     "name": "accept-tests-passed-python-m-pytest",
     "file": "accept-tests-passed-python-m-pytest.json",
     "description": "tests_passed of `python3 -m pytest -q`, run by the executor (T2).",
-    "verdict": "accept"
-  },
-  {
-    "name": "accept-tests-passed-runner-path",
-    "file": "accept-tests-passed-runner-path.json",
-    "description": "tests_passed of `.venv/bin/pytest -q`, run by the executor (T2): the first word is compared by its base name.",
     "verdict": "accept"
   },
   {
@@ -380,7 +428,7 @@
   {
     "name": "reject-claim-decision-without-id",
     "file": "reject-claim-decision-without-id.json",
-    "description": "tests_passed whose policy.decision record lost data.decision_id, under a checkpoint the test log key signs offline over the edited records: a decision without its id matches no call.",
+    "description": "tests_passed whose policy.decision and tool.result records both lost data.decision_id, under a checkpoint the test log key signs offline over the edited records: a decision without its id matches no call, though the two still pair by their missing ids.",
     "verdict": "reject"
   },
   {
@@ -404,7 +452,7 @@
   {
     "name": "reject-claim-file-written-relative",
     "file": "reject-claim-file-written-relative.json",
-    "description": "file_written of work/report.txt by a Write of /work/report.txt the executor ran (T2), naming a relative path, which fails as malformed.",
+    "description": "file_written of work/report.txt by a Write of work/report.txt the executor ran (T2): the paths are equal, but a relative claim is malformed, so it fails.",
     "verdict": "reject"
   },
   {
@@ -471,6 +519,42 @@
     "name": "accept-unproven-reached-host-ambiguous",
     "file": "accept-unproven-reached-host-ambiguous.json",
     "description": "reached_host b.example by a WebFetch of http://a.example\\@b.example/ the executor ran (T2): a browser reads the host a.example and Python's urllib b.example, so it won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-deviation",
+    "file": "accept-unproven-reached-host-deviation.json",
+    "description": "reached_host fass.example by a WebFetch of http://faß.example/ the executor ran (T2): IDNA 2003 maps the sharp s to ss and a browser keeps it (xn--fa-hia.example), so a host with one of the four deviation characters won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-reached-host-unassigned",
+    "file": "accept-reached-host-unassigned.json",
+    "description": "reached_host xn--x-qib.example by a WebFetch of http://x͸.example/ the executor ran (T2): U+0378 is unassigned in Unicode 3.2, and the stdlib codec takes it (AllowUnassigned on).",
+    "verdict": "accept"
+  },
+  {
+    "name": "reject-claim-reached-host-file-url",
+    "file": "reject-claim-reached-host-file-url.json",
+    "description": "reached_host api.example.com by a WebFetch of file://api.example.com/x the executor ran (T2): a file: URL has no host a browser reads.",
+    "verdict": "reject"
+  },
+  {
+    "name": "accept-unproven-reached-host-no-ipv6",
+    "file": "accept-unproven-reached-host-no-ipv6.json",
+    "description": "reached_host api.example.com by a WebFetch of http://%5b::1%5d/ the executor ran (T2): percent-decoded, the host is `[`, which is no IPv6 address, so it won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-nul",
+    "file": "accept-unproven-reached-host-nul.json",
+    "description": "reached_host api.example.com by a WebFetch of http://api.example.com%00.evil/ the executor ran (T2): percent-decoded, the host holds a NUL, so it won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-claim-bad-port",
+    "file": "accept-unproven-reached-host-claim-bad-port.json",
+    "description": "reached_host of api.example.com:abc with the observed evidence: a port must be 1 to 5 digits, so the claim won't parse.",
     "verdict": "accept-unproven"
   },
   {

@@ -5,7 +5,7 @@
     "message": {
       "from": {
         "agent": "uid:990101",
-        "run": "c2e3a81bde2be8ba7090d2c3499900b8",
+        "run": "8574566a494a572b26c3fd16584fdb38",
         "tenant": "default"
       },
       "to": {
@@ -19,12 +19,12 @@
         }
       },
       "pcm": 0,
-      "id": "5ef9e88f92e57855e9d0f9a77577390e",
-      "ts": "2026-10-27T15:31:38.062537Z",
-      "nonce": "96f041196e49819594dd36eb4a783225",
+      "id": "9ff95804c650c64b5b8fc6b761acf622",
+      "ts": "2026-10-27T16:02:44.449606Z",
+      "nonce": "988f888eba07215e51b72b413bcb65f4",
       "sig": {
         "key": "example.com/pcm-test-log+0bb91e66",
-        "sig": "njwxRM3PyIrP2wZrLiIfv1t7UY1WX3iTT0uXLWNwThLfsNDSSVY5MAa43nnXT+3QkoMOu+3H2qQsE/GqLxogAA=="
+        "sig": "7SJ1S9+ntTlAfo3e+I/lBzROzatyLNboGHKuXxryDxvrW1AGNCsOodXzkyzrl83KRKQRAlrwKipdkFE8tX/xAg=="
       }
     },
     "schemas": [
@@ -111,10 +111,10 @@
     "options": {
       "me": "uid:990102",
       "strict": false,
-      "now": "2026-10-27T15:41:38.062537Z",
+      "now": "2026-10-27T16:12:44.449606Z",
       "replay": {
         "window_s": 300,
-        "started": "2026-10-27T15:30:38.062537Z",
+        "started": "2026-10-27T16:01:44.449606Z",
         "per_sender": 4096,
         "seen": []
       }
@@ -127,7 +127,7 @@
     },
     "replay": {
       "ok": false,
-      "detail": "sent at 2026-10-27T15:31:38.062537Z, more than 300 s from this receiver's clock"
+      "detail": "sent at 2026-10-27T16:02:44.449606Z, more than 300 s from this receiver's clock"
     },
     "schema": {
       "ok": true,
@@ -143,7 +143,7 @@
     "claims": [],
     "verdict": "reject",
     "reasons": [
-      "replay: sent at 2026-10-27T15:31:38.062537Z, more than 300 s from this receiver's clock"
+      "replay: sent at 2026-10-27T16:02:44.449606Z, more than 300 s from this receiver's clock"
     ]
   }
 }

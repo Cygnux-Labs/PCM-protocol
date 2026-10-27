@@ -1,0 +1,262 @@
+{
+  "name": "accept-unproven-reached-host-nul",
+  "description": "reached_host api.example.com by a WebFetch of http://api.example.com%00.evil/ the executor ran (T2): percent-decoded, the host holds a NUL, so it won't parse.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "8574566a494a572b26c3fd16584fdb38",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "claims": [
+        {
+          "type": "reached_host",
+          "args": {
+            "host": "api.example.com"
+          },
+          "evidence": {
+            "checkpoint": "example.com/pcm-test-log\n212\nV2W1TiaIhTgy16q4oCZWcxjGMPXZmaQ0O+uXUFwlBZM=\n\n— example.com/pcm-test-log C7keZlIf2hL+46r7UuVAjIKMSbYHG/f6teYaDpOFMjlO7TLrJ5PNlBrI0lqdMmoByEg6CdR3w5GSEv80jNPAgk9IlwQ=\n",
+            "records": [
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "06b502c3c655245324951d73224614fe",
+                  "seq": 210,
+                  "prev_hash": "sha256:3b78152ab20dd268a511903938737df909d5db3401b84b3ba37d2cbf99b7232a",
+                  "ts": "2026-10-27T16:02:47.945380Z",
+                  "run_id": "8574566a494a572b26c3fd16584fdb38",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "gateway",
+                  "type": "policy.decision",
+                  "data": {
+                    "tool_use_id": "call-247",
+                    "tool": "WebFetch",
+                    "policy_hash": "sha256:3ff3f19e4716ecac4c7a1ab9372bb8f34c479ffb6b2da392449420a69dea01c5",
+                    "engine": "re2@1.1.20251105",
+                    "expires_at": "2026-10-27T16:07:47.945336Z",
+                    "via": "mtls:spiffe://example/executor",
+                    "caller": "uid:990101",
+                    "decision_id": "dec-164d590cbd88cc727d4dee6850035a92",
+                    "nonce": "c79b92768fa71c5a5721c8d9c9df0e85",
+                    "decision": "allow",
+                    "rule_ids": [],
+                    "args_commitment": "hmac-sha256:5709314f1158c831969e917520f0c15a05980840f99928618e44fb6ad30db34b"
+                  },
+                  "tenant": "default",
+                  "log_id": "75f11c8ecdf568f4ea0d02ed5b7de869",
+                  "run_seq": 194,
+                  "run_prev_hash": "sha256:3b78152ab20dd268a511903938737df909d5db3401b84b3ba37d2cbf99b7232a",
+                  "request_id": "r248",
+                  "stream": "gw",
+                  "client_seq": 76,
+                  "tool_call_id": "call-247",
+                  "attempt": 0,
+                  "args_source": "parsed",
+                  "tier": "T2"
+                },
+                "hash": "sha256:6e843d5efbee3c742cb60506028eac9ca7adb7d667048c0dbac39f00e7f765f7",
+                "proof": [
+                  "pYVJMo6qKC+R7rL7/jrmBJhCxzxzDitjHq/kgrBMUE0=",
+                  "ERfPZN+6kRpLfUgj5Zt/x5v6GU77g+FgPYtq8cX3B9M=",
+                  "yJqJn79xPOY0Joze4ua+h3V2pcIZUQJKaf18/ZfovKA=",
+                  "hUcR0yB256x4yR/Q8IckmzaWWKZFmNHjCWP09ftMV1M=",
+                  "1L9c1hvvfxA/C0gpK8Aa9hbLlhjOV4QRb0iRYJfDgxk="
+                ],
+                "salt": "62cb8390d632c644478eb122e7626a5d312835b538c3e89a230f7e75400271e9",
+                "args": {
+                  "url": "http://api.example.com%00.evil/"
+                }
+              },
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "92271c441a18ce9954a9762ffa657872",
+                  "seq": 211,
+                  "prev_hash": "sha256:6e843d5efbee3c742cb60506028eac9ca7adb7d667048c0dbac39f00e7f765f7",
+                  "ts": "2026-10-27T16:02:47.945562Z",
+                  "run_id": "8574566a494a572b26c3fd16584fdb38",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "gateway",
+                  "type": "tool.result",
+                  "data": {
+                    "tool_use_id": "call-247",
+                    "ok": true,
+                    "output": {
+                      "hash": "hmac-sha256:918fc5854e3c478aec5a7e6335a027e7487ebb2556f96b746e98c2ffed10f769",
+                      "size": 2,
+                      "redacted": false
+                    },
+                    "decision_id": "dec-164d590cbd88cc727d4dee6850035a92",
+                    "redaction": {
+                      "rules": [],
+                      "count": 0,
+                      "client_claimed": false
+                    },
+                    "via": "mtls:spiffe://example/executor"
+                  },
+                  "tenant": "default",
+                  "log_id": "75f11c8ecdf568f4ea0d02ed5b7de869",
+                  "run_seq": 195,
+                  "run_prev_hash": "sha256:6e843d5efbee3c742cb60506028eac9ca7adb7d667048c0dbac39f00e7f765f7",
+                  "request_id": "r249",
+                  "stream": "gw",
+                  "client_seq": 77,
+                  "tool_call_id": "call-247",
+                  "attempt": 0,
+                  "tier": "T2"
+                },
+                "hash": "sha256:85bb4c94ff4d894a7a35280238860ed976c7f6cfe98a3e3af8422cf4618a365d",
+                "proof": [
+                  "tGYSFRq7atzwEMycGBhkn5M7CIhsXzbooJjjpoAS/Ek=",
+                  "ERfPZN+6kRpLfUgj5Zt/x5v6GU77g+FgPYtq8cX3B9M=",
+                  "yJqJn79xPOY0Joze4ua+h3V2pcIZUQJKaf18/ZfovKA=",
+                  "hUcR0yB256x4yR/Q8IckmzaWWKZFmNHjCWP09ftMV1M=",
+                  "1L9c1hvvfxA/C0gpK8Aa9hbLlhjOV4QRb0iRYJfDgxk="
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "1537a4d5d6459c593a2875e11d3779ca",
+      "ts": "2026-10-27T16:02:47.950898Z",
+      "nonce": "0e29f8bfa017708761c971ddf82aa46a",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "TroGBEif4cZtjMrBIewRNlG9/hOR9HCsH58WG5/gDFuZxKctDxgmjwiGSYA+WvEfc0xeCK6oasEn1kytG68lDw=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.quote",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        }
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "run_shell_command": "shell",
+      "shell": "shell",
+      "local_shell": "shell",
+      "container.exec": "shell",
+      "run_terminal_cmd": "shell",
+      "terminal": "shell",
+      "Write": "fs",
+      "Edit": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "Grep": "fs",
+      "Glob": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "srt:request": "http",
+      "transfer_funds": "payment",
+      "send_payment": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_transfer": "payment",
+      "create_refund": "payment",
+      "create_charge": "payment",
+      "pay_invoice": "payment",
+      "get_balance": "payment",
+      "list_transactions": "payment",
+      "get_transaction": "payment",
+      "list_payments": "payment",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "gmail_send_message": "email",
+      "run_sql": "sql",
+      "execute_sql": "sql",
+      "execute_query": "sql",
+      "query_database": "sql",
+      "sql_db_query": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "http_request": "http",
+      "http_get": "http",
+      "http_post": "http",
+      "requests_get": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "requests_patch": "http",
+      "requests_delete": "http",
+      "fetch": "http",
+      "web_fetch": "http",
+      "mcp:fetch/fetch": "http",
+      "bash": "shell"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-27T16:02:48.950898Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+      "errors": []
+    },
+    "grants": {
+      "result": "none",
+      "steps": 0,
+      "root": null,
+      "problems": []
+    },
+    "claims": [
+      {
+        "type": "reached_host",
+        "result": "unproven",
+        "detail": "the verifier can't tell whether call call-247 reached api.example.com"
+      }
+    ],
+    "verdict": "accept-unproven",
+    "reasons": [
+      "reached_host: unproven (the verifier can't tell whether call call-247 reached api.example.com)"
+    ]
+  }
+}

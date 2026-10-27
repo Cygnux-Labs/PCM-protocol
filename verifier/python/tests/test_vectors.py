@@ -153,19 +153,54 @@ EFFECT = {**EVENT, "type": "effect.observed", "data": {
 
 @pytest.mark.parametrize("host, claim, result", [
     ("API.Example.com.", "api.example.com", "proven"), ("bücher.example", "xn--bcher-kva.example", "proven"),
-    ("a..example", "api.example.com", "unproven"), ("api.example.org", "api.example.com", "failed")])
+    ("a..example", "api.example.com", "unproven"), ("api.example.org", "api.example.com", "failed"),
+    # SPEC 6.7: a deviation character, no IPv6 address in brackets, a NUL, a port that is no number
+    ("fa\u00df.example", "fass.example", "unproven"), ("a\u200db.example", "ab.example", "unproven"),
+    ("\u03f2.example", "xn--4xa.example", "unproven"), ("%5b", "api.example.com", "unproven"),
+    ("h.com%00.evil", "api.example.com", "unproven"), ("api.example.com:x", "api.example.com", "unproven"),
+    ("api.example.com", "api.example.com:", "unproven"), ("api.example.com", "api.example.com:443", "proven")])
 def test_an_effects_host_is_compared_in_canonical_form(host, claim, result):
     msg = message(event={**EFFECT, "data": {**EFFECT["data"], "host": host}})
     msg["claims"][0].update(type="reached_host", args={"host": claim})
     assert check(signed(msg, pcm_verify.MESSAGE_TAG))["claims"][0]["result"] == result
 
 
-@pytest.mark.parametrize("cmd, words", [
-    ("pytest x.py#|| true", [["pytest", "x.py#"], ["true"]]), ("pytest x.py # || true", [["pytest", "x.py"]]),
-    ("echo a#b; npm test", [["echo", "a#b"], ["npm", "test"]]), ("pytest '#x'#y", [["pytest", "#x#y"]]),
-    ("pytest||#x", [["pytest"]])])
-def test_a_hash_starts_a_comment_only_at_the_start_of_a_word(cmd, words):
-    assert pcm_verify.simple_commands(cmd) == words
+@pytest.mark.parametrize("url, host", [("file://a.example/x", None), ("gopher://a.example/", None),
+                                       ("//a.example/x", "a.example"), ("http://%5b::1%5d/", "[")])
+def test_only_a_special_or_schemeless_url_has_a_host(url, host):
+    assert pcm_verify.url_info(url).get("host") == host
+
+
+@pytest.mark.parametrize("suite", [
+    "pytest -q tests/x.py", "python3 -m pytest -q", "npm test", "go test -short ./...", "pytest -k 'not slow'",
+    'pytest -k "a or b"', "pytest\t-q", "pytest --color=yes", "pytest --verbose"])
+def test_a_test_command(suite):
+    assert pcm_verify.test_command(suite)
+
+
+@pytest.mark.parametrize("suite", [
+    "pytest &", "(pytest &)", "(pytest) &", "pytest ;", "pytest 2>&1", "pytest || true", "pytest\ntrue",
+    "pytest $'\\'';true #'", "pytest $'\\'';true''", "pytest 'a", "pytest $X", "pytest `x`", "pytest \\-h",
+    "pytest # x", "pytest x.py#|| true", "pytest -{h,q}", "pytest -[h]", "pytest -?", "pytest\r-q",
+    "pytest -V", "pytest -h", "pytest '-h'", "pytest -'-'help", "python -m unittest --he", "pytest --co",
+    "pytest --c", "pytest --vers", ".venv/bin/pytest", "./pytest", "/tmp/evil/pytest", "uv run pytest",
+    "CI=1 pytest", "echo pytest"])
+def test_no_test_command(suite):
+    assert not pcm_verify.test_command(suite)
+
+
+@pytest.mark.parametrize("claim", [{"type": "tests_passed", "args": {"suite": "pytest || true"}},
+                                   {"type": "file_written", "args": {"path": "work/x", "digest": ZERO}},
+                                   {"type": "file_written", "args": {"path": "/a/../x", "digest": ZERO}}])
+def test_a_malformed_claim_fails_without_evidence(claim):
+    assert pcm_verify.check_claim(claim, message(), TRUST, {})["result"] == "failed"
+
+
+@pytest.mark.parametrize("bad", ["not a vkey", VKEY + "="])
+def test_a_bad_vkey_raises_wherever_it_sits(bad):
+    for trust in ({"logs": [VKEY, bad]}, {"logs": [bad, VKEY]}, {"logs": [VKEY], "witnesses": [{"vkey": bad}]}):
+        with pytest.raises(ValueError):
+            pcm_verify.verify(message(), trust, [DOC], {})
 
 
 @pytest.mark.parametrize("args", [[1], "n", None, {"n": 2 ** 60}, {"n": 1.0}, {"n": True}])

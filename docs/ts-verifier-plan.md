@@ -52,13 +52,13 @@ About 600 to 800 lines, mapping one to one onto `tracekit/pcm/__init__.py` and `
 Three checkers lean on Tracekit helpers that are not small. A TypeScript port must give the same answer on every
 vector, so each is ported with its own tests:
 
-- **`tests_passed`**: splitting a command line into simple commands (Python `shlex` in POSIX mode with
-  `punctuation_chars`; a `#` starts a comment only at the start of a word), then SPEC 6.8: the words begin with one
-  of the fixed runner sequences (first word by base name) and carry none of the flags that run no tests. A table,
-  no recognizer to port.
+- **`tests_passed`**: SPEC 6.8: refuse a suite with any of its listed characters, split the rest at spaces and tabs
+  with `'…'` and `"…"` grouping (no escapes or expansions are left to handle; unbalanced quotes refuse), then the
+  words begin with one of the fixed runner sequences (first word compared exactly) and carry none of the flags that
+  run no tests or their long prefixes. A table, no shell parser to port.
 - **`reached_host`**: the compared form of SPEC 6.7, step by step. Don't use `new URL()` or `URL.hostname` for it:
-  they apply UTS 46, which differs from the IDNA 2003 the spec fixes (`faß.example` stays `xn--fa-hia.example` there
-  and is `fass.example` here), refuse some hosts the spec reads, and know nothing of `urlsplit`'s refusals or the
+  they apply UTS 46, which differs from the IDNA 2003 the spec fixes (the spec refuses the four deviation characters
+  where the two disagree), refuse some hosts the spec reads, and know nothing of `urlsplit`'s refusals or the
   rule that a browser's and `urlsplit`'s readings must agree. Port the two readings, the canonical form and the
   A-label step as the spec writes them: the browser reading is a few regular expressions; `urlsplit(url).hostname`
   (netloc after `//` up to `/?#`, after the last `@`, before the port, lower case) and the cases where it raises

@@ -379,7 +379,7 @@ def _ed25519(public, msg, sig):
 
 def check_sig(obj, tag, trust):
     """None when `obj` carries a valid signature, under domain tag `tag`, by an Ed25519 log key trust pins; else why
-    not. A trust file with a malformed vkey raises NoteError."""
+    not."""
     for vk in trust.get("logs", []):
         name, kid, type_, public = parse_vkey(vk)
         if type_ != ED25519 or f"{name}+{kid.hex()}" != obj["sig"]["key"]:
@@ -585,52 +585,44 @@ def _first(args, *keys):
     return next((args[k] for k in keys if args.get(k) is not None), None)
 
 
-SEPARATORS = frozenset((";", ";;", "&&", "||", "|", "|&", "&", "(", ")"))
-# SPEC 6.6: the leading words of a test command, its first word by base name, and the flags with which a runner runs
-# no tests
+# SPEC 6.8: the leading words of a test command, its first word a bare name, and the flags with which a runner runs no
+# tests (the long ones with their prefixes of 3 or more characters)
 TEST_RUNNERS = [r.split() for r in (
     "pytest", "py.test", "python -m pytest", "python3 -m pytest", "python -m unittest", "python3 -m unittest", "tox",
     "nox", "nose2", "trial", "behave", "jest", "vitest", "mocha", "ava", "karma", "cucumber", "playwright test",
     "phpunit", "rspec", "ctest", "npm test", "npm run test", "yarn test", "yarn run test", "pnpm test", "pnpm run test",
     "bun test", "go test", "cargo test", "cargo nextest run", "dotnet test", "deno test", "swift test", "mix test",
     "bazel test", "make test", "make check", "mvn test", "mvn verify", "gradle test", "gradle check")]
-NO_TESTS = frozenset(("--co", "--collect-only", "--help", "-h", "--version"))
+NO_TESTS, NO_TESTS_LONG = ("-h", "-V"), ("--help", "--version", "--collect-only")
+# SPEC 6.8 step 1: no operator, redirection, expansion, escape, comment, brace, glob or control character but tab
+NOT_IN_SUITE = re.compile(r"[;&|()<>$`\\#{}*?\[\]\x00-\x08\x0a-\x1f\x7f]")
 
 
-class _Lexer(shlex.shlex):
-    """shlex with a `#` starting a comment only at the start of a word, as in a shell: `a#b` is one word."""
-    commenters = property(lambda self: "#" if self.state == " " else "", lambda self, _: None)
+def test_command(suite):
+    """Whether `suite` is one test command (SPEC 6.8): one line of plain words whose quotes balance, beginning with a
+    listed runner, with no flag that runs no tests."""
+    try:
+        words = None if NOT_IN_SUITE.search(suite) else shlex.split(suite)
+    except ValueError:   # unbalanced quotes
+        words = None
+    return words is not None and any(words[:len(r)] == r for r in TEST_RUNNERS) and not any(
+        w in NO_TESTS or len(w) >= 3 and any(f.startswith(w) for f in NO_TESTS_LONG) for w in words)
 
 
-def simple_commands(cmd):
-    """The simple commands of a shell command line, each a list of words: split at line breaks and the operators
-    ; ;; && || | |& & ( )."""
-    out = []
-    for line in cmd.split("\n"):
-        if not line.strip():
-            continue
-        try:
-            lex = _Lexer(line, posix=True, punctuation_chars=True)
-            lex.whitespace_split = True
-            words = list(lex)
-        except ValueError:   # unbalanced quotes: the words whitespace leaves
-            words = line.split()
-        cur = []
-        for w in words + [";"]:
-            if w in SEPARATORS:
-                out += [cur] if cur else []
-                cur = []
-            else:
-                cur.append(w)
-    return out
+def malformed(type_, a):
+    """Why the args of a claim, valid by their table, are still malformed (SPEC 6.1); else None."""
+    if type_ == "tests_passed" and not test_command(a["suite"]):
+        return f"{a['suite'][:64]!r} is not a single test command"
+    if type_ == "file_written":
+        path = a["path"].replace("\\", "/")
+        if ".." in path.split("/"):
+            return f"{a['path'][:64]} has a `..`: name the file's own path"
+        if not _ABSOLUTE.match(path):
+            return f"{a['path'][:64]} is relative: name the file's absolute path"
+    return None
 
 
 def tests_passed(a, recs, tools):
-    # one simple command: in `pytest || true` or `pytest; true` the call's status is not the tests'
-    cmds = simple_commands(a["suite"])
-    words = [posixpath.basename(cmds[0][0]), *cmds[0][1:]] if len(cmds) == 1 else []
-    if NO_TESTS & set(words) or not any(words[:len(r)] == r for r in TEST_RUNNERS):
-        return "failed", f"{a['suite'][:64]!r} is not a single test command"
     return _ran(recs, lambda tool, args: _first(args, "command", "cmd", "commands") == a["suite"],
                 f"ran {a['suite'][:64]!r}", tools, "shell")
 
@@ -652,18 +644,18 @@ _BAD = object()   # looks like an address and is none
 
 
 def _whatwg_host(url):
-    """The host a browser reads: tabs and newlines dropped, leading and trailing controls and spaces stripped,
-    view-source: and blob: peeled, `\\` a `/`, any number of slashes after a special scheme, the host after the last
-    `@`, without its port. None for a scheme that has no host."""
+    """(scheme, host) as a browser reads them: tabs and newlines dropped, leading and trailing controls and spaces
+    stripped, view-source: and blob: peeled, `\\` a `/`, any number of slashes after a special scheme, the host after
+    the last `@`, without its port. The host is None for a scheme that has none; the scheme is None for //host."""
     u = re.sub(r"[\t\n\r]", "", url).strip(_C0)
     u = u[re.match(r"(?i)(?:(?:view-source|blob):[\x00-\x20]*)*", u).end():]
     m = re.match(r"([A-Za-z][A-Za-z0-9+.-]*):", u)
     scheme = m.group(1).lower() if m else None
     if scheme not in SPECIAL and (scheme or not re.match(r"[/\\]{2}", u)):
-        return None
+        return scheme, None
     host = re.split(r"[/?#]", (u[m.end():] if m else u).replace("\\", "/").lstrip("/"), maxsplit=1)[0]
     host = host.rpartition("@")[2]
-    return host[:host.find("]") + 1] if host.startswith("[") and "]" in host else host.split(":")[0]
+    return scheme, host[:host.find("]") + 1] if host.startswith("[") and "]" in host else host.split(":")[0]
 
 
 def _number(part):
@@ -711,37 +703,56 @@ def _canonical_host(host):
 
 
 def url_info(url):
-    """{} when the URL (http:// in front when it has no scheme) has no host; {"host": None} when Python's urlsplit
-    refuses it (a `[` it can't read); else {"host": the canonical host, or _BAD, "ambiguous": whether a browser and
-    urlsplit read different hosts}."""
+    """{} when the URL (http:// in front when it has no scheme) has no host, or a scheme other than a special one
+    (SPEC 6.7 step 2); {"host": None} when Python's urlsplit refuses it (a `[` it can't read); else {"host": the
+    canonical host, or _BAD, "ambiguous": whether a browser and urlsplit read different hosts}."""
     if not re.match(r"(?i)[\x00-\x20]*((https?|wss?|ftp|file):|[a-z][a-z0-9+.-]*:(?![0-9])|[/\\]{2})",
                     re.sub(r"[\t\n\r]", "", url)):
         url = "http://" + url
+    scheme, wh = _whatwg_host(url)
+    if scheme not in (*SPECIAL, None):   # file:, mailto:, gopher:: no host a browser reads
+        return {}
     try:
         rh = urlsplit(url).hostname
     except ValueError:
         return {"host": None}
-    hosts = [_canonical_host(h) for h in (_whatwg_host(url), rh) if h]
+    hosts = [_canonical_host(h) for h in (wh, rh) if h]
     return {"host": hosts[0], "ambiguous": len(set(hosts)) > 1} if hosts else {}
 
 
+DEVIATIONS = re.compile("[\u00df\u03c2\u200c\u200d]")   # UTS 46's deviation characters (SPEC 6.7 step 3)
+
+
+def _deviant(text):
+    """Whether `text`, percent-decoded and NFKC-normalised, holds a character IDNA 2003 maps away and UTS 46 keeps."""
+    return bool(DEVIATIONS.search(unicodedata.normalize("NFKC", unquote(text))))
+
+
 def _a_label(h):
-    """A canonical host as SPEC 6.6 compares hosts: an address as it is, a name without its one trailing dot and in
-    ASCII by Python's `idna` codec (IDNA 2003); None when it won't parse."""
-    if h is None or h is _BAD or h.startswith("["):
-        return None if h is _BAD else h
+    """A canonical host as SPEC 6.7 compares hosts: an IPv6 address as it is, an IPv4 address or a name without its
+    one trailing dot and in ASCII by Python's `idna` codec (IDNA 2003), of labels of a-z, 0-9, `_` and `-`; None when
+    it won't parse."""
+    if h is None or h is _BAD:
+        return None
+    if h.startswith("["):
+        try:
+            return h if h.endswith("]") and ipaddress.IPv6Address(h[1:-1]) else None
+        except ValueError:
+            return None
     name = h[:-1] if h.endswith(".") else h
     # lean: IDNA 2003 (the stdlib), as the reference runs it, not UTS 46; follow the SPEC if it moves to UTS 46
     try:
-        return name.encode("idna").decode("ascii") if name and not name.endswith(".") else None
+        label = name.encode("idna").decode("ascii") if name and not name.endswith(".") else None
     except UnicodeError:
         return None
+    return label if label and re.fullmatch(r"[a-z0-9_-]+(\.[a-z0-9_-]+)*", label) else None
 
 
 def _host(host):
-    """A claim's or an effect's host (a name or address, maybe with a port) in compared form; None when it won't
-    parse."""
-    if not isinstance(host, str) or re.search(r"[/\\?#@\s\[\]]", host):
+    """A claim's or an effect's host (a name or address, maybe with a port of 1 to 5 digits) in compared form; None
+    when it won't parse."""
+    if not isinstance(host, str) or re.search(r"[/\\?#@\s\[\]]", host) or _deviant(host) \
+            or host.count(":") == 1 and not re.fullmatch(r"[^:]*:[0-9]{1,5}", host):
         return None
     return _a_label(url_info(f"http://[{host}]/" if host.count(":") > 1 else f"http://{host}/").get("host"))
 
@@ -765,7 +776,7 @@ def reached_host(a, recs, tools):
         info = url_info(args["url"]) if isinstance(args.get("url"), str) else {}
         if "host" not in info:   # no URL, or one with no host (file:, mailto:)
             return False
-        got = None if info.get("ambiguous") else _a_label(info["host"])
+        got = None if info.get("ambiguous") or _deviant(args["url"]) else _a_label(info["host"])
         return None if got is None else got == want
     return min(_ran(recs, match, f"reached {a['host']}", tools, "http"), seen, key=lambda o: _RANK[o[0]])
 
@@ -788,12 +799,7 @@ _ABSOLUTE = re.compile(r"/|[A-Za-z]:/")   # what fs_path keeps absolute
 
 
 def file_written(a, recs, tools):
-    path = a["path"].replace("\\", "/")
-    if ".." in path.split("/"):
-        return "failed", f"{a['path'][:64]} has a `..`: name the file's own path"
-    if not _ABSOLUTE.match(path):
-        return "failed", f"{a['path'][:64]} is relative: name the file's absolute path"
-    want = fs_path(path)
+    want = fs_path(a["path"])
 
     def match(tool, args):
         got, content = _first(args, "file_path", "notebook_path", "path"), args.get("content")
@@ -814,8 +820,9 @@ CHECKERS = {"tests_passed": tests_passed, "approved_by": approved_by, "reached_h
 
 def check_claim(c, msg, trust, tools):
     errs = check_args(CLAIM_ARGS[c["type"]], c["args"])
-    if errs:
-        result, detail = "failed", "; ".join(errs)
+    bad = "; ".join(errs) if errs else malformed(c["type"], c["args"])   # with or without evidence (SPEC 6.1)
+    if bad:
+        result, detail = "failed", bad
     elif "evidence" not in c:
         result, detail = "unproven", "no evidence"
     else:
@@ -889,8 +896,9 @@ def _secs(t):
 class Replay:
     """One receiver's replay state, in memory. A message passes once: within `window_s` of the receiver's clock, not
     sent before it started, newer than the sender's floor and with a new nonce. A sender is the pair (sig.key,
-    from.agent). Past `per_sender` nonces the oldest is forgotten and raises the floor. `window_s=None` skips the clocks (an auditor of a saved conversation).
-    `started` and a check's `now` are unix seconds or TS strings; None is the current time."""
+    from.agent). Past `per_sender` nonces the oldest is forgotten and raises the floor. `window_s=None` skips the
+    clocks (an auditor of a saved conversation). `started` and a check's `now` are unix seconds or TS strings; None
+    is the current time."""
 
     def __init__(self, window_s=300, per_sender=4096, started=None):
         self.window_s, self.per_sender, self.started = window_s, per_sender, _secs(started)
@@ -946,6 +954,8 @@ def verify(message, trust, schemas, tools, me=None, strict=False, now=None, repl
     configuration), never for a bad message."""
     if errs := errors(TRUST, trust):
         raise ValueError(f"trust: {'; '.join(errs)}")
+    for vk in trust["logs"] + [w["vkey"] for w in trust.get("witnesses", [])]:
+        parse_vkey(vk)   # SPEC 10.1: a bad vkey raises NoteError wherever it sits in the list
     out = {"signature": None, "replay": None, "schema": None, "grants": None, "claims": None, "verdict": "reject",
            "reasons": []}
     errs = errors(MESSAGE, message)

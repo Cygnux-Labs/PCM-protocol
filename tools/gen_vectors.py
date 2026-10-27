@@ -387,23 +387,40 @@ def cases(s, s2):
 
     def without(e, key):
         return dict(e, data={k: v for k, v in e["data"].items() if k != key})
-    failed("record-not-an-event", "approved_by whose approval record lost data.decision, under a checkpoint the test "
-           "log key signs offline over the edited record: a record that is no valid tracekit.event.v2 event fails.",
-           dict(approved, evidence=relog(ev["records"], lambda i, e: without(e, "decision"))), "not a valid event")
+    failed("record-not-an-event", "approved_by whose approval record has the number 5 as its prev_hash, which no "
+           "claim checker reads, under a checkpoint the test log key signs offline over the edited record: a record "
+           "that is no valid tracekit.event.v2 event fails.",
+           dict(approved, evidence=relog(ev["records"], lambda i, e: dict(e, prev_hash=5))), "not a valid event")
+    failed("tests-passed-malformed-no-evidence", "tests_passed of `pytest ... || true` with no evidence: a suite that "
+           "is no test command is malformed, so the claim fails without evidence too.",
+           {"type": "tests_passed", "args": {"suite": SUITE + " || true"}}, "is not a single test command")
+    failed("file-written-relative-no-evidence", "file_written of the relative path work/report.txt with no evidence: "
+           "the claim is malformed, so it fails without evidence too.",
+           {"type": "file_written", "args": {"path": "work/report.txt", "digest": "sha256:" + "0" * 64}},
+           "is relative")
 
     # claims on a refund.quote, which needs no grant or claim, so the claim is the one cause
     def claimed(name, description, claim, want=""):
         vector(name, description, a.send("uid:990102", qref, claims=[claim]), [QUOTE], want)
     claimed("reject-claim-bash-c", "tests_passed of `bash -c 'pytest || true'`, run by the executor (T2): bash is not a "
             "test runner.", ran("Bash", "bash -c 'pytest || true'"), "is not a single test command")
-    claimed("accept-tests-passed-comment", "tests_passed of `pytest ... # || true`, run by the executor (T2): the shell "
-            "reads `# || true` as a comment, so it is one command.", ran("Bash", SUITE + " # || true"))
-    claimed("reject-claim-hash-inside-word", "tests_passed of `pytest ...py#|| true`, run by the executor (T2): a `#` "
-            "inside a word starts no comment, so the shell runs `|| true` and the line is two commands.",
-            ran("Bash", SUITE + "#|| true"), "is not a single test command")
-    for flag in ("--co", "--collect-only", "--help", "-h", "--version"):
+    for name, cmd, what in (
+            ("comment", SUITE + " # || true", "a suite may hold no `#`, even where the shell reads a comment"),
+            ("hash-inside-word", SUITE + "#|| true", "a `#` inside a word starts no comment, so the shell runs "
+             "`|| true`"),
+            ("background", SUITE + " &", "the shell runs the tests in the background and exits 0 whatever they do"),
+            ("ansi-c-quote", "pytest $'\\'';true #'", "sh reads `$'\\''` as one quote and runs `true`, where Python's "
+             "shlex reads one word"),
+            ("unbalanced-quote", "pytest -q 'tests/test_refund.py", "its quotes don't balance"),
+            ("dot-slash", "./pytest -q", "the program must be the runner's bare name, not a file of that name"),
+            ("runner-path", ".venv/bin/pytest -q", "the program must be the runner's bare name")):
+        claimed(f"reject-claim-tests-passed-{name}" if name != "hash-inside-word" else f"reject-claim-{name}",
+                f"tests_passed of `{cmd}`, run by the executor (T2): {what}, so it is no test command.",
+                ran("Bash", cmd), "is not a single test command")
+    for flag in ("--co", "--collect-only", "--help", "-h", "--version", "-V", "--he"):
         claimed(f"reject-claim-tests-passed-{flag.lstrip('-')}", f"tests_passed of `pytest {flag} -q`, "
-                f"run by the executor (T2): with {flag} a runner runs no tests, so it is no test command.",
+                f"run by the executor (T2): {flag} is a flag with which a runner runs no tests, or a prefix of one, so "
+                "it is no test command.",
                 ran("Bash", f"pytest {flag} -q"), "is not a single test command")
     claimed("reject-claim-tests-passed-wrapper", "tests_passed of `uv run pytest -q`, run by the executor (T2): a "
             "wrapper in front is not in the list of test commands.", ran("Bash", "uv run pytest -q"),
@@ -412,8 +429,6 @@ def cases(s, s2):
             ran("Bash", "npm test"))
     claimed("accept-tests-passed-python-m-pytest", "tests_passed of `python3 -m pytest -q`, run by the executor (T2).",
             ran("Bash", "python3 -m pytest -q"))
-    claimed("accept-tests-passed-runner-path", "tests_passed of `.venv/bin/pytest -q`, run by the executor (T2): the "
-            "first word is compared by its base name.", ran("Bash", ".venv/bin/pytest -q"))
     claimed("reject-claim-tests-failed", "tests_passed whose T2 result is an error.",
             ran("Bash", SUITE, status="error"), "and failed")
     opened = ran("Bash", SUITE)
@@ -424,10 +439,11 @@ def cases(s, s2):
     claimed("reject-claim-opening-wrong-args", "tests_passed whose opening carries other args than the decision "
             "committed to.", dict(opened, evidence=dict(opened["evidence"], records=[
                 dict(dec, args={"command": SUITE + " -x"}), res])), "do not open its decision's commitment")
-    claimed("reject-claim-decision-without-id", "tests_passed whose policy.decision record lost data.decision_id, "
-            "under a checkpoint the test log key signs offline over the edited records: a decision without its id "
-            "matches no call.", dict(opened, evidence=relog(opened["evidence"]["records"], lambda i, e: without(
-                e, "decision_id") if i == 0 else e)), "no call in the evidence ran")
+    claimed("reject-claim-decision-without-id", "tests_passed whose policy.decision and tool.result records both lost "
+            "data.decision_id, under a checkpoint the test log key signs offline over the edited records: a decision "
+            "without its id matches no call, though the two still pair by their missing ids.",
+            dict(opened, evidence=relog(opened["evidence"]["records"], lambda i, e: without(e, "decision_id"))),
+            "no call in the evidence ran")
 
     sha = "sha256:" + hashlib.sha256(b"total: 81\n").hexdigest()
     wrote = call("Write", {"file_path": "/work/report.txt", "content": "total: 81\n"})
@@ -436,11 +452,13 @@ def cases(s, s2):
             ("reject-claim-file-written-wrong-digest", "/work/report.txt", "sha256:" + "0" * 64,
              "no call in the evidence wrote", "with another digest than the content's"),
             ("reject-claim-file-written-dotdot", "/work/../work/report.txt", sha, "has a `..`",
-             "naming the path with `..`, which fails"),
-            ("reject-claim-file-written-relative", "work/report.txt", sha, "is relative",
-             "naming a relative path, which fails as malformed")):
+             "naming the path with `..`, which fails")):
         claimed(name, f"file_written of {path} by a Write of /work/report.txt the executor ran (T2), {what}.",
                 {"type": "file_written", "args": {"path": path, "digest": digest}, "evidence": wrote}, want)
+    claimed("reject-claim-file-written-relative", "file_written of work/report.txt by a Write of work/report.txt the "
+            "executor ran (T2): the paths are equal, but a relative claim is malformed, so it fails.",
+            {"type": "file_written", "args": {"path": "work/report.txt", "digest": sha},
+             "evidence": call("Write", {"file_path": "work/report.txt", "content": "total: 81\n"})}, "is relative")
     claimed("accept-unproven-file-written-relative-call", "file_written of /work/report.txt by a Write of report.txt "
             "the executor ran (T2): the record doesn't hold the working directory, so the relative path may name this "
             "file or another.", {"type": "file_written", "args": {"path": "/work/report.txt", "digest": sha},
@@ -471,9 +489,24 @@ def cases(s, s2):
              "a `[` in the userinfo: Python's urlsplit refuses the URL, so its host won't parse"),
             ("accept-unproven-reached-host-ambiguous", "http://a.example\\@b.example/", "b.example",
              "can't tell whether", "a browser reads the host a.example and Python's urllib b.example, so it won't "
-             "parse")):
+             "parse"),
+            ("accept-unproven-reached-host-deviation", "http://fa\u00df.example/", "fass.example", "can't tell whether",
+             "IDNA 2003 maps the sharp s to ss and a browser keeps it (xn--fa-hia.example), so a host with one of the "
+             "four deviation characters won't parse"),
+            ("accept-reached-host-unassigned", "http://x\u0378.example/", "xn--x-qib.example", "",
+             "U+0378 is unassigned in Unicode 3.2, and the stdlib codec takes it (AllowUnassigned on)"),
+            ("reject-claim-reached-host-file-url", "file://api.example.com/x", "api.example.com",
+             "no call in the evidence", "a file: URL has no host a browser reads"),
+            ("accept-unproven-reached-host-no-ipv6", "http://%5b::1%5d/", "api.example.com", "can't tell whether",
+             "percent-decoded, the host is `[`, which is no IPv6 address, so it won't parse"),
+            ("accept-unproven-reached-host-nul", "http://api.example.com%00.evil/", "api.example.com",
+             "can't tell whether", "percent-decoded, the host holds a NUL, so it won't parse")):
         claimed(name, f"reached_host {host} by a WebFetch of {url} the executor ran (T2): {what}.",
                 {"type": "reached_host", "args": {"host": host}, "evidence": call("WebFetch", {"url": url})}, want)
+    claimed("accept-unproven-reached-host-claim-bad-port", "reached_host of api.example.com:abc with the observed "
+            "evidence: a port must be 1 to 5 digits, so the claim won't parse.",
+            {"type": "reached_host", "args": {"host": "api.example.com:abc"}, "evidence": observed},
+            "no host the verifier can read")
     claimed("reject-claim-reached-host-too-long", "reached_host of a 200-character host: a claim's host is an id, at "
             "most 128 characters.", {"type": "reached_host", "args": {"host": "a" * 196 + ".com"}}, "not a valid id")
 

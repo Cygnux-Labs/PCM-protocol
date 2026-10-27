@@ -279,9 +279,9 @@ The agent never holds a signing key. It sends the message body to the signer, an
 ### 4.5 The PCM key (decided, 0.1)
 
 A signer SHOULD sign messages and grants with a dedicated PCM key, used for nothing else. A signer MAY sign them
-with its log key instead, relying on domain separation by the `pcm.*` tags (4.2, 14.5). Tracekit 1.5 does the
-latter (a `lean:` limit in its code). Either way the trust anchors name the key: it is a vkey of type 0x01 in
-trust.json `logs`, under the log's own name (the name `sig.key` carries and the evidence origin check of 6.2 step 2
+with its log key instead, relying on domain separation by the `pcm.*` tags (4.2, 14.5). Tracekit does the latter
+(a `lean:` limit in its code). Either way the trust anchors name the key: it is a vkey of type 0x01 in trust.json
+`logs`, under the log's own name (the name `sig.key` carries and the evidence origin check of 6.2 step 2
 compares), so a receiver pins it like any log key and needs no other trust member. Rationale: a fault in PCM signing
 should not force rotating the key that signs the log, but a receiver must still be able to tell which log a message
 speaks for.
@@ -380,8 +380,11 @@ Each claim gets one result:
 - **unproven**: there is no evidence, or the only matching record is the agent's own report (T1), or the matching
   call is of a tool the verifier can't place (6.5), or the verifier can't tell whether a record matches: a host that
   won't parse (6.7), a `Write` of a relative path that may be the claimed file (6.6).
-- **failed**: the claim's args are invalid or malformed (a relative `file_written` path, a `tests_passed` suite that
-  is no test command), the evidence does not verify, or no record in it says what the claim says.
+- **failed**: the claim's args are invalid or malformed (a `file_written` path that is relative or has a `..`
+  segment, 6.6; a `tests_passed` suite that is no test command, 6.8), the evidence does not verify, or no record in it
+  says what the claim says. The args and malformed checks come before the evidence: a malformed claim is `failed`
+  with or without evidence, at every conformance level (vectors `reject-claim-tests-passed-malformed-no-evidence`,
+  `reject-claim-file-written-relative-no-evidence`). **[Tracekit]**
 
 When several records match, the best result counts: proven, then unproven, then failed.
 
@@ -419,7 +422,8 @@ A verifier checks an evidence item in this order. The first failure makes the cl
      text (4.3). A line of a pinned witness key is exactly 72 bytes after the key id: an 8-byte big-endian time `t`,
      then an Ed25519 signature over `cosignature/v1\ntime <t>\n` followed by the text.
    - A key in `logs` that is a cosignature key, or a key in `witnesses` that is not, fails the note.
-   - A pinned Ed25519 log key named after the origin MUST have a line. When trust pins a hybrid key named after the
+   - At least one pinned Ed25519 log key named after the origin MUST have a valid line; other pinned keys of that
+     name need none (a dedicated PCM key, 4.5, signs no checkpoint). When trust pins a hybrid key named after the
      origin, its line MUST be present and valid (10.1).
 2. **Same log.** The note's origin equals the key name in the message's `sig.key` (the part before the last `+`).
    Evidence from another log fails, even if that log is pinned too (section 14.1).
@@ -435,8 +439,8 @@ A verifier checks an evidence item in this order. The first failure makes the cl
    4. `event` is a valid event of the evidence profile (6.4): `schema_version` is `tracekit.event.v2` and the event
       matches that profile's event schema, `registry/tracekit.event.v2.json`; else "record i: not a valid event".
       A pinned log can still be hostile, and a checker must not meet a record without the fields it reads. **[Tracekit]**
-      (vector `reject-claim-record-not-an-event`: an approval without `data.decision`, under a checkpoint the test log
-      key signs offline.)
+      (vector `reject-claim-record-not-an-event`: an approval whose `prev_hash` is the number 5, a field no checker
+      reads, under a checkpoint the test log key signs offline.)
    5. If the record has `salt` or `args`, it MUST have both, `event.type` MUST be `policy.decision`, and the opening
       MUST verify (6.3). Vectors: `reject-claim-salt-without-args`, `reject-claim-opening-wrong-args`.
 
@@ -550,23 +554,36 @@ run through `mcp:ci/run`, a tool the table does not place as `shell` (`accept-un
 
 **`tests_passed {suite}`** **[Tracekit]**
 
-1. `suite` MUST be one test command (6.8). Else `failed` ("… is not a single test command").
+1. `suite` MUST be one test command (6.8). Else `failed` ("… is not a single test command"), with or without
+   evidence (6.1).
 
-   `pytest -q tests/x.py` and `npm test` pass this step. `pytest || true`, `pytest; true`, `echo hi`,
-   `bash -c 'pytest || true'` (the program is `bash`), `uv run pytest` (a wrapper) and `pytest --co` (runs no tests)
-   do not. `pytest -q tests/x.py # || true` passes: the shell reads `# || true` as a comment.
+   `pytest -q tests/x.py` and `npm test` pass this step. `pytest || true`, `pytest; true`, `pytest &`, `echo hi`,
+   `bash -c 'pytest || true'` (the program is `bash`), `uv run pytest` (a wrapper), `./pytest` (not a bare name),
+   `pytest --co` (runs no tests) and `pytest -q tests/x.py # || true` (a `#`) do not.
 2. Then `Ran(match, "shell")`, where `match` holds when the call's shell command equals `suite` exactly. The shell
    command is the first non-null of the args members `command`, `cmd`, `commands`.
 
 What `proven` means: the signer recorded that this exact command line ran through an attesting executor and exited 0.
-It does not mean every test passed: a flag 6.8 does not refuse can still select no tests (`pytest --fixtures`,
-`go test -run NONE`). A receiver MUST read `suite` itself and decide whether that command line is the test run it
-needs. Vectors: `accept-tests-passed-t2`, `accept-tests-passed-comment`, `accept-tests-passed-npm-test`,
-`accept-tests-passed-python-m-pytest`, `accept-tests-passed-runner-path`, `reject-claim-pytest-or-true`,
-`reject-claim-bash-c`, `reject-claim-hash-inside-word`, `reject-claim-tests-passed-co`,
+It does not mean every test passed, nor that the tests a receiver cares about ran:
+
+- runners take flags 6.8 does not refuse that select or run no tests and still exit 0: `pytest -qh` (a cluster with
+  `-h`), `pytest --fixtures`, `go test -run NONE`, `go test -exec true`, `make test -n`,
+  `make test SHELL=/bin/true`, `npm test --script-shell=true`, `cargo test --no-run`, `mvn test -DskipTests`,
+  `jest --listTests`;
+- the program is whatever the executor's `PATH` and working directory supply under the runner's name, and the
+  runner reads its own configuration (`pytest.ini`, `package.json`, a `Makefile`) from the working directory, which
+  the agent may have written.
+
+A receiver MUST compare `suite` with the suites it accepts and MUST NOT rely on the runner list of 6.8 to tell a
+real test run from another. Vectors: `accept-tests-passed-t2`, `accept-tests-passed-npm-test`,
+`accept-tests-passed-python-m-pytest`, `reject-claim-pytest-or-true`, `reject-claim-bash-c`,
+`reject-claim-hash-inside-word`, `reject-claim-tests-passed-comment`, `reject-claim-tests-passed-background`,
+`reject-claim-tests-passed-ansi-c-quote`, `reject-claim-tests-passed-unbalanced-quote`,
+`reject-claim-tests-passed-dot-slash`, `reject-claim-tests-passed-runner-path`, `reject-claim-tests-passed-co`,
 `reject-claim-tests-passed-collect-only`, `reject-claim-tests-passed-help`, `reject-claim-tests-passed-h`,
-`reject-claim-tests-passed-version`, `reject-claim-tests-passed-wrapper`, `reject-claim-tests-failed` (the T2 result
-is an error).
+`reject-claim-tests-passed-version`, `reject-claim-tests-passed-V`, `reject-claim-tests-passed-he`,
+`reject-claim-tests-passed-wrapper`, `reject-claim-tests-passed-malformed-no-evidence`, `reject-claim-tests-failed`
+(the T2 result is an error).
 
 **`approved_by {person, call}`** **[Tracekit]**
 
@@ -615,13 +632,16 @@ Hosts are compared in the form of 6.7.
    kernel sensor (vector `accept-reached-host-observed`). Such a record whose `data.host` is absent or won't parse is a
    candidate `unproven`.
 3. Else the best of that candidate and `Ran(match, "http")`, where `match` reads the args member `url`: not a string,
-   or a URL with no host (`file:`, `mailto:`): no; a URL whose host won't parse: can't tell; else yes when the
-   URL's host has the claim's compared form.
+   or a URL with no host (6.7 step 2: a scheme other than `http`, `https`, `ws`, `wss` and `ftp`, such as `file:`,
+   `mailto:` or `gopher:`, or no host at all): no; a URL whose host won't parse: can't tell; else yes when the URL's
+   host has the claim's compared form.
 
 Vectors: `accept-reached-host-http` (`https://API.Example.COM:8443/v1` is `api.example.com`),
 `accept-reached-host-claim-port`, `accept-reached-host-trailing-dot`, `accept-reached-host-short-ipv4`,
-`accept-reached-host-idn`, `reject-claim-reached-host-other-host`, `accept-unproven-reached-host-bracket`,
-`accept-unproven-reached-host-ambiguous`.
+`accept-reached-host-idn`, `accept-reached-host-unassigned`, `reject-claim-reached-host-other-host`,
+`reject-claim-reached-host-file-url`, `accept-unproven-reached-host-bracket`, `accept-unproven-reached-host-ambiguous`,
+`accept-unproven-reached-host-deviation`, `accept-unproven-reached-host-no-ipv6`, `accept-unproven-reached-host-nul`,
+`accept-unproven-reached-host-claim-bad-port`.
 
 **`file_written {path, digest}`** **[Tracekit]**
 
@@ -630,10 +650,13 @@ is **rewritten** this way (`policy2.classes.fs_path`): `\` becomes `/`. An absol
 cleaned as POSIX `normpath` does (repeated `/` and `.` segments go; exactly two leading slashes stay, so `//a/b` stays
 `//a/b`). Any other path keeps only the part after its last `..` segment, without empty and `.` segments.
 
+Steps 1 and 2 make a claim malformed, so they apply with or without evidence (6.1).
+
 1. If `path`, with `\` read as `/`, has a `..` segment: `failed` ("name the file's own path").
 2. **Absolute paths only (decided, 0.1).** If `path` is not absolute: `failed` ("… is relative: name the file's
    absolute path"). Rationale: a relative path names a different file from each working directory, so it can't say
-   which file was written. Vector `reject-claim-file-written-relative`.
+   which file was written. Vectors `reject-claim-file-written-relative` (a Write of the same relative path, which
+   would match without this rule), `reject-claim-file-written-relative-no-evidence`.
 3. Else `Ran(match)` with no class. `match` is no unless all of these hold:
    - the tool is a write tool: its name maps to the file operation `write` in the reference table, which in 0.1 is the
      tool `Write` only (an `op` member in the args is the agent's word and is ignored);
@@ -655,69 +678,105 @@ Vectors: `accept-file-written`, `reject-claim-file-written-wrong-digest`, `rejec
 host alike. Two hosts match when their compared forms are equal. Ports are ignored. A host that won't parse has no
 compared form, and gives `unproven`, never `proven` or `failed`. Rationale: a host has many spellings
 (`API.Example.COM:8443`, `api.example.com.`, `bücher.example`, `127.1`); comparing one canonical form makes every
-spelling of the same host match and lets no two hosts collide, and a host the verifier can't read proves nothing
-either way. **[Tracekit]** (`claims._host`, `claims._a_label`, `policy2.classes.url_info`.)
+spelling of the same host match. Where two readers this section names disagree on a host (a browser and `urllib`,
+IDNA 2003 and UTS 46), the host won't parse rather than match a host the call may not have reached, and a host the
+verifier can't read proves nothing either way. **[Tracekit]** (`claims._host`, `claims._a_label`, `claims._deviant`,
+`policy2.classes.url_info`.)
 
 The intent is the WHATWG URL host parser [WHATWG-URL] followed by IDNA. PCM 0.1 specifies what the reference
-implements with the Python standard library, step by step:
+implements with the Python standard library, step by step. A verifier in Python MUST run on CPython 3.11.4 or later
+(earlier versions read brackets in `urlsplit` differently, step 2). The vectors were made on CPython 3.11.15.
 
 1. **A URL.** Remove tabs and line breaks. If the URL, with leading controls and spaces skipped, does not start with
-   `http:`, `https:`, `ws:`, `wss:`, `ftp:`, `file:`, another scheme followed by a non-digit, or two slashes (`/` or
-   `\`), put `http://` in front: `example.com:8080/x` is `http://example.com:8080/x`.
-2. Read the host two ways:
-   - as Python's `urllib.parse.urlsplit(url).hostname` reads it. If `urlsplit` refuses the URL (it raises, as it does
-     for a `[` or `]` it can't read, such as `http://[x]@good.com/` on Python 3.11.4 and later), the host won't
-     parse (vector `accept-unproven-reached-host-bracket`);
-   - as a browser reads it: drop tabs and line breaks, strip leading and trailing C0 controls and spaces, peel
-     `view-source:` and `blob:`, read `\` as `/`. Only `http`, `https`, `ws`, `wss`, `ftp` and a scheme-less `//host`
-     have a host. Take what follows the slashes up to `/`, `?` or `#`, then what follows the last `@`, then drop the
-     port (a `[...]` IPv6 host keeps its brackets).
+   `http:`, `https:`, `ws:`, `wss:`, `ftp:`, `file:`, another scheme (`[A-Za-z][A-Za-z0-9+.-]*` and `:`) not followed
+   by a digit (so `localhost:` at the end is a scheme), or two slashes (`/` or `\`), put `http://` in front:
+   `example.com:8080/x` is `http://example.com:8080/x`.
+2. **The scheme, then the host read two ways.** Read the URL as a browser does: drop tabs and line breaks, strip
+   leading and trailing C0 controls and spaces, and peel `view-source:` and `blob:`. Its scheme is the leading
+   `[A-Za-z][A-Za-z0-9+.-]*` before a `:`, in lower case, or none. A URL whose scheme is not `http`, `https`, `ws`,
+   `wss` or `ftp`, and not none (`//host`), has no host, whatever `urllib` reads (`file://api.example.com/x`,
+   `gopher://g.example/`; vector `reject-claim-reached-host-file-url`). Otherwise read the host:
+   - as `urllib.parse.urlsplit(url).hostname` reads it. If `urlsplit` refuses the URL, the host won't parse. From
+     CPython 3.11.4 it raises for a `[` or `]` without the other, and for a netloc whose bracketed part is neither an
+     IPv6 nor an IPvFuture address (`http://[x]@good.com/`; vector `accept-unproven-reached-host-bracket`). Patch
+     releases since have changed which netlocs with brackets it refuses (on 3.11.15, a bracketed IPv6 address before the `@` is
+     refused because `good.com`, the host after the last `@`, is no address), so a URL with `[` or `]` outside a
+     bracketed IPv6 host can read differently between verifiers' Pythons. Senders SHOULD NOT send such URLs
+     (Appendix B question 1);
+   - as a browser reads it: read `\` as `/`, take what follows the slashes up to `/`, `?` or `#`, then what follows
+     the last `@`, then drop the port (a `[...]` IPv6 host keeps its brackets).
 
    Put each non-empty reading in canonical form (step 3). Neither reading: the URL has no host. Two readings whose
    canonical forms differ: the host won't parse, since the call may have reached either
    (`http://a.example\@b.example/` is `a.example` to a browser and `b.example` to `urllib`; vector
    `accept-unproven-reached-host-ambiguous`). Else the host is the browser's reading, or `urllib`'s when the browser
    has none.
-3. **Canonical form.** Percent-decode; apply Unicode NFKC; read U+3002 as `.`; casefold. If it names an address,
-   write it in canonical form: IPv4 is read as `inet_aton` reads it, 1 to 4 parts, each decimal, `0x` hex or `0`
-   octal, so `127.1` is `127.0.0.1` (vector `accept-reached-host-short-ipv4`); an IPv6 address is `[...]` in
-   compressed form, an IPv4-mapped or NAT64 (`64:ff9b::/96`) one the IPv4 address inside. Something that ends in a
-   number but is no valid address won't parse.
-4. **A-label.** An IPv6 address stays as it is. Otherwise drop one trailing dot (vector
-   `accept-reached-host-trailing-dot`); if the rest is empty or still ends with `.`, it won't parse. Then convert it
-   with Python's `idna` codec (`name.encode("idna")`), which is IDNA 2003: an all-ASCII name is kept as it is, and
-   each label must be 1 to 63 characters; any other name is split at `.` and each label goes through ToASCII
-   [RFC3490] with Nameprep [RFC3491] (Unicode 3.2) and Punycode [RFC3492], AllowUnassigned and UseSTD3ASCIIRules
-   off: an ASCII label stays, a non-ASCII one becomes `xn--` and its Punycode, and every label must end up 1 to 63
-   characters. What the codec refuses won't parse. `bücher.example` is `xn--bcher-kva.example` (vector
+3. **Canonical form.** Percent-decode as UTF-8 (an invalid sequence becomes U+FFFD, which step 4 refuses) and apply
+   Unicode NFKC. **Deviation characters (decided, 0.1).** If the result holds U+00DF `ß`, U+03C2 `ς`, U+200C ZWNJ or
+   U+200D ZWJ, it won't parse. For a call's URL the check covers the whole URL, percent-decoded and NFKC-normalised,
+   its path too (a `lean:` limit of the reference: it gives `unproven` where a stricter reading of the host alone
+   could match). Rationale: these are the four characters UTS 46 nontransitional processing, which browsers use,
+   keeps where IDNA 2003 maps them away, so `faß.example` is `xn--fa-hia.example` to a browser and `fass.example` to
+   the codec of step 4; with them refused, the two either agree or one refuses (vector
+   `accept-unproven-reached-host-deviation`). Then read U+3002 as `.` and casefold. If it names an address, write it
+   in canonical form: IPv4 is read as `inet_aton` reads it, 1 to 4 parts, each decimal, `0x` hex or `0` octal, so
+   `127.1` is `127.0.0.1` (vector `accept-reached-host-short-ipv4`); an IPv6 address is `[...]` in compressed form,
+   an IPv4-mapped or NAT64 (`64:ff9b::/96`) one the IPv4 address inside. Something that ends in a number but is no
+   valid address won't parse. NFKC follows the Unicode version of the verifier's `unicodedata` (14.0 in CPython
+   3.11): a host with a code point that version leaves unassigned can read differently in a verifier with a newer
+   one, so senders SHOULD claim ASCII hosts.
+4. **A-label.** A host that starts with `[` stays as it is if it is `[`, an IPv6 address and `]`; else it won't
+   parse (`http://%5b::1%5d/` decodes to the host `[`; vector `accept-unproven-reached-host-no-ipv6`). Otherwise drop
+   one trailing dot (vector `accept-reached-host-trailing-dot`); if the rest is empty or still ends with `.`, it won't
+   parse. Then convert it with Python's `idna` codec (`name.encode("idna")`), which is IDNA 2003: an all-ASCII name
+   is kept as it is, and each label must be 1 to 63 characters; any other name is split at `.` and each label goes
+   through ToASCII [RFC3490] with Nameprep [RFC3491] (Unicode 3.2) and Punycode [RFC3492], with AllowUnassigned on
+   (CPython's codec does not check Nameprep's table A.1, so a code point Unicode 3.2 leaves unassigned is taken:
+   `x` and U+0378 then `.example` is `xn--x-qib.example`, vector `accept-reached-host-unassigned`) and
+   UseSTD3ASCIIRules off: an ASCII label stays, a non-ASCII one becomes `xn--` and its Punycode, and every label
+   must end up 1 to 63 characters. What the codec refuses won't parse. The result MUST be labels of `a`-`z`,
+   `0`-`9`, `_` and `-`, joined by single dots; else it won't parse (a NUL or `%` after percent-decoding; vector
+   `accept-unproven-reached-host-nul`). `bücher.example` is `xn--bcher-kva.example` (vector
    `accept-reached-host-idn`).
 
-**A claim's or an effect's host** is a name or address, maybe with a port. It won't parse if it is not a string or
-holds `/`, `\`, `?`, `#`, `@`, `[`, `]` or white space. Otherwise it is read as the host of the URL
-`http://[<host>]/` when it has more than one `:` (a bare IPv6 address), else `http://<host>/`, by steps 2 to 4,
+**A claim's or an effect's host** is a name or address, maybe with a port. It won't parse if it is not a string, if
+it holds `/`, `\`, `?`, `#`, `@`, `[`, `]` or Unicode white space (Python's `\s`), if it holds a deviation character
+(step 3), or if it has exactly one `:` and what follows it is not 1 to 5 ASCII digits (`api.example.com:abc`,
+`api.example.com:`; vector `accept-unproven-reached-host-claim-bad-port`). Otherwise it is read as the host of the
+URL `http://[<host>]/` when it has more than one `:` (a bare IPv6 address), else `http://<host>/`, by steps 2 to 4,
 except that the two readings are not compared: the browser's reading counts. So the claim `api.example.com:443` is
 `api.example.com` (vector `accept-reached-host-claim-port`).
 
-Where IDNA 2003 and UTS 46 [UTS46] differ, PCM 0.1 follows the codec, a `lean:` limit of the reference: casefolding makes
-`ß` `ss` and `ς` `σ` (UTS 46 nontransitional keeps them), an `xn--` label is not checked to be valid Punycode, `_`
-and other ASCII outside letters, digits and `-` are allowed, and Nameprep uses Unicode 3.2. A verifier MUST
-implement the steps above as written, not UTS 46. Senders SHOULD claim hosts in ASCII, as DNS names them.
+Where IDNA 2003 and UTS 46 [UTS46] still differ, PCM 0.1 follows the codec, a `lean:` limit of the reference: an
+`xn--` label is not checked to be valid Punycode, `_` is allowed, unassigned code points are taken, ZWSP, soft hyphen
+and the other characters Nameprep maps to nothing are dropped (`exam` U+00AD `ple.com` is `example.com`), and
+Nameprep uses Unicode 3.2. A verifier MUST implement the steps above as
+written, not UTS 46. Senders SHOULD claim hosts in ASCII, as DNS names them.
 
 ### 6.8 Test commands (decided, 0.1)
 
 A `tests_passed` suite is a **test command** when all of these hold. Rationale: every verifier must recognise the same
-commands, so the list is part of the protocol, not a guess at what a command does; and a flag that runs no tests
-must not prove that tests passed. **[Tracekit]** (`claims.TEST_RUNNERS`, `claims.NO_TESTS`.)
+commands, so the list is part of the protocol, not a guess at what a command does; the suite must read the same to
+every verifier and to `sh`, so it may hold nothing on which a shell and a word splitter can differ; and a flag that
+runs no tests must not prove that tests passed. **[Tracekit]** (`claims.test_command`, `claims.TEST_RUNNERS`,
+`claims.NO_TESTS`.)
 
-1. **One simple command.** Split `suite` into lines and skip blank ones. Read each line into words as a POSIX shell
-   does, with Python's `shlex` in POSIX mode with `punctuation_chars` and `whitespace_split`: quotes and backslashes
-   group, and a `#` outside quotes starts a comment to the end of the line only at the start of a word (after white
-   space, at the start of the line, or right after an operator); inside a word, `a#b`, it is a plain character. A
-   line with unbalanced quotes is split at white space instead. Cut the words at the operators `;` `;;` `&&` `||`
-   `|` `|&` `&` `(` `)`. The result MUST be exactly one command. **[Tracekit]** (`findings_text._simple`;
-   `pytest -q tests/x.py#|| true` is two commands, vector `reject-claim-hash-inside-word`.)
-2. **A listed runner.** The command's words, with the first replaced by its base name (what follows its last `/`,
-   so `.venv/bin/pytest` is `pytest`), MUST begin with one of these word sequences, compared exactly:
+1. **Plain words (decided, 0.1).** `suite` MUST NOT hold any of the characters `;` `&` `|` `(` `)` `<` `>` `$`
+   `` ` `` `\` `#` `{` `}` `*` `?` `[` `]`, nor a control character (U+0000 to U+001F and U+007F) other than tab: so
+   no operator, background `&`, redirection, expansion, escape, comment, brace expansion, glob or second line. Split
+   it into words at spaces and tabs, where `'…'` and `"…"` group characters into a word and are removed (Python's
+   `shlex.split`); its quotes MUST balance. Rationale: an earlier draft cut a line at operators with a word splitter
+   that reads `$'\''` apart from `sh` (`pytest $'\'';true #'` is one command to it and `pytest "'"; true` to `sh`),
+   kept `pytest &` and `(pytest &)` as one command, and let a glob or brace expansion turn into a flag in the working
+   directory (`pytest -[h]`). With none of these characters, inside double quotes nothing is special, and every
+   splitter reads the same words as `sh`. Vectors `reject-claim-tests-passed-background`,
+   `reject-claim-tests-passed-ansi-c-quote`, `reject-claim-tests-passed-unbalanced-quote`,
+   `reject-claim-tests-passed-comment`, `reject-claim-hash-inside-word`, `reject-claim-pytest-or-true`.
+2. **A listed runner.** The words MUST begin with one of these word sequences, compared exactly, so the first word is
+   a bare program name a shell looks up on `PATH` (`./pytest`, `/tmp/x/pytest` and `.venv/bin/pytest` are not
+   `pytest`; vectors `reject-claim-tests-passed-dot-slash`, `reject-claim-tests-passed-runner-path`). The list is a
+   deliberately strict subset of the test commands the reference's shell analysis knows (no `./gradlew test`,
+   `./mvnw test`, `gmake test`, `make tests`, `npm t` or `npm run test:unit`):
 
    ```text
    pytest  py.test  python -m pytest  python3 -m pytest  python -m unittest  python3 -m unittest  tox  nox  nose2
@@ -729,9 +788,11 @@ must not prove that tests passed. **[Tracekit]** (`claims.TEST_RUNNERS`, `claims
 
    A wrapper or an assignment in front (`uv run pytest`, `CI=1 pytest`, `sudo pytest`) is no test command (vector
    `reject-claim-tests-passed-wrapper`): claim the command the way the list writes it.
-3. **Runs tests.** No word is `--co`, `--collect-only`, `--help`, `-h` or `--version`: with them a runner lists,
-   explains or names itself and runs no tests (vectors `reject-claim-tests-passed-co`, `-collect-only`, `-help`,
-   `-h`, `-version`).
+3. **Runs tests.** No word is `-h` or `-V`, and no word of 3 or more characters is a prefix of `--help`,
+   `--version` or `--collect-only` (so `--he`, `--vers`, `--co` and the full flags): with them a runner lists,
+   explains or names itself and runs no tests, and argparse-based runners take a long flag's prefix for the flag
+   (vectors `reject-claim-tests-passed-co`, `-collect-only`, `-help`, `-h`, `-version`, `-V`, `-he`). A short-flag
+   cluster such as `-qh` is not refused, so that `go test -short` stays a test command; 6.6 says what that leaves.
 
 ## 7. Grants
 
@@ -924,8 +985,9 @@ Steps, in this order:
 4. **Schema.** Check every given schema document (5.2; a bad one is a configuration error). Find the document whose
    reference equals `intent.type`, and check the args (5.3).
 5. **Grants.** If the document was found, check the chain (7.6). Else `grants` is `null`.
-6. **Claims.** For each claim in order: check its args (6.1), then, if it has evidence, the evidence (6.2) and its
-   checker (6.6). No evidence: `unproven` ("no evidence").
+6. **Claims.** For each claim in order: check its args and whether it is malformed (6.1), which fails it with or
+   without evidence; then, if it has evidence, the evidence (6.2) and its checker (6.6). No evidence: `unproven`
+   ("no evidence").
 7. **Verdict.**
    - **`reject`** when any of: replay `ok` is `false`; the schema check has errors; the grants result is `failed`; a
      claim is `failed`; or `strict` is set and a claim type the document lists under `claims` has no `proven` claim.
@@ -1041,6 +1103,12 @@ A verifier MUST ignore members it does not know, so a Tracekit `trust.json` (whi
 `monitors`, and witnesses as `{"vkey", "class"}`) works as it is. A verifier reads only each witness's `vkey`; the key
 name inside the vkey is the one that counts. **[Tracekit]**
 
+A trust document with any vkey in `logs` or `witnesses` that does not parse as 4.3 says (a malformed vkey, a key id
+that does not match, non-canonical base64) is a configuration error. The verifier MUST report it before it checks
+any message, as for a bad schema document (5.2), wherever the vkey sits in the list. Rationale: otherwise a bad vkey
+listed before the key that verifies a message stops the check, and one listed after it fails only the evidence, so
+the result would depend on the order of the list. **[Tracekit]**
+
 A trust document MUST NOT pin keys of two different logs under one name. Keys that share a name are one log's
 rotations. The evidence check compares log names (6.2 step 2), and a note is accepted when any pinned Ed25519 key of
 its origin's name signs it, so two logs under one name would let one log's evidence pass for the other's (14.1).
@@ -1147,7 +1215,9 @@ are the ones that ran.
 ### 13.1 Levels
 
 - **Level 1**: envelope (3), signature (4), schema (5), grants (7), replay and recipient (9), the verdict (8), and
-  claim args (6.1). After the args check, a Level 1 verifier MUST give every claim that has evidence the result
+  claim args with the malformed-claim rules (6.1: a `tests_passed` suite that is no test command, 6.8, and a
+  `file_written` path that is relative or has a `..` segment, 6.6, are `failed`). After that check, a Level 1
+  verifier MUST give every claim that has evidence the result
   `unproven` ("evidence not checked"). It never gives `proven`.
 - **Level 2**: Level 1, plus evidence (6.2, 6.3), the evidence profile (6.4) and the four claim checkers (6.5, 6.6).
 - The transfer extension (12) is separate and DRAFT.
@@ -1230,16 +1300,20 @@ rule that closes it.
    approval can mint grants that differ only in `ts` (a documented `lean:` limit). Its SDK completes the call at once.
 9. **Held runs.** **Rule:** a held or quarantined run MUST NOT get new messages or grants signed: no new outward
    authority while a person looks at it. Reading evidence stays allowed.
-10. **`tests_passed` on a compound command.** `pytest || true` exits 0 whether the tests pass or not. **Rule:**
-    `suite` MUST be one test command from a fixed list (6.8); anything else fails, and so does a runner with a flag that
-    runs no tests (`--co`, `--help`, …). Vectors: `reject-claim-pytest-or-true`, run by the executor (T2) and still
-    `failed`, `reject-claim-bash-c`, `reject-claim-tests-passed-co` and the other flags. A `#` inside a word once hid
-    `|| true` from this rule: 14.19.
+10. **`tests_passed` on a compound command.** `pytest || true` and `pytest &` exit 0 whether the tests pass or not.
+    **Rule:** `suite` MUST be one line of plain words (no operator, redirection, expansion, escape, comment, brace or
+    glob character) beginning with a runner from a fixed list by its bare name (6.8); anything else fails, and so does
+    a runner with a flag that runs no tests (`--co`, `--help`, `-V`, `--he`, …). Vectors:
+    `reject-claim-pytest-or-true`, run by the executor (T2) and still `failed`, `reject-claim-bash-c`,
+    `reject-claim-tests-passed-background`, `reject-claim-tests-passed-dot-slash`, `reject-claim-tests-passed-co` and
+    the other flags. A `#` inside a word, and `$'…'` quoting, once hid a second command from this rule: 14.19. Even
+    so, a listed runner can be told to run no tests by flags and files the list can't see (6.6 "What `proven`
+    means"): a receiver compares `suite` with the suites it accepts.
 11. **`file_written`.** **Rule:** only write tools count (by tool name, not by an `op` in the args), only with the full
-    content, checked by its SHA-256 digest; a claim path with `..` fails, and so does a relative one; a `Write` of a
-    relative path is `unproven`, never `proven` (6.6). Vectors: `accept-file-written`,
+    content, checked by its SHA-256 digest; a claim path with `..` fails, and so does a relative one, with or without
+    evidence; a `Write` of a relative path is `unproven`, never `proven` (6.6). Vectors: `accept-file-written`,
     `reject-claim-file-written-wrong-digest`, `reject-claim-file-written-dotdot`, `reject-claim-file-written-relative`,
-    `accept-unproven-file-written-relative-call`.
+    `reject-claim-file-written-relative-no-evidence`, `accept-unproven-file-written-relative-call`.
 12. **Hostile input.** A pinned log can be hostile, and a caller can pass any object. **Rule:** a verifier MUST NOT
     crash on hostile input: args that are not an object, wrong JSON types, invalid or non-canonical base64, non-ASCII
     proof entries, events that are not objects or not valid events of the profile, records without a field a checker
@@ -1285,20 +1359,31 @@ rule that closes it.
     signed by the key that signed the message (7.6), and a sender is the pair (`sig.key`, `from.agent`), never
     `from.agent` alone (section 9, decided 0.1). `pcm_delegate` takes only its own signer's grants (7.5). Vectors:
     `reject-grant-from-another-log` (trust pins both logs), `accept-replay-same-agent-other-log`.
-19. **`#` inside a word.** A splitter that reads every `#` outside quotes as a comment reads
-    `pytest -q tests/x.py#|| true` as the one command `pytest -q tests/x.py`, while the executor's shell runs
-    `pytest -q tests/x.py#`, then `|| true`, and exits 0 whether the tests passed or not. **Rule:** a `#` starts a
-    comment only at the start of a word, as in a POSIX shell (6.8). Vector: `reject-claim-hash-inside-word`.
+19. **A word splitter that reads apart from the shell.** A splitter that reads every `#` outside quotes as a comment
+    reads `pytest -q tests/x.py#|| true` as the one command `pytest -q tests/x.py`, while the executor's shell runs
+    `pytest -q tests/x.py#`, then `|| true`. Python's `shlex` has no `$'…'` quoting: it reads
+    `pytest $'\'';true #'` as one command, which `sh` runs as `pytest "'"`, then `true`. Either way the call exits 0
+    whether the tests passed or not, and an earlier draft proved `tests_passed` for it. **Rule:** a suite holds none
+    of the characters on which a shell and a word splitter can differ: no `#`, `$`, backquote, backslash, operator,
+    brace or glob character, and balanced quotes (6.8 step 1). Vectors: `reject-claim-hash-inside-word`,
+    `reject-claim-tests-passed-ansi-c-quote`, `reject-claim-tests-passed-comment`,
+    `reject-claim-tests-passed-unbalanced-quote`.
 20. **Host spellings.** A host has many spellings, and two readers of one URL can disagree on its host
-    (`http://a.example\@b.example/`). **Rule:** hosts are compared in one canonical form, and a host that won't parse
-    or that two readers read apart gives `unproven`, never `proven` (6.7). Vectors: the `reached-host` vectors of
-    6.6.
+    (`http://a.example\@b.example/`; `faß.example` is `fass.example` to IDNA 2003 and `xn--fa-hia.example` to a
+    browser). **Rule:** hosts are compared in one canonical form, and a host that won't parse, that two readers read
+    apart or that holds a deviation character gives `unproven`, never `proven`; a URL of a scheme without a host
+    reaches none (6.7). Vectors: the `reached-host` vectors of 6.6.
 21. **Signature malleability.** With lenient base64, one signature had several texts that verified, so a grant's
     text, and its hash in a child's `parent`, could change without a new signature. **Rule:** canonical base64 only
     (4.3). Vectors: `reject-sig-non-canonical-base64`, `reject-claim-proof-non-canonical-base64`.
 22. **`approved_by` without a person.** Matched against the answering identity, the claim was `proven` by any
     identity of the tenant when the signer had no approvals configuration. **Rule:** it proves only a configured
     person (6.6). Vector: `reject-claim-approved-by-unmapped-identity`.
+23. **A runner by its base name.** Compared by base name, the first word `/tmp/x/pytest` passed as `pytest`: the agent
+    could write a file of that name that exits 0 and run it through the executor. **Rule:** the first word is
+    compared exactly, so it is a bare name the executor's `PATH` resolves (6.8 step 2). The executor's `PATH` and
+    working directory remain the deployment's to keep out of the agent's reach (6.6). Vectors:
+    `reject-claim-tests-passed-dot-slash`, `reject-claim-tests-passed-runner-path`.
 
 Also: PCM authenticates the signer, not the agent's intentions. A compromised agent can send any message its grants
 allow. The receiver's own policy decides what to do with an `accept`.
@@ -1464,10 +1549,13 @@ The code wins. These places differ from Tracekit's design notes at the time of w
 
 ## Appendix B. Open issues
 
-The verifier rules of this draft have no known open attack. Eight questions earlier drafts left open are now decided
-rules, each marked "(decided, 0.1)": canonical base64 (4.3), the PCM key (4.5), only a configured person for
-`approved_by` (6.6), absolute paths for `file_written` (6.6), host comparison (6.7), test commands (6.8), the sender
-pair and one acceptance per receiver (9). What remains:
+A review of the previous draft found an attack on its verifier rules: a `tests_passed` suite with `$'…'` quoting,
+`&` or a file named like a runner was proven though its exit status was not the tests' (14.10, 14.19, 14.23). This
+draft closes those; it has no other known open attack on its verifier rules. What `tests_passed` proves still rests
+on the receiver reading `suite` (6.6). Questions earlier drafts left open are now decided rules, each marked
+"(decided, 0.1)": canonical base64 (4.3), the PCM key (4.5), only a configured person for `approved_by` (6.6),
+absolute paths for `file_written` (6.6), host comparison and deviation characters (6.7), test commands and plain
+words (6.8), the sender pair and one acceptance per receiver (9). What remains:
 
 **In the reference implementation.** Places where Tracekit does less than this document asks; each is a `lean:`
 limit in its code and a row of its `docs/limits.md`.
@@ -1479,10 +1567,11 @@ limit in its code and a row of its `docs/limits.md`.
 
 **Questions for a later draft.**
 
-1. **Host reading leans on Python's `urllib`** (6.7 step 2). A verifier in another language must reproduce
-   `urlsplit(url).hostname` and when `urlsplit` raises (bracket handling changed in Python 3.11.4), and the IDNA 2003
-   codec. A statement of the rule that needs neither, closer to the WHATWG host parser and UTS 46, is open; until
-   then the vectors pin the cases that matter.
+1. **Host reading leans on Python's `urllib`, `unicodedata` and `idna`** (6.7). A verifier in another language must
+   reproduce `urlsplit(url).hostname` and when `urlsplit` raises (its bracket checks changed in Python 3.11.4 and in
+   patch releases since), NFKC at Python's Unicode version, and the IDNA 2003 codec. A statement of the rule that
+   needs none of them, closer to the WHATWG host parser and UTS 46, is open; until then the vectors pin the cases
+   that matter and senders keep to ASCII hosts and plain URLs.
 2. **A dedicated PCM key is pinned like a log key** (4.5). It sits in trust.json `logs`, so a verifier would also
    take it on that log's checkpoints. A trust member that pins a key for messages and grants only would separate the
    two; it changes the trust document, so it waits for a later draft.
