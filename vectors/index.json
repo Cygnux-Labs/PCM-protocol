@@ -282,6 +282,18 @@
     "verdict": "reject"
   },
   {
+    "name": "accept-approved-by-opened-args",
+    "file": "accept-approved-by-opened-args.json",
+    "description": "approved_by of call pay-1, which the agent decided twice: a pay of 50000, then a read_file of /etc/motd. alice approved the read_file, and the evidence opens its decision: the result's approved names the read_file and its args, which the receiver reads, whatever the call id says.",
+    "verdict": "accept"
+  },
+  {
+    "name": "reject-claim-record-listed-twice",
+    "file": "reject-claim-record-listed-twice.json",
+    "description": "approved_by whose evidence lists the opened read_file decision of pay-1 twice: evidence that lists a record twice fails, so a decision listed opened and unopened can't make what was approved depend on the order of the records.",
+    "verdict": "reject"
+  },
+  {
     "name": "reject-claim-approved-by-other-decision",
     "file": "reject-claim-approved-by-other-decision.json",
     "description": "approved_by of call pay-1, which the agent decided twice: a pay of 50000, then a read_file of /etc/motd. alice approved the read_file (the approval.request names its decision), and the evidence holds the pay decision with that request and approval: an approval is of the decision its request names, not of every decision of the call id.",
@@ -345,6 +357,18 @@
     "name": "reject-claim-approved-by-decision-without-tool",
     "file": "reject-claim-approved-by-decision-without-tool.json",
     "description": "approved_by whose evidence is alice's approval, its request and decision, with the decision's tool removed, so nothing says what was approved, under a checkpoint the test log key signs offline over the edited records.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-approved-by-two-decisions",
+    "file": "reject-claim-approved-by-two-decisions.json",
+    "description": "approved_by of call pay-1 whose evidence holds alice's approval of the read_file decision with its request, and a second approval by alice of pay-1 with a request naming the pay decision, under a checkpoint the test log key signs offline (a signer keeps one approval per call): approvals of the call that name different decisions fail the claim, whatever the order of the records.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-approved-by-request-names-two-decisions",
+    "file": "reject-claim-approved-by-request-names-two-decisions.json",
+    "description": "approved_by of call pay-1 whose evidence holds alice's approval, its request and the read_file decision, plus a second approval.request of the same approval naming the pay decision (not in the evidence), under a checkpoint the test log key signs offline: requests of one approval that name two decisions fail the claim.",
     "verdict": "reject"
   },
   {
@@ -612,10 +636,16 @@
     "verdict": "accept"
   },
   {
-    "name": "accept-reached-host-idn",
-    "file": "accept-reached-host-idn.json",
-    "description": "reached_host xn--bcher-kva.example by a WebFetch of http://bücher.example/ the executor ran (T2): the host goes to ASCII by IDNA, so it is the punycode name the claim carries.",
+    "name": "accept-reached-host-a-label",
+    "file": "accept-reached-host-a-label.json",
+    "description": "reached_host xn--bcher-kva.example by a WebFetch of https://XN--BCHER-KVA.Example/ the executor ran (T2): an xn-- label is compared as written, in lower case: a name in another script is fetched and claimed in its A-label form.",
     "verdict": "accept"
+  },
+  {
+    "name": "accept-unproven-reached-host-idn",
+    "file": "accept-unproven-reached-host-idn.json",
+    "description": "reached_host xn--bcher-kva.example by a WebFetch of http://bücher.example/ the executor ran (T2): IDNA 2003 and UTS 46 both read the name as xn--bcher-kva.example, but hosts are compared in ASCII only: a URL with a character outside printable ASCII won't parse.",
+    "verdict": "accept-unproven"
   },
   {
     "name": "reject-claim-reached-host-other-host",
@@ -668,26 +698,50 @@
   {
     "name": "accept-unproven-reached-host-deviation",
     "file": "accept-unproven-reached-host-deviation.json",
-    "description": "reached_host fass.example by a WebFetch of http://faß.example/ the executor ran (T2): IDNA 2003 maps the sharp s to ss and a browser keeps it (xn--fa-hia.example), so a host with one of the four deviation characters won't parse.",
+    "description": "reached_host fass.example by a WebFetch of http://faß.example/ the executor ran (T2): IDNA 2003 maps the sharp s to ss, so a verifier that read the name by it would prove fass.example, where a browser reaches xn--fa-hia.example: a URL with a character outside printable ASCII won't parse.",
     "verdict": "accept-unproven"
   },
   {
-    "name": "accept-unproven-reached-host-capital-sharp-s",
-    "file": "accept-unproven-reached-host-capital-sharp-s.json",
-    "description": "reached_host fass.example by a WebFetch of http://faẞ.example/ the executor ran (T2): NFKC keeps the capital sharp s, case folding makes it ss and UTS 46 a sharp s (xn--fa-hia.example), so it won't parse.",
+    "name": "accept-unproven-reached-host-mapped-to-nothing",
+    "file": "accept-unproven-reached-host-mapped-to-nothing.json",
+    "description": "reached_host example.com by a WebFetch of http://exa᠆mple.com/ the executor ran (T2): IDNA 2003 maps U+1806 to nothing, so a verifier that read the name by it would prove example.com, where UTS 46 refuses the name: a URL with a character outside printable ASCII won't parse.",
     "verdict": "accept-unproven"
   },
   {
-    "name": "accept-unproven-reached-host-cherokee",
-    "file": "accept-unproven-reached-host-cherokee.json",
-    "description": "reached_host xn--ab-5f1i.example by a WebFetch of http://aᎠb.example/ the executor ran (T2): Python's idna codec lower-cases the Cherokee capital by its own Unicode (xn--ab-5f1i.example), where Nameprep's Unicode 3.2 table and UTS 46 keep it (xn--ab-y8l.example), so a name with a Cherokee letter won't parse.",
+    "name": "accept-unproven-reached-host-tab-in-escape",
+    "file": "accept-unproven-reached-host-tab-in-escape.json",
+    "description": "reached_host fass.example by a WebFetch of http://fa%C3\t%9F.example/ the executor ran (T2): a tab inside a percent-escape, which URL readers drop, leaving fa%C3%9F.example, a sharp s once decoded: a URL with a character outside printable ASCII won't parse.",
     "verdict": "accept-unproven"
   },
   {
-    "name": "accept-reached-host-unassigned",
-    "file": "accept-reached-host-unassigned.json",
-    "description": "reached_host xn--x-qib.example by a WebFetch of http://x͸.example/ the executor ran (T2): U+0378 is unassigned in Unicode 3.2, and the stdlib codec takes it (AllowUnassigned on).",
-    "verdict": "accept"
+    "name": "accept-unproven-reached-host-leading-space",
+    "file": "accept-unproven-reached-host-leading-space.json",
+    "description": "reached_host api.example.com by a WebFetch of  https://api.example.com/v1/refunds the executor ran (T2): a leading space, which some URL readers strip and others keep: a URL with a character outside printable ASCII won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-non-ascii-path",
+    "file": "accept-unproven-reached-host-non-ascii-path.json",
+    "description": "reached_host api.example.com by a WebFetch of https://api.example.com/café the executor ran (T2): a character outside printable ASCII in the path: anywhere in the URL, it makes the host one that won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-fullwidth-ipv6",
+    "file": "accept-unproven-reached-host-fullwidth-ipv6.json",
+    "description": "reached_host ::1 by a WebFetch of http://[::１]/ the executor ran (T2): a fullwidth digit one in the brackets, which NFKC makes ::1: a URL with a character outside printable ASCII won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-ipv6-leading-zero",
+    "file": "accept-unproven-reached-host-ipv6-leading-zero.json",
+    "description": "reached_host 1.2.3.4 by a WebFetch of http://[::ffff:01.2.3.4]/ the executor ran (T2): a leading zero in the IPv6 address's dotted quad, which some IPv6 parsers read as 1.2.3.4 and others refuse: it is no IPv6 address, so the bracket rule refuses the URL.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-bracket-no-host",
+    "file": "accept-unproven-reached-host-bracket-no-host.json",
+    "description": "reached_host api.example.com by a WebFetch of http://[::1]@/ the executor ran (T2): a bracketed IPv6 address in the user info and no host after it: the bracket rule refuses the URL before anything else reads it, so the claim is unproven, not failed, whatever urlsplit's own bracket check.",
+    "verdict": "accept-unproven"
   },
   {
     "name": "reject-claim-reached-host-file-url",
@@ -696,15 +750,15 @@
     "verdict": "reject"
   },
   {
-    "name": "accept-unproven-reached-host-no-ipv6",
-    "file": "accept-unproven-reached-host-no-ipv6.json",
-    "description": "reached_host api.example.com by a WebFetch of http://%5b::1%5d/ the executor ran (T2): percent-decoded, the host is `[`, which is no IPv6 address, so it won't parse.",
+    "name": "accept-unproven-reached-host-percent",
+    "file": "accept-unproven-reached-host-percent.json",
+    "description": "reached_host api.example.com by a WebFetch of http://%61pi.example.com/ the executor ran (T2): %61 is a, but a host is never percent-decoded: a host with a `%` won't parse.",
     "verdict": "accept-unproven"
   },
   {
     "name": "accept-unproven-reached-host-nul",
     "file": "accept-unproven-reached-host-nul.json",
-    "description": "reached_host api.example.com by a WebFetch of http://api.example.com%00.evil/ the executor ran (T2): percent-decoded, the host holds a NUL, so it won't parse.",
+    "description": "reached_host api.example.com by a WebFetch of http://api.example.com%00.evil/ the executor ran (T2): a host with a `%` won't parse, so the NUL that %00 escapes can't cut it short.",
     "verdict": "accept-unproven"
   },
   {

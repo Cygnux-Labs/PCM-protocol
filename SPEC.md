@@ -435,7 +435,9 @@ A verifier checks an evidence item in this order. The first failure makes the cl
    2. Every `proof` entry is canonical base64 (4.3), `event.seq` is an integer, and the RFC 9162 section 2.1.3.2
       check passes with leaf index `event.seq`, the note's tree size and root, and leaf hash
       `SHA-256(0x00 || the 32 bytes hash names)`. Interior nodes are `SHA-256(0x01 || left || right)`
-      [RFC6962] [RFC9162]. Else "record i: not in the checkpoint".
+      [RFC6962] [RFC9162]. Else "record i: not in the checkpoint". No earlier record of the item has the same
+      `event.seq`, the same leaf, so the same record, opened or not; else "record i: the same record as record j",
+      with j that earlier record's number (vector `reject-claim-record-listed-twice`).
    3. `event.tenant == from.tenant` and `event.run_id == from.run`: the record is from the sender's own run. Run ids
       are the client's, unique only per log and tenant, so both are compared (vectors
       `reject-claim-evidence-from-another-run`, `reject-claim-evidence-from-another-tenant`: a run of another tenant
@@ -629,16 +631,35 @@ person's approval. Records a pinned log could write against these rules fail too
 approval (`reject-claim-approved-by-request-of-another-approval`), a decision of another call
 (`reject-claim-approved-by-decision-of-another-call`) or of no tool (`reject-claim-approved-by-decision-without-tool`).
 
+**Records that disagree (decided, 0.1).** The result MUST NOT depend on the order of the records. Take every
+`approval` record that meets item 1, in `seq` order:
+
+- If the `approval.request` records of one of them (item 2) name two or more different `data.decision_id`s, the claim
+  is `failed` ("approval seq 7: its approval.request records name 2 decisions"), whether or not those decisions are in
+  the evidence (vector `reject-claim-approved-by-request-names-two-decisions`).
+- Else collect, over all of them, the `policy.decision` records that meet item 3, each as its pair of `data.tool` and
+  args (as the evidence opens them, 6.3, or null). Two or more different pairs: `failed` ("the evidence holds 2
+  different decisions approved as call pay-1 by alice: send the records of one approval"; vector
+  `reject-claim-approved-by-two-decisions`, two approvals of one call id naming two decisions). None: `failed`, as
+  above. One: `proven`, and the detail names the approval with the lowest `seq` that leads to it.
+
+A record listed twice fails the evidence before any checker reads it (6.2 step 4.2; vector
+`reject-claim-record-listed-twice`), so one decision can't be listed both opened and not. Rationale: an earlier draft
+took the first approval and decision in the order the sender listed them, so evidence holding two decisions under one
+call id, or one decision once opened and once not, proved whichever the sender put first.
+
 **What was approved (decided, 0.1).** The result of a proven claim MUST carry the member `approved`:
 `{"tool": <the decision's data.tool>, "args": <its args as the evidence opens them (6.3), or null>}`. A receiver MUST
 read `approved`, not only `result`. Its `detail` names the same, with the tool as a JSON string and the args in full
 as JCS: `approval seq 5 by alice of "pcm.grant" call grant-1`, or `approval seq 7 by alice of "read_file" call
-refund-81-approved with args {"path":"/etc/motd"}`. Only a proven `approved_by` result has `approved`. Rationale: the
-agent names its calls, so a claim that alice approved `refund-81-approved` can be proven by her approval of a
-`read_file` call the agent named so; only the decision says what she saw. `approved` is a conformance field (13.2), so
-every verifier gives a receiver the same answer; `data.tool` is any string the agent chose, so in a detail it is
-quoted, and a tool named `pay call grant-1 with args {"amount":20000} and read_file` can't read as opened args. The
-args are never cut short, so padding can't push a field out of sight.
+refund-81-approved with args {"path":"/etc/motd"}` (vector `accept-approved-by-opened-args`: alice approved a
+`read_file` of `/etc/motd` the agent decided under the call id `pay-1`, and the evidence opens it). Only a proven
+`approved_by` result has `approved`. Rationale: the agent names its calls, so a claim that alice approved
+`refund-81-approved` can be proven by her approval of a `read_file` call the agent named so; only the decision says
+what she saw. `approved` is a conformance field (13.2), so every verifier gives a receiver the same answer;
+`data.tool` is any string the agent chose, so in a detail it is quoted, and a tool named
+`pay call grant-1 with args {"amount":20000} and read_file` can't read as opened args. The args are never cut short,
+so padding can't push a field out of sight.
 
 **Only a configured person (decided, 0.1).** `person` is compared with `data.person` only, never with
 `data.approver`. `data.person` is there only when the signer's approvals configuration maps the answering identity
@@ -701,21 +722,24 @@ Hosts are compared in the form of 6.7.
    connect, which can fail, and an egress observer counts a minute with no connection when its connect upstream failed;
    either says the run tried the host, not that it reached it.
 3. Else the best of the candidates and `Ran(match, "http")`, where `match` reads the args member `url`: not a string,
-   or a URL with no host (6.7 step 2: a scheme other than `http`, `https`, `ws`, `wss` and `ftp`, such as `file:`,
+   or a URL with no host (6.7 step 4: a scheme other than `http`, `https`, `ws`, `wss` and `ftp`, such as `file:`,
    `mailto:` or `gopher:`, or no host at all): no; a URL whose host won't parse: can't tell; else yes when the URL's
    host has the claim's compared form.
 
 Vectors: `accept-reached-host-http` (`https://API.Example.COM:8443/v1` is `api.example.com`),
 `accept-reached-host-claim-port`, `accept-reached-host-trailing-dot`, `accept-reached-host-short-ipv4`,
-`accept-reached-host-idn`, `accept-reached-host-unassigned`, `reject-claim-reached-host-other-host`,
-`reject-claim-reached-host-file-url`, `accept-unproven-reached-host-bracket`,
-`accept-unproven-reached-host-bracket-ipv6-userinfo`, `accept-unproven-reached-host-bracket-other-host`,
-`accept-unproven-reached-host-two-brackets`, `accept-unproven-reached-host-bracket-trailing`,
-`accept-unproven-reached-host-bracket-not-host`, `accept-unproven-reached-host-ambiguous`,
-`accept-unproven-reached-host-deviation`, `accept-unproven-reached-host-capital-sharp-s`,
-`accept-unproven-reached-host-cherokee`, `accept-unproven-reached-host-no-ipv6`, `accept-unproven-reached-host-nul`,
-`accept-unproven-reached-host-claim-bad-port`, `accept-unproven-reached-host-no-connection`,
-`accept-unproven-reached-host-sensor-connect`, `reject-claim-reached-host-denied-connect`.
+`accept-reached-host-a-label`, `reject-claim-reached-host-other-host`, `reject-claim-reached-host-file-url`,
+`accept-unproven-reached-host-bracket`, `accept-unproven-reached-host-bracket-ipv6-userinfo`,
+`accept-unproven-reached-host-bracket-other-host`, `accept-unproven-reached-host-two-brackets`,
+`accept-unproven-reached-host-bracket-trailing`, `accept-unproven-reached-host-bracket-not-host`,
+`accept-unproven-reached-host-bracket-no-host`, `accept-unproven-reached-host-ipv6-leading-zero`,
+`accept-unproven-reached-host-ambiguous`, `accept-unproven-reached-host-idn`, `accept-unproven-reached-host-deviation`,
+`accept-unproven-reached-host-mapped-to-nothing`, `accept-unproven-reached-host-tab-in-escape`,
+`accept-unproven-reached-host-leading-space`, `accept-unproven-reached-host-non-ascii-path`,
+`accept-unproven-reached-host-fullwidth-ipv6`, `accept-unproven-reached-host-percent`,
+`accept-unproven-reached-host-nul`, `accept-unproven-reached-host-claim-bad-port`,
+`accept-unproven-reached-host-no-connection`, `accept-unproven-reached-host-sensor-connect`,
+`reject-claim-reached-host-denied-connect`.
 
 **`file_written {path, digest}`** **[Implemented]**
 
@@ -778,139 +802,121 @@ Vectors: `accept-file-written`, `reject-claim-file-written-wrong-digest`, `rejec
 `reached_host` compares hosts in one canonical form: the claim's `host`, an effect's `data.host` and a call's URL
 host alike. Two hosts match when their compared forms are equal. Ports are ignored. A host that won't parse has no
 compared form, and gives `unproven`, never `proven` or `failed`. Rationale: a host has many spellings
-(`API.Example.COM:8443`, `api.example.com.`, `bücher.example`, `127.1`); comparing one canonical form makes every
+(`API.Example.COM:8443`, `api.example.com.`, `127.1`, `[2001:DB8:0:0::1]`); comparing one canonical form makes every
 spelling of the same host match. Where two readers this section names disagree on a host (the browser and generic
-readings of step 2, IDNA 2003 and UTS 46), the host won't parse rather than match a host the call may not have
-reached, and a host the verifier can't read proves nothing either way. **[Implemented]**
+readings of step 4), the host won't parse rather than match a host the call may not have reached, and a host the
+verifier can't read proves nothing either way. **[Implemented]**
 
-The intent is the WHATWG URL host parser [WHATWG-URL] followed by IDNA. PCM 0.1 specifies the reading step by step,
-so that verifiers in any language agree. Notes name the Python standard-library functions that behave as a step says,
-since the reference implementation uses them. The vectors were made on CPython 3.11.15, whose Unicode version is
-14.0.0.
+**ASCII only (decided, 0.1).** Hosts are compared in printable ASCII only. The host of a URL that holds a character
+outside U+0021 to U+007E anywhere, its path included, won't parse, and neither does a claim's or an effect's host that
+holds one: a space, a tab, a line break, any other control character, U+007F or any code point above it. A host is
+never percent-decoded, so one that holds a `%` won't parse either (step 5). A name in another script is compared in
+its A-label form, as DNS names it: `xn--bcher-kva.example`, not `bücher.example` (vectors
+`accept-reached-host-a-label`, `accept-unproven-reached-host-idn`). An `xn--` label is compared as written, in lower
+case, and is not checked to be valid Punycode [RFC3492]. Rationale: a host compares only in ASCII (A-label) form, so
+no verifier depends on an IDNA or Unicode version, nor on what its URL library strips (14.20; vectors
+`accept-unproven-reached-host-deviation`, `accept-unproven-reached-host-mapped-to-nothing`,
+`accept-unproven-reached-host-tab-in-escape`, `accept-unproven-reached-host-leading-space`,
+`accept-unproven-reached-host-non-ascii-path`, `accept-unproven-reached-host-fullwidth-ipv6`). Unicode hosts are
+future work (Appendix B). Senders SHOULD fetch and claim hosts in ASCII.
 
-1. **A URL.** Remove tabs and line breaks (U+0009, U+000A, U+000D). If the URL, with leading control characters and
-   spaces skipped, does not start with `http:`, `https:`, `ws:`, `wss:`, `ftp:` or `file:` (in any case), another
-   scheme (`[A-Za-z][A-Za-z0-9+.-]*` and `:`) not followed by a digit (so `localhost:` at the end is a scheme), or
-   two slashes (`/` or `\`), put `http://` in front: `example.com:8080/x` is `http://example.com:8080/x`.
-2. **The scheme, then the host read two ways.** Read the URL as a browser does: drop tabs and line breaks, strip
-   leading and trailing control characters and spaces, and peel any number of leading `view-source:` and `blob:` (in
-   any case, each with the control characters and spaces after it). Its scheme is the leading
-   `[A-Za-z][A-Za-z0-9+.-]*` before a `:`, in lower case, or none. A URL whose scheme is not `http`, `https`, `ws`,
-   `wss` or `ftp`, and not none, has no host, whatever the generic reading finds (`file://api.example.com/x`,
-   `gopher://g.example/`; vector `reject-claim-reached-host-file-url`); neither has a URL with no scheme that does
-   not start with two slashes (`/` or `\`). Otherwise read the host two ways:
+The intent is the WHATWG URL host parser [WHATWG-URL], in ASCII. PCM 0.1 specifies the reading step by step, so that
+verifiers in any language agree. Notes name the Python standard-library functions that behave as a step says, since
+the reference implementation uses them.
+
+In this section an **IPv6 address** is a text form of [RFC4291] section 2.2 whose embedded IPv4 part, if it has one,
+has no part of two or more digits that starts with `0`: `::ffff:1.2.3.4` is one, `::ffff:01.2.3.4` is none.
+Rationale: some IPv6 parsers read `01` as 1 and others refuse it (Python's `ipaddress` reads it before 3.9.5 and
+refuses it since), so `http://[::ffff:01.2.3.4]/` reached `1.2.3.4` for one verifier and nothing for another (vector
+`accept-unproven-reached-host-ipv6-leading-zero`).
+
+A call's URL is read in these steps; a step that finds the host won't parse, or that the URL has none, ends the
+reading.
+
+1. **Printable ASCII.** If the URL holds a character outside U+0021 to U+007E, its host won't parse.
+2. **A scheme.** If the URL does not start with `http:`, `https:`, `ws:`, `wss:`, `ftp:` or `file:` (in any case),
+   another scheme (`[A-Za-z][A-Za-z0-9+.-]*` and `:`) not followed by a digit (so `localhost:` at the end is a
+   scheme), or two slashes (`/` or `\`), put `http://` in front: `example.com:8080/x` is `http://example.com:8080/x`.
+3. **The bracket rule (decided, 0.1).** Take the URL's **authority**: if the URL starts with a scheme
+   (`[A-Za-z][A-Za-z0-9+.-]*` and `:`), remove it and its `:`; if what remains starts with `//`, the authority is
+   what follows the `//` up to the first `/`, `?` or `#` (`\` is no delimiter here); else it is empty. If the
+   authority fails the bracket rule, the host won't parse. This check comes before any other reading of the URL, so a
+   URL that fails it won't parse even where step 4 would find no host: `http://` followed by an authority of `[::1]@`
+   alone, for a claim of `api.example.com`, is `unproven`, not `failed` (vector
+   `accept-unproven-reached-host-bracket-no-host`), and so is `file://[::1]@api.example.com/`.
+
+   An authority with no `[` and no `]` passes. Any other passes only when all of these hold: it holds exactly one `[`
+   and one `]`; the `[` is the first character after the authority's last `@` (its first character when it has no
+   `@`); the `]` comes after the `[` and is followed by nothing or by `:`; and the text between them is an IPv6
+   address, optionally followed by `%` and a zone id of one or more characters other than `%`, or an IPvFuture
+   address [RFC3986] written as a lowercase `v`, one or more hex digits, `.` and one or more characters. So
+   `http://[::1]:8080/` and `http://u@[::1]/x` pass, and these are refused: `http://[x]@good.com/` (vector
+   `accept-unproven-reached-host-bracket`), `http://[::1]@api.example.com/`
+   (`accept-unproven-reached-host-bracket-ipv6-userinfo`), `http://[::1]@evil.example/`
+   (`accept-unproven-reached-host-bracket-other-host`), `http://[zz]@[::1]/`
+   (`accept-unproven-reached-host-two-brackets`), `http://[::1]x/` (`accept-unproven-reached-host-bracket-trailing`),
+   `http://[@x::1]/` (`accept-unproven-reached-host-bracket-not-host`) and `http://[::ffff:01.2.3.4]/`
+   (`accept-unproven-reached-host-ipv6-leading-zero`). Brackets in the path, query or fragment are outside the
+   authority and don't count (`http://good.com/a[1]`). A verifier MUST make this check itself, on the authority of
+   this step, and MUST NOT rest on a URL library's own bracket check. Rationale: URL libraries check brackets in
+   different ways, and each reads a host from some URL another refuses. CPython's `urlsplit` has made, in different
+   releases, no check, a check of the first bracketed part of the whole authority, and a check of the part after the
+   last `@`; verifiers on two releases gave one message different verdicts, `accept` against `accept-unproven`
+   (`http://[::1]@api.example.com/`) and `accept-unproven` against `reject` (`http://[::1]@evil.example/` for a claim
+   of `api.example.com`, and an authority of `[::1]@` alone, which one release refuses and another reads as no
+   host). The rule passes only URLs whose host every one of those checks reads alike. It refuses some URLs a browser
+   reads (`http://[zz]@[::1]/` reaches `[::1]`), which then give `unproven`.
+
+   Note: no CPython release's `urlsplit` refuses a URL of printable ASCII that passes the bracket rule, so a Python
+   verifier checks the rule first and then calls `urlsplit`.
+4. **The scheme, then the host read two ways.** Read the URL as a browser does: peel any number of leading
+   `view-source:` and `blob:` (in any case). Its scheme is the leading `[A-Za-z][A-Za-z0-9+.-]*` before a `:`, in
+   lower case, or none. A URL whose scheme is not `http`, `https`, `ws`, `wss` or `ftp`, and not none, has no host,
+   whatever the generic reading finds (`file://api.example.com/x`, `gopher://g.example/`; vector
+   `reject-claim-reached-host-file-url`); neither has a URL with no scheme that does not start with two slashes (`/`
+   or `\`). Otherwise read the host two ways:
    - **The browser reading.** Take what follows the scheme's `:` (all of the URL when it has no scheme), read every
      `\` as `/`, skip the leading slashes, and keep what comes before the first `/`, `?` or `#`, then what follows
      its last `@`. If that starts with `[` and holds a `]`, the reading is it up to and including the first `]`;
      else it is what comes before its first `:` (the port dropped).
-   - **The generic reading**, of the URL of step 1:
-     1. Strip leading control characters and spaces, then remove every tab and line break.
-     2. If the text before the first `:` is not empty, starts with an ASCII letter and holds only ASCII letters,
-        digits, `+`, `-` and `.`, remove it and that `:`.
-     3. If what remains does not start with `//`, there is no host. Else the authority is what follows the `//` up
-        to the first `/`, `?` or `#` (`\` is no delimiter here).
-     4. The URL is refused when the authority fails the bracket rule below, and when it holds a code point outside
-        ASCII and, with every `@`, `:`, `#` and `?` removed, its NFKC form [UAX15] differs from it and holds a `/`,
-        `?`, `#`, `@` or `:`.
-     5. The reading is the part of the authority after its last `@`: when that holds a `[`, what lies between its
-        first `[` and the next `]` (or the end); else what comes before its first `:`. Its text before its first
-        `%` is put in lower case (the Unicode lower case mapping).
+   - **The generic reading.** The part of the authority of step 3 after its last `@`: when that holds a `[`, what
+     lies between its first `[` and the next `]` (or the end); else what comes before its first `:`.
 
-     **The bracket rule (decided, 0.1).** An authority with no `[` and no `]` passes. Any other passes only when all
-     of these hold: it holds exactly one `[` and one `]`; the `[` is the first character after the authority's last
-     `@` (its first character when it has no `@`); the `]` comes after the `[` and is followed by nothing or by `:`;
-     and the text between them is an IPv6 address (a text form of [RFC4291] section 2.2, optionally followed by `%`
-     and a zone id of one or more characters other than `%`) or an IPvFuture address [RFC3986] written as a lowercase
-     `v`, one or more hex digits, `.` and one or more characters. So `http://[::1]:8080/` and `http://u@[::1]/x` pass,
-     and these are refused: `http://[x]@good.com/` (vector `accept-unproven-reached-host-bracket`),
-     `http://[::1]@api.example.com/` (`accept-unproven-reached-host-bracket-ipv6-userinfo`),
-     `http://[::1]@evil.example/` (`accept-unproven-reached-host-bracket-other-host`), `http://[zz]@[::1]/`
-     (`accept-unproven-reached-host-two-brackets`), `http://[::1]x/` (`accept-unproven-reached-host-bracket-trailing`)
-     and `http://[@x::1]/` (`accept-unproven-reached-host-bracket-not-host`). Brackets in the path, query or fragment
-     are outside the authority and don't count (`http://good.com/a[1]`). A verifier MUST make this check itself, on
-     the authority of this step, and MUST NOT rest on a URL library's own bracket check. Rationale: URL libraries
-     check brackets in different ways, and each reads a host from some URL another refuses. CPython's `urlsplit` has
-     made, in different releases, no check, a check of the first bracketed part of the whole authority, and a check
-     of the part after the last `@`; verifiers on two releases gave one message different verdicts, `accept` against
-     `accept-unproven` (`http://[::1]@api.example.com/`) and `accept-unproven` against `reject`
-     (`http://[::1]@evil.example/` for a claim of `api.example.com`). The rule passes only URLs whose host every one
-     of those checks reads alike. It refuses some URLs a browser reads (`http://[zz]@[::1]/` reaches `[::1]`), which
-     then give `unproven`.
+     Note: the generic reading is Python's `urllib.parse.urlsplit(url).hostname`, but for case, which step 5 sets.
 
-     Note: the generic reading is Python's `urllib.parse.urlsplit(url).hostname`, which refuses a URL by raising
-     `ValueError`. No CPython release's bracket check refuses a URL that passes the bracket rule, so a Python
-     verifier checks the rule first and then calls `urlsplit`.
+   An empty reading counts as none. Neither reading: the URL has no host.
+5. **Canonical form.** If a reading holds a `%`, the host won't parse: a host is never percent-decoded
+   (`http://%61pi.example.com/`, vector `accept-unproven-reached-host-percent`; `http://api.example.com%00.evil/`,
+   `accept-unproven-reached-host-nul`). If a reading holds a `:` and, in it, `.0` followed by a digit or `:0`
+   followed by one or more digits and a `.` (a part of an IPv6 address's dotted quad with a leading zero), the host
+   won't parse. Otherwise put each reading in canonical form. First put it in ASCII lower case. Then a reading that
+   holds a `:` won't parse unless, with every `[` and `]` at its ends removed, it is an IPv6 address. Otherwise split
+   it at `.`, leaving out one empty last part. When the last part is a number (`0x` and zero or more hex digits, or
+   one or more decimal digits), the host won't parse unless it is an IPv4 address as `inet_aton` reads one: 1 to 4
+   parts, each `0x` and zero or more hex digits (hexadecimal; `0x` alone is 0), `0` and one or more octal digits
+   (octal), or `0` or 1 to 10 decimal digits not starting with `0` (decimal); every part but the last at most 255,
+   and the last below 256 to the power of (5 minus the number of parts). So `127.1` and `0x7f.1` are `127.0.0.1`
+   (vector `accept-reached-host-short-ipv4`). An address is written in canonical form: IPv4 in dotted decimal; IPv6
+   as `[`, its text form of [RFC5952] section 4 (never mixed notation), `]`; an IPv4-mapped (`::ffff:0:0/96`) or
+   NAT64 (`64:ff9b::/96`) IPv6 address as the IPv4 address inside. Any other reading is a name and stays as it is.
+   Two readings whose canonical forms differ: the host won't parse, since the call may have reached either
+   (`http://a.example\@b.example/` is `a.example` to the browser reading and `b.example` to the generic one; vector
+   `accept-unproven-reached-host-ambiguous`). Else the host is that canonical form.
 
-   An empty reading counts as none. A URL the generic reading refuses: the host won't parse. Else put each reading
-   that is not none in canonical form (step 3). Neither reading: the URL has no host. Two readings whose canonical
-   forms differ: the host won't parse, since the call may have reached either (`http://a.example\@b.example/` is
-   `a.example` to the browser reading and `b.example` to the generic one; vector
-   `accept-unproven-reached-host-ambiguous`). Else the host is the browser reading, or the generic one when the
-   browser reading is none.
-3. **Canonical form.** Percent-decode as UTF-8 (a `%` and two hex digits is a byte; a `%` without them stays as it
-   is; an invalid byte sequence becomes U+FFFD, which step 4 refuses) and apply Unicode NFKC [UAX15].
-   **Deviation characters (decided, 0.1).** If the result holds U+00DF `ß`, U+1E9E `ẞ`, U+03C2 `ς`, U+200C ZWNJ or
-   U+200D ZWJ, it won't parse. For a call's URL this check is made once, on the whole URL, percent-decoded and
-   NFKC-normalised, not on each reading, so one in the path also gives `unproven` where a check of the host alone
-   could match. Rationale: `ß`, `ς`, ZWNJ and ZWJ are the four characters UTS 46 nontransitional processing, which
-   browsers use, keeps where IDNA 2003 maps them away, so `faß.example` is `xn--fa-hia.example` to a browser and
-   `fass.example` to the conversion of step 4 (vector `accept-unproven-reached-host-deviation`). UTS 46 maps `ẞ` to
-   `ß` and keeps it, while NFKC leaves `ẞ` and the case folding below makes it `ss`, so `faẞ.example` reads the same
-   two ways (vector `accept-unproven-reached-host-capital-sharp-s`). With the five refused, the two either agree or
-   one refuses. Then read U+3002 as `.` and apply Unicode full case folding.
-
-   A result that holds a `:` won't parse unless, with every `[` and `]` at its ends removed and its zone id (from its
-   first `%` on) dropped, it is an IPv6 address. Otherwise split it at `.`, leaving out one empty last part. When the
-   last part is a number (`0x` and zero or more hex digits, or one or more decimal digits), the host won't parse
-   unless it is an IPv4 address as `inet_aton` reads one: 1 to 4 parts, each `0x` and zero or more hex digits
-   (hexadecimal; `0x` alone is 0), `0` and one or more octal digits (octal), or `0` or 1 to 10 decimal digits not
-   starting with `0` (decimal); every part but the last at most 255, and the last below 256 to the power of (5 minus
-   the number of parts). So `127.1` is `127.0.0.1` (vector `accept-reached-host-short-ipv4`). An address is written
-   in canonical form: IPv4 in dotted decimal; IPv6 as `[`, its text form of [RFC5952] section 4 (never mixed
-   notation), `]`; an IPv4-mapped (`::ffff:0:0/96`) or NAT64 (`64:ff9b::/96`) IPv6 address as the IPv4 address
-   inside. NFKC follows the verifier's Unicode version: a host with a code point one version leaves unassigned can
-   read differently in a verifier with another, so senders SHOULD claim ASCII hosts.
-
-   Note: in Python this step is `urllib.parse.unquote`, `unicodedata.normalize("NFKC", …)`, `str.casefold` and
-   `ipaddress`; the IPv4 rule is C's `inet_aton`.
-4. **A-label.** A host that starts with `[` stays as it is if it is `[`, an IPv6 address and `]`; else it won't
-   parse (`http://%5b::1%5d/` decodes to the host `[`; vector `accept-unproven-reached-host-no-ipv6`). Otherwise drop
-   one trailing dot (vector `accept-reached-host-trailing-dot`); if the rest is empty or still ends with `.`, it won't
-   parse. **Cherokee letters (decided, 0.1).** If the rest holds a Cherokee letter (U+13A0 to U+13F5, U+13F8 to
-   U+13FD or U+AB70 to U+ABBF; after the case folding of step 3 only the first range is left), it won't parse.
-   Rationale: Nameprep's case mapping (its table B.2, from Unicode 3.2) has no Cherokee pairs and UTS 46 keeps the
-   capitals, but Python's `idna` codec lower-cases each capital to U+AB70 to U+ABBF by its own Unicode version, so
-   `aᎠb.example` is `xn--ab-5f1i.example` to the codec and `xn--ab-y8l.example` to the others (vector
-   `accept-unproven-reached-host-cherokee`). The Cherokee capitals are the only code points that case folding leaves
-   alone and the codec's lower-casing changes. Then convert the name to ASCII by IDNA 2003 [RFC3490]: an all-ASCII
-   name is kept as it is, and each label must
-   be 1 to 63 characters; any other name is split at `.` and each label goes through ToASCII [RFC3490] with Nameprep
-   [RFC3491] (Unicode 3.2) and Punycode [RFC3492], with AllowUnassigned on (so a code point Unicode 3.2 leaves
-   unassigned is taken: `x` and U+0378 then `.example` is `xn--x-qib.example`, vector
-   `accept-reached-host-unassigned`) and UseSTD3ASCIIRules off: an ASCII label stays, a non-ASCII one becomes `xn--`
-   and its Punycode, and every label must end up 1 to 63 characters. What this conversion refuses won't parse. The
-   result MUST be labels of `a`-`z`, `0`-`9`, `_` and `-`, joined by single dots; else it won't parse (a NUL or `%`
-   after percent-decoding; vector `accept-unproven-reached-host-nul`). `bücher.example` is `xn--bcher-kva.example`
-   (vector `accept-reached-host-idn`).
-
-   Note: this conversion is Python's `idna` codec (`name.encode("idna")`), which takes unassigned code points because
-   it does not check Nameprep's table A.1, and maps case with its own Unicode version's lower case rather than
-   Unicode 3.2's, which the Cherokee rule makes harmless.
+   Note: in Python this step is `str.lower` and `ipaddress`; the IPv4 rule is C's `inet_aton`.
+6. **Compared form.** A host that starts with `[` stays as it is if it is `[`, an IPv6 address and `]`; else it
+   won't parse (`http:\\[h.com]/` is `[h.com]` to the browser reading). Otherwise drop one trailing dot (vector
+   `accept-reached-host-trailing-dot`). The rest MUST be labels of 1 to 63 characters, each of `a`-`z`, `0`-`9`, `_`
+   and `-`, joined by single dots; else it won't parse (`a..example`). An IPv4 address in dotted decimal is such
+   labels. `https://XN--BCHER-KVA.Example/` is `xn--bcher-kva.example` (vector `accept-reached-host-a-label`).
 
 **A claim's or an effect's host** is a name or address, maybe with a port. It won't parse if it is not a string, if
-it holds `/`, `\`, `?`, `#`, `@`, `[`, `]` or white space (section 2), if it holds a deviation character
-(step 3), or if it has exactly one `:` and what follows it is not 1 to 5 ASCII digits (`api.example.com:abc`,
-`api.example.com:`; vector `accept-unproven-reached-host-claim-bad-port`). Otherwise it is read as the host of the
-URL `http://[<host>]/` when it has more than one `:` (a bare IPv6 address), else `http://<host>/`, by steps 2 to 4,
-except that the two readings are not compared: the browser's reading counts. So the claim `api.example.com:443` is
-`api.example.com` (vector `accept-reached-host-claim-port`).
-
-Where IDNA 2003 and UTS 46 [UTS46] still differ, PCM 0.1 follows IDNA 2003 (step 4): an `xn--` label is not checked to
-be valid Punycode, `_` is allowed, unassigned code points are taken, ZWSP, soft hyphen and the other characters Nameprep
-maps to nothing are dropped (`exam` U+00AD `ple.com` is `example.com`), and Nameprep uses Unicode 3.2; a host with a
-deviation character or a Cherokee letter, on which the two name different hosts, won't parse (steps 3 and 4). A
-verifier MUST implement the steps above as written, not UTS 46. Senders SHOULD claim hosts in ASCII, as DNS names
-them.
+it holds `/`, `\`, `?`, `#`, `@`, `[` or `]`, or if it has exactly one `:` and what follows it is not 1 to 5 ASCII
+digits (`api.example.com:abc`, `api.example.com:`; vector `accept-unproven-reached-host-claim-bad-port`). Otherwise it
+is read as the host of the URL `http://[<host>]/` when it has more than one `:` (a bare IPv6 address), else
+`http://<host>/`, by steps 1 to 6, and won't parse when that URL has no host. So the claim `api.example.com:443` is
+`api.example.com` (vector `accept-reached-host-claim-port`); an effect's `bücher.example` (step 1) or
+`%61pi.example.com` (step 5) won't parse, and neither does the claim `::ffff:01.2.3.4` (step 3).
 
 ### 6.8 Test commands (decided, 0.1)
 
@@ -1279,7 +1285,8 @@ in `witnesses`, is no configuration error: it fails every evidence checkpoint (6
 **One key per log (decided, 0.1).** A trust document MUST pin at most one Ed25519 key under each log name in `logs`.
 A verifier MUST refuse a trust document with two or more entries of Ed25519 keys under one log name, the same key
 listed twice included, as a configuration error, reported like a bad vkey before any message ("trust pins 2 Ed25519
-keys of log …"). A hybrid key (below) under the same name does not count.
+keys for log …; PCM verifies with one: pass a trust file with only the current key"). A hybrid key (below) under the
+same name does not count.
 Rationale: PCM 0.1 declares no key rotation, so two keys under one name may be two logs; the evidence check compares
 log names (6.2 step 2) while a message names its key, so two logs under one name would let one log's evidence pass for
 the other's (14.1), and the replay sender (9) would split one log in two. With one key per name, the key that signed a
@@ -1558,13 +1565,19 @@ assumption PCM rests on, with the rule that closes or bounds it.
     `reject-claim-tests-passed-ansi-c-quote`, `reject-claim-tests-passed-comment`,
     `reject-claim-tests-passed-unbalanced-quote`.
 20. **Host spellings.** A host has many spellings, and two readers of one URL can disagree on its host
-    (`http://a.example\@b.example/`; `faß.example` and `faẞ.example` are `fass.example` to IDNA 2003 and
-    `xn--fa-hia.example` to a browser; Python's `idna` codec lower-cases Cherokee capitals that Unicode 3.2's Nameprep
-    keeps). A draft that left the URL's bracket check to Python's `urlsplit` gave one message different verdicts on
-    different CPython releases, since they check brackets three ways. **Rule:** hosts are compared in one canonical
-    form; a host that won't parse, that two readers read apart, or that holds a deviation character or a Cherokee
-    letter gives `unproven`, never `proven`; a verifier checks one bracket rule itself; a URL of a scheme without a
-    host reaches none (6.7). Vectors: the `reached-host` vectors of 6.6.
+    (`http://a.example\@b.example/`). An earlier draft read Unicode hosts by IDNA 2003 [RFC3490] and refused the
+    characters on which it knew IDNA 2003, UTS 46 and Python's `idna` codec name different hosts (`faß.example` is
+    `fass.example` to IDNA 2003 and `xn--fa-hia.example` to a browser), and other such characters still proved hosts
+    a browser does not reach: IDNA 2003 maps U+1806 to nothing, so `exa`, U+1806, `mple.com` proved `example.com`,
+    and `fa%C3`, a tab, `%9F.example` proved `fass.example` once the tab was dropped and the escapes decoded. Drafts
+    that left the bracket check to Python's `urlsplit`, or let it find no host before the bracket check, gave one
+    message different verdicts on different CPython releases, which check brackets three ways and strip leading
+    spaces, tabs and control characters differently, and so did Python's `ipaddress`, which reads `::ffff:01.2.3.4`
+    as `::ffff:1.2.3.4` before 3.9.5 and refuses it since. **Rule:** hosts are compared in one canonical form, in
+    printable ASCII only and never percent-decoded; a URL or host with any other character, a host that won't parse
+    and one that two readers read apart give `unproven`, never `proven`; a verifier checks one bracket rule itself,
+    before any other reading of the URL, and refuses a leading zero in an IPv6 address's dotted quad; a URL of a
+    scheme without a host reaches none (6.7). Vectors: the `reached-host` vectors of 6.6.
 21. **Signature malleability.** With lenient base64, one signature had several texts that verified, so a grant's
     text, and its hash in a child's `parent`, could change without a new signature. **Rule:** canonical base64 only
     (4.3). Vectors: `reject-sig-non-canonical-base64`, `reject-claim-proof-non-canonical-base64`.
@@ -1622,8 +1635,12 @@ assumption PCM rests on, with the rule that closes or bounds it.
     `policy.decision` that request names, and a proven claim's result carries `approved`, the decision's tool and,
     when opened, its args in full, as a conformance field; a receiver reads it (6.6). The detail quotes the tool, so a
     tool name can't spell args. An agent that decided two calls under one id can't pass the approval of one off as the
-    other's, since the request names one decision. Vectors: `reject-claim-approved-by-without-decision`,
-    `reject-claim-approved-by-other-decision`.
+    other's, since the request names one decision. Records that disagree on what was approved (requests of one
+    approval naming two decisions, or approvals of the call naming two), and evidence that lists a record twice, fail
+    the claim, so the result never depends on the order in which the sender listed the records (6.2, 6.6). Vectors:
+    `reject-claim-approved-by-without-decision`, `reject-claim-approved-by-other-decision`,
+    `accept-approved-by-opened-args`, `reject-claim-approved-by-request-names-two-decisions`,
+    `reject-claim-approved-by-two-decisions`, `reject-claim-record-listed-twice`.
 28. **An attempt is not a connection.** A kernel sensor reports a process's call to connect, and an egress observer
     records a minute with no connection when its connect upstream failed; an earlier draft took either as proof that
     the run reached the host. **Rule:** only an egress observer's `net` record with `data.connections` above 0
@@ -1751,12 +1768,6 @@ The table from tool name to class is `registry/tools.json` (10.2).
 - [RFC2104] Krawczyk, H., Bellare, M., Canetti, R., "HMAC: Keyed-Hashing for Message Authentication", RFC 2104, 1997.
 - [RFC4648] Josefsson, S., "The Base16, Base32, and Base64 Data Encodings", RFC 4648, 2006.
 - [RFC8259] Bray, T., "The JavaScript Object Notation (JSON) Data Interchange Format", RFC 8259, 2017.
-- [RFC3490] Faltstrom, P., Hoffman, P., Costello, A., "Internationalizing Domain Names in Applications (IDNA)",
-  RFC 3490, 2003.
-- [RFC3491] Hoffman, P., Blanchet, M., "Nameprep: A Stringprep Profile for Internationalized Domain Names (IDN)",
-  RFC 3491, 2003.
-- [RFC3492] Costello, A., "Punycode: A Bootstring encoding of Unicode for Internationalized Domain Names in
-  Applications (IDNA)", RFC 3492, 2003.
 - [FIPS180-4] NIST, "Secure Hash Standard (SHS)", FIPS 180-4, 2015.
 - [FIPS205] NIST, "Stateless Hash-Based Digital Signature Standard", FIPS 205, 2024.
 - [C2SP-NOTE] C2SP, "signed-note", https://c2sp.org/signed-note
@@ -1766,7 +1777,6 @@ The table from tool name to class is `registry/tools.json` (10.2).
   RFC 3986, 2005.
 - [RFC4291] Hinden, R., Deering, S., "IP Version 6 Addressing Architecture", RFC 4291, 2006.
 - [RFC5952] Kawamura, S., Kawashima, M., "A Recommendation for IPv6 Address Text Representation", RFC 5952, 2010.
-- [UAX15] Unicode Standard Annex #15, "Unicode Normalization Forms", https://www.unicode.org/reports/tr15/
 
 ### 18.2 Informative
 
@@ -1775,6 +1785,10 @@ The table from tool name to class is `registry/tools.json` (10.2).
 - [RFC9110] Fielding, R., Nottingham, M., Reschke, J., "HTTP Semantics", RFC 9110, 2022.
 - [WHATWG-URL] WHATWG, "URL Standard", https://url.spec.whatwg.org/
 - [UTS46] Unicode Technical Standard #46, "Unicode IDNA Compatibility Processing", https://www.unicode.org/reports/tr46/
+- [RFC3490] Faltstrom, P., Hoffman, P., Costello, A., "Internationalizing Domain Names in Applications (IDNA)",
+  RFC 3490, 2003 (IDNA 2003).
+- [RFC3492] Costello, A., "Punycode: A Bootstring encoding of Unicode for Internationalized Domain Names in
+  Applications (IDNA)", RFC 3492, 2003.
 - [RFC6838] Freed, N., Klensin, J., Hansen, T., "Media Type Specifications and Registration Procedures", RFC 6838, 2013.
 - [Tracekit] Cygnux Labs, Tracekit, https://github.com/Cygnux-Labs/Tracekit (the reference implementation,
   Appendix C).
@@ -1797,6 +1811,10 @@ built from an earlier design changes to match.
 - **`approved_by`.** Proven by the approval with its request and decision, and the result's `approved` says what was
   approved (6.6, 14.27), not by the approval alone, nor in a detail only.
 - **URL brackets.** One bracket rule that a verifier checks itself (6.7), not whatever check its URL library makes.
+- **Hosts.** Compared in printable ASCII only and never percent-decoded (6.7), not read through IDNA 2003 with
+  exceptions where IDNA versions disagree.
+- **`approved_by` records.** Records that disagree on what was approved fail the claim (6.6), not the first in the
+  order the sender listed them.
 - **`reached_host`.** Only by a connection an egress observer saw opened (6.6, 14.28), not by an attempt.
 - **`file_written` paths.** By POSIX or Windows rules, picked by the claim's path (6.6), not with every `\` read as
   `/`.
@@ -1819,17 +1837,19 @@ draft closes those; it has no other known open attack on its verifier rules. Wha
 on the receiver reading `suite` (6.6), and what a T2 result proves rests on how the deployment names its tools (6.4,
 14.26). Questions earlier drafts left open are now decided rules, each marked "(decided, 0.1)": canonical base64
 (4.3), the signing key (4.5), only a configured person for `approved_by` and what it names (6.6), connections, not
-attempts, for `reached_host` (6.6), absolute paths and path rules for `file_written` (6.6), host comparison, the
-bracket rule, deviation characters and Cherokee letters (6.7), test commands and plain words (6.8), skipped
-checks (8), the sender pair, one acceptance per receiver and which messages spend their nonce (9), one key per log
-(10.1) and the frozen tool table (10.2). Where the reference implementation does less than this document asks,
+attempts, for `reached_host` (6.6), records that disagree on what was approved (6.6), absolute paths and path rules
+for `file_written` (6.6), host comparison in ASCII only and the bracket rule (6.7), test commands and plain words
+(6.8), skipped checks (8), the sender pair, one acceptance per receiver and which messages spend their nonce (9), one
+key per log (10.1) and the frozen tool table (10.2). Where the reference implementation does less than this document asks,
 Appendix C.4 says so. What remains are questions for a later draft:
 
-1. **Host reading follows particular readers** (6.7). Step 2's generic reading is what Python's `urlsplit` does,
-   with a bracket rule of its own that refuses some URLs a browser reads; NFKC runs at the verifier's Unicode version;
-   and step 4 is IDNA 2003, with the deviation characters and Cherokee letters refused where it, Python's codec and
-   UTS 46 disagree. A statement of the rule closer to the WHATWG host parser and UTS 46 is open; until then the vectors
-   pin the cases that matter and senders keep to ASCII hosts and plain URLs.
+1. **Unicode hosts** (6.7). PCM 0.1 compares hosts in printable ASCII only: a URL or host with any other character
+   gives `unproven`, so a sender fetches and claims a name in another script in its A-label form, and a URL with a
+   Unicode path or a space proves nothing either. Reading Unicode hosts needs one IDNA rule that every verifier
+   shares whatever its language and Unicode version, such as UTS 46 [UTS46] nontransitional processing with its
+   tables pinned to one Unicode version, and the URL preprocessing of the WHATWG URL parser (what it strips and
+   removes) stated step by step. Step 4's generic reading is also what Python's `urlsplit` does, with a bracket rule
+   of its own that refuses some URLs a browser reads; a statement closer to the WHATWG host parser is open with it.
 2. **A key for messages and grants only, and key rotation** (4.5, 10.1). PCM 0.1 signs messages and grants with the
    log key and pins one key per log name. A trust member that pins a key for messages and grants only would let a
    fault in PCM signing leave the log key alone, and a way to declare a rotation (two keys of one log, each with the
@@ -1861,8 +1881,8 @@ with the normative text, that is a bug in one of them: open an issue.
   and names two packs class differently, and then frozen (10.2). Tracekit ships the same file as
   `tracekit/pcm/tools.json`, which `tracekit.pcm.claims.placed()` reads; `tools/gen_schemas.py` stops when the two
   tables differ and copies the registry's into the standalone verifier. `tools/gen_vectors.py` writes `vectors/` by
-  running a Tracekit signer and `tracekit.pcm.verify` on CPython 3.11.15 (Unicode 14.0.0), gives every vector the
-  registry's table, and checks that it equals `placed()`.
+  running a Tracekit signer and `tracekit.pcm.verify` on CPython 3.11.15, gives every vector the registry's table,
+  and checks that it equals `placed()`.
 - **Verifiers.** Tracekit's `tracekit.pcm.verify` and the standalone `pcm_verify` in `verifier/python` (Python, with no
   Tracekit code) are Level 2 verifiers (13.1). The standalone verifier ships a copy of `registry/tools.json` and places
   tools with it; its tests check the file's digest and that every vector carries that table. It does not implement
@@ -1882,7 +1902,7 @@ with the normative text, that is a bug in one of them: open an issue.
 | 6.2 evidence | `tracekit.pcm.claims.evidence`; notes in `tracekit.format.checkpoint.open_note` |
 | 6.6 `approved_by`, `reached_host` | `tracekit.pcm.claims.approved_by`, `reached_host` |
 | 6.6 paths | `tracekit.pcm.claims._path`, `malformed`, `file_written`; Tracekit's policy rules read paths with `tracekit.policy2.classes.fs_path`, which reads every `\` as `/`, so policy verdicts don't follow 6.6 |
-| 6.7 hosts | `tracekit.policy2.classes.url_info` (the scheme of step 1 in `with_scheme`); `tracekit.pcm.claims._host`, `_a_label` (the Cherokee rule), `_deviant`; the bracket rule in `_brackets_ok` |
+| 6.7 hosts | `tracekit.pcm.claims._url_host` (steps 1 to 6) and `_host`, on `tracekit.policy2.classes.url_info` (the scheme of step 2 in `with_scheme`, the browser reading in `_whatwg_host`); the bracket rule in `_brackets_ok`; the leading-zero check in `_ZERO_QUAD` |
 | 6.8 test commands | `tracekit.pcm.claims.test_command`, `TEST_RUNNERS`, `NO_TESTS` |
 | 7.3 narrowing | `tracekit.pcm.narrows` |
 | 7.6 grant chains | `tracekit.pcm.verify_grants` |
@@ -1914,11 +1934,14 @@ with the normative text, that is a bug in one of them: open an issue.
   `tracekit.local/<log id>` by default, which is unique, but an operator can choose any origin (10.1). After a key
   rotation, the `trust.json` Tracekit keeps for its bundles pins the log's old keys beside the new one; that one is no
   PCM trust document, and `tracekit.pcm.verify` refuses it (10.1): a receiver needs one that pins only each log's
-  current key.
+  current key. Tracekit's error names the command that writes one:
+  `tracekit signer trust --config <signer.yaml> -o pcm-trust.json`.
 - **`id` patterns** run with Python `re` in its default Unicode mode, where `\d` also matches digits such as `٣` (5.2).
-- **Hosts.** Tracekit reads hosts with Python's `urllib.parse.urlsplit`, `unicodedata` and `idna` codec (6.7). It
-  still runs on Python 3.9; both verifiers check the bracket rule of 6.7 before `urlsplit`, so its bracket check,
-  which differs between CPython releases, changes no verdict. The standalone verifier needs CPython 3.11.4 or later.
+- **Hosts.** Tracekit reads hosts with Python's `urllib.parse.urlsplit` and `ipaddress` (6.7). It still runs on
+  Python 3.9. Both verifiers read only printable ASCII, check the bracket rule of 6.7 before anything else reads the
+  URL, and refuse a leading zero in an IPv6 address's dotted quad themselves, so neither `urlsplit`'s bracket check
+  and what it strips nor `ipaddress`'s leading-zero rule, which differ between CPython releases, changes a verdict.
+  The standalone verifier needs CPython 3.11.4 or later.
   `tracekit pcm verify` prints a proven `approved_by`'s detail on its line, and `python -m pcm_verify` its `approved`
   (6.6).
 - **The tool executor** (`tracekit/executor.py`, tier T2) runs HTTP actions its operator names in its configuration,
@@ -1956,5 +1979,5 @@ Each is marked `lean:` in Tracekit's code and has a row in its `docs/limits.md`.
    Tracekit's SDK completes the call at once.
 
 Also marked `lean:` in its code, though this document asks no more: messages and grants carry no SLH-DSA signature
-(4.3); the deviation check covers a call's whole URL (6.7 step 3); hosts follow IDNA 2003, not UTS 46 (6.7); and the
-tool table is PCM 0.1's frozen one, so a custom shell or http tool stays unplaced (10.2).
+(4.3); hosts are read in printable ASCII only (6.7); and the tool table is PCM 0.1's frozen one, so a custom shell or
+http tool stays unplaced (10.2).

@@ -72,13 +72,16 @@ grant that can't be passed on, a root grant issued by an agent or naming no pers
 grant's expiry, a second message with another message's nonce. These are a valid output edited, then re-signed with
 the test log key (or the other log's, for a message of the other log). Records a hostile pinned log could send (an
 event that is no valid event, a decision without its id or tool or of another call, an agent approver's answer naming
-a person, a request naming another approval) are edited and put under a checkpoint the test log key signs offline. Envelope and signature cases, such as a non-canonical base64
-signature, are edited without re-signing. Each one's description says so.
+a person, a request naming another approval, a second request of one approval or a second approval of one call naming
+another decision) are edited and put under a checkpoint the test log key signs offline. Envelope and signature cases,
+such as a non-canonical base64 signature, are edited without re-signing. Each one's description says so.
 
 The log, other-log and witness keys come from a fixed seed, so `trust` is the same on every run. Run ids, message
 ids, nonces and timestamps come from the signer's clock and randomness, so they and the signatures change each time
 the vectors are made. Nothing here depends on the date you run them: every time a verifier reads comes from the
-message, the grants or `options.now`.
+message, the grants or `options.now`. Nor does anything depend on your language's IDNA or Unicode tables: hosts are
+compared in printable ASCII only (SPEC 6.7), so the `reached-host` vectors with a Unicode, space, tab or `%` URL are
+`accept-unproven` for every verifier.
 
 ## Regenerate
 

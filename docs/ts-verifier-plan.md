@@ -43,10 +43,11 @@ About 600 to 800 lines, mapping one to one onto `tracekit/pcm/__init__.py` and `
 5. **Verdict** (8): the order of checks (the schema before the recipient and replay checks, so a misaddressed or
    schema-rejected message spends no nonce), the `reasons` order and `skipped`; a trust document with two Ed25519
    keys of one log is a configuration error (10.1).
-6. **Evidence and claims** (6): the note origin rule, inclusion, the sender's run, each record a valid event of
-   `registry/tracekit.event.v2.json`, openings (HMAC-SHA256 with WebCrypto, compared in constant time), `Ran` with
-   its "can't tell" answer, and the four checkers with PCM 0.1's frozen tool table, `registry/tools.json` (10.2).
-   `approved_by` links the approval to its `approval.request` and that request's `policy.decision`; `reached_host`
+6. **Evidence and claims** (6): the note origin rule, inclusion, no record listed twice, the sender's run, each record
+   a valid event of `registry/tracekit.event.v2.json`, openings (HMAC-SHA256 with WebCrypto, compared in constant
+   time), `Ran` with its "can't tell" answer, and the four checkers with PCM 0.1's frozen tool table,
+   `registry/tools.json` (10.2). `approved_by` links the approval to its `approval.request` and that request's
+   `policy.decision`, and fails in any record order when the records disagree on what was approved; `reached_host`
    is proven by an egress `net` record with connections above 0 only.
 7. **CLI**: `pcm-verify MESSAGE --trust TRUST --schema SCHEMA`, exit 0 accept, 3 accept-unproven, 1 reject, 2 for
    unreadable input, matching the Python verifier.
@@ -60,16 +61,15 @@ vector, so each is ported with its own tests:
   with `'…'` and `"…"` grouping (no escapes or expansions are left to handle; unbalanced quotes refuse), then the
   words begin with one of the fixed runner sequences (first word compared exactly) and carry none of the flags that
   run no tests or their long prefixes. A table, no shell parser to port.
-- **`reached_host`**: the compared form of SPEC 6.7, step by step. Don't use `new URL()` or `URL.hostname` for it:
-  they apply UTS 46, which differs from the IDNA 2003 the spec fixes (the spec refuses the deviation characters and
-  Cherokee letters where they disagree), refuse some hosts the spec reads, and know nothing of the spec's bracket
-  rule or the rule that a browser's and the generic readings must agree. Port the two readings, the canonical form
-  and the A-label step as the spec writes them: the browser reading is a few regular expressions; the generic
-  reading (netloc after `//` up to `/?#`, after the last `@`, before the port, lower case) and the cases where it
-  refuses (the bracket rule of 6.7, the same one the Python verifiers check before `urlsplit`, and a non-ASCII netloc
-  whose NFKC form gains one of `/?#@:`) need their own tests; the IDNA 2003 step needs Nameprep with Unicode 3.2
-  tables and Punycode (a small vendored port; the vectors only exercise `bücher.example`, so add Tracekit's own host
-  cases as tests).
+- **`reached_host`**: the compared form of SPEC 6.7, step by step. Hosts are compared in printable ASCII only, so
+  there is no IDNA, Unicode table or Punycode to port: refuse a URL or host with any character outside U+0021 to
+  U+007E, put `http://` in front where step 2 says, check the bracket rule on the authority before anything else,
+  take the browser and the generic readings (a few regular expressions each), refuse a `%` or a leading zero in an
+  IPv6 dotted quad, lower-case, and write addresses in canonical form: IPv4 by `inet_aton`'s rules (1 to 4 parts,
+  hex, octal) and IPv6 as RFC 5952 text, an IPv4-mapped or NAT64 address as its IPv4 address. Don't use `new URL()`
+  or `URL.hostname` for it: they trim, drop tabs and line breaks, percent-decode the host and apply UTS 46, and know
+  nothing of the bracket rule or the rule that the two readings must agree. The IPv6 parser and RFC 5952 printer are
+  the one part to write with care (about 60 lines); the vectors and Tracekit's host cases are their tests.
 - **`file_written`**: the path rules of SPEC 6.6 (POSIX rules for a path from `/`, where `\` is part of a name;
   Windows rules for a drive path, proven only by a call of its own string), the suffix after the last `..`, the
   absolute-path rule and the "can't tell" results. Small, but easy to get subtly wrong.
@@ -91,9 +91,9 @@ against the Python and TypeScript verifiers, so a vector change that one of them
 | copy and adapt the primitives, schema validator with a root | 0.5 |
 | envelope, signature, schema documents, grants, replay, verdict (Level 1 vectors pass) | 1.5 |
 | evidence, openings, approved_by, the `Ran` rule | 1 |
-| tests_passed (shell splitting, runner list), reached_host (two host readings, IDNA 2003), file_written | 2 |
+| tests_passed (shell splitting, runner list), reached_host (two host readings, IPv4 and IPv6 forms), file_written | 1.5 |
 | CLI, package, README | 0.5 |
-| **total** | **about 5.5 days** |
+| **total** | **about 5 days** |
 
 ## Open choices
 

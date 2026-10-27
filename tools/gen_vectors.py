@@ -420,7 +420,18 @@ def cases(s, s2):
            args_source="parsed", args={"path": "/etc/motd"})
     s.call(ALICE, "approval_decide", approval_id=a.call("approval_request", tool_call_id="pay-1")["approval_id"],
            decision="approve")
-    _, preq, papp = a.approval("pay-1")
+    pdec, preq, papp = a.approval("pay-1")
+    motd = a.evidence([pdec, preq, papp], {pdec: {"path": "/etc/motd"}})
+    vector("accept-approved-by-opened-args", "approved_by of call pay-1, which the agent decided twice: a pay of 50000, "
+           "then a read_file of /etc/motd. alice approved the read_file, and the evidence opens its decision: the "
+           "result's approved names the read_file and its args, which the receiver reads, whatever the call id says.",
+           a.send("uid:990102", ref, claims=[{"type": "approved_by", "args": {"person": "alice", "call": "pay-1"},
+                                              "evidence": motd}], grants=[root]), [DOC])
+    failed("record-listed-twice", "approved_by whose evidence lists the opened read_file decision of pay-1 twice: "
+           "evidence that lists a record twice fails, so a decision listed opened and unopened can't make what was "
+           "approved depend on the order of the records.",
+           {"type": "approved_by", "args": {"person": "alice", "call": "pay-1"},
+            "evidence": dict(motd, records=motd["records"] + motd["records"][:1])}, "the same record as record 1")
     failed("approved-by-other-decision", "approved_by of call pay-1, which the agent decided twice: a pay of 50000, "
            "then a read_file of /etc/motd. alice approved the read_file (the approval.request names its decision), and "
            "the evidence holds the pay decision with that request and approval: an approval is of the decision its "
@@ -490,6 +501,24 @@ def cases(s, s2):
                dict(approved, evidence=relog(ev["records"], lambda i, e, kind=kind, edit=edit: dict(e, data={
                    k: v for k, v in {**e["data"], **edit}.items() if v is not None}) if e["type"] == kind else e)),
                "holds no decision of the call it approved")
+    pev = a.evidence([pay["run_seq"], pdec, preq, papp])["records"]   # the pay decision, then alice's approval
+    second = {"approval_id": "apr-second", "decision_id": pay["decision_id"]}
+    failed("approved-by-two-decisions", "approved_by of call pay-1 whose evidence holds alice's approval of the "
+           "read_file decision with its request, and a second approval by alice of pay-1 with a request naming the pay "
+           "decision, under a checkpoint the test log key signs offline (a signer keeps one approval per call): "
+           "approvals of the call that name different decisions fail the claim, whatever the order of the records.",
+           {"type": "approved_by", "args": {"person": "alice", "call": "pay-1"}, "evidence": relog(
+               pev + pev[2:], lambda i, e: dict(e, data={**e["data"], **{
+                   k: v for k, v in second.items() if k in e["data"]}}) if i > 3 else e)},
+           "2 different decisions approved as call pay-1")
+    failed("approved-by-request-names-two-decisions", "approved_by of call pay-1 whose evidence holds alice's approval, "
+           "its request and the read_file decision, plus a second approval.request of the same approval naming the pay "
+           "decision (not in the evidence), under a checkpoint the test log key signs offline: requests of one "
+           "approval that name two decisions fail the claim.",
+           {"type": "approved_by", "args": {"person": "alice", "call": "pay-1"}, "evidence": relog(
+               motd["records"] + motd["records"][1:2], lambda i, e: dict(e, data=dict(
+                   e["data"], decision_id=pay["decision_id"])) if i == 3 else e)},
+           "its approval.request records name 2 decisions")
     failed("witness-key-in-logs", "approved_by with trust pinning the witness's cosignature key in logs, next to the "
            "test log key: a key in logs that is no Ed25519 or hybrid log key fails the note.", approved,
            "wrong signature type", trust=dict(trust, logs=[s.vkey, WITNESS["vkey"]]))
@@ -617,8 +646,12 @@ def cases(s, s2):
              "the host loses its one trailing dot"),
             ("accept-reached-host-short-ipv4", "http://127.1/health", "127.0.0.1", "",
              "127.1 is the IPv4 address 127.0.0.1"),
-            ("accept-reached-host-idn", "http://bücher.example/", "xn--bcher-kva.example", "",
-             "the host goes to ASCII by IDNA, so it is the punycode name the claim carries"),
+            ("accept-reached-host-a-label", "https://XN--BCHER-KVA.Example/", "xn--bcher-kva.example", "",
+             "an xn-- label is compared as written, in lower case: a name in another script is fetched and claimed in "
+             "its A-label form"),
+            ("accept-unproven-reached-host-idn", "http://bücher.example/", "xn--bcher-kva.example",
+             "can't tell whether", "IDNA 2003 and UTS 46 both read the name as xn--bcher-kva.example, but hosts are "
+             "compared in ASCII only: a URL with a character outside printable ASCII won't parse"),
             ("reject-claim-reached-host-other-host", "https://api.example.com/v1/refunds", "api.example.org",
              "no call in the evidence", "another host"),
             ("accept-unproven-reached-host-bracket", "http://[x]@good.com/", "good.com", "can't tell whether",
@@ -641,23 +674,36 @@ def cases(s, s2):
              "can't tell whether", "a browser reads the host a.example and Python's urllib b.example, so it won't "
              "parse"),
             ("accept-unproven-reached-host-deviation", "http://fa\u00df.example/", "fass.example", "can't tell whether",
-             "IDNA 2003 maps the sharp s to ss and a browser keeps it (xn--fa-hia.example), so a host with one of the "
-             "four deviation characters won't parse"),
-            ("accept-unproven-reached-host-capital-sharp-s", "http://faẞ.example/", "fass.example",
-             "can't tell whether", "NFKC keeps the capital sharp s, case folding makes it ss and UTS 46 a sharp s "
-             "(xn--fa-hia.example), so it won't parse"),
-            ("accept-unproven-reached-host-cherokee", "http://aᎠb.example/", "xn--ab-5f1i.example",
-             "can't tell whether", "Python's idna codec lower-cases the Cherokee capital by its own Unicode "
-             "(xn--ab-5f1i.example), where Nameprep's Unicode 3.2 table and UTS 46 keep it (xn--ab-y8l.example), so a "
-             "name with a Cherokee letter won't parse"),
-            ("accept-reached-host-unassigned", "http://x\u0378.example/", "xn--x-qib.example", "",
-             "U+0378 is unassigned in Unicode 3.2, and the stdlib codec takes it (AllowUnassigned on)"),
+             "IDNA 2003 maps the sharp s to ss, so a verifier that read the name by it would prove fass.example, where "
+             "a browser reaches xn--fa-hia.example: a URL with a character outside printable ASCII won't parse"),
+            ("accept-unproven-reached-host-mapped-to-nothing", "http://exa\N{MONGOLIAN TODO SOFT HYPHEN}mple.com/",
+             "example.com", "can't tell whether", "IDNA 2003 maps U+1806 to nothing, so a verifier that read the name "
+             "by it would prove example.com, where UTS 46 refuses the name: a URL with a character outside printable "
+             "ASCII won't parse"),
+            ("accept-unproven-reached-host-tab-in-escape", "http://fa%C3\t%9F.example/", "fass.example",
+             "can't tell whether", "a tab inside a percent-escape, which URL readers drop, leaving fa%C3%9F.example, a "
+             "sharp s once decoded: a URL with a character outside printable ASCII won't parse"),
+            ("accept-unproven-reached-host-leading-space", " https://api.example.com/v1/refunds", "api.example.com",
+             "can't tell whether", "a leading space, which some URL readers strip and others keep: a URL with a "
+             "character outside printable ASCII won't parse"),
+            ("accept-unproven-reached-host-non-ascii-path", "https://api.example.com/café", "api.example.com",
+             "can't tell whether", "a character outside printable ASCII in the path: anywhere in the URL, it makes "
+             "the host one that won't parse"),
+            ("accept-unproven-reached-host-fullwidth-ipv6", "http://[::\N{FULLWIDTH DIGIT ONE}]/", "::1",
+             "can't tell whether", "a fullwidth digit one in the brackets, which NFKC makes ::1: a URL with a "
+             "character outside printable ASCII won't parse"),
+            ("accept-unproven-reached-host-ipv6-leading-zero", "http://[::ffff:01.2.3.4]/", "1.2.3.4",
+             "can't tell whether", "a leading zero in the IPv6 address's dotted quad, which some IPv6 parsers read as "
+             "1.2.3.4 and others refuse: it is no IPv6 address, so the bracket rule refuses the URL"),
+            ("accept-unproven-reached-host-bracket-no-host", "http://[::1]@/", "api.example.com", "can't tell whether",
+             "a bracketed IPv6 address in the user info and no host after it: the bracket rule refuses the URL before "
+             "anything else reads it, so the claim is unproven, not failed, whatever urlsplit's own bracket check"),
             ("reject-claim-reached-host-file-url", "file://api.example.com/x", "api.example.com",
              "no call in the evidence", "a file: URL has no host a browser reads"),
-            ("accept-unproven-reached-host-no-ipv6", "http://%5b::1%5d/", "api.example.com", "can't tell whether",
-             "percent-decoded, the host is `[`, which is no IPv6 address, so it won't parse"),
+            ("accept-unproven-reached-host-percent", "http://%61pi.example.com/", "api.example.com",
+             "can't tell whether", "%61 is a, but a host is never percent-decoded: a host with a `%` won't parse"),
             ("accept-unproven-reached-host-nul", "http://api.example.com%00.evil/", "api.example.com",
-             "can't tell whether", "percent-decoded, the host holds a NUL, so it won't parse")):
+             "can't tell whether", "a host with a `%` won't parse, so the NUL that %00 escapes can't cut it short")):
         claimed(name, f"reached_host {host} by a WebFetch of {url} the executor ran (T2): {what}.",
                 {"type": "reached_host", "args": {"host": host}, "evidence": call("WebFetch", {"url": url})}, want)
     claimed("accept-unproven-reached-host-claim-bad-port", "reached_host of api.example.com:abc with the observed "

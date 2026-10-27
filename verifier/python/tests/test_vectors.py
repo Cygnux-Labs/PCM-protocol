@@ -164,17 +164,17 @@ def test_a_decision_without_its_id_matches_nothing():
 
 
 @pytest.mark.parametrize("host, claim, result", [
-    ("API.Example.com.", "api.example.com", "proven"), ("bücher.example", "xn--bcher-kva.example", "proven"),
+    ("API.Example.com.", "api.example.com", "proven"), ("XN--BCHER-KVA.example", "xn--bcher-kva.example", "proven"),
+    ("xn--zz.example", "xn--zz.example", "proven"), ("::ffff:10.0.0.1", "10.0.0.1", "proven"),
     ("a..example", "api.example.com", "unproven"), ("api.example.org", "api.example.com", "failed"),
-    # SPEC 6.7: a deviation character, no IPv6 address in brackets, a NUL, a port that is no number
-    ("fa\u00df.example", "fass.example", "unproven"), ("a\u200db.example", "ab.example", "unproven"),
-    ("\u03f2.example", "xn--4xa.example", "unproven"), ("%5b", "api.example.com", "unproven"),
-    ("h.com%00.evil", "api.example.com", "unproven"), ("api.example.com:x", "api.example.com", "unproven"),
-    ("api.example.com", "api.example.com:", "unproven"), ("api.example.com", "api.example.com:443", "proven"),
-    # capital sharp s: NFKC keeps it, case folding makes it ss, UTS 46 a sharp s (SPEC 6.7 step 3)
-    ("FAẞ.example", "fass.example", "unproven"),
-    # Cherokee: Python's codec lower-cases U+13A0 to U+AB70, Nameprep's Unicode 3.2 table keeps it (6.7 step 4)
-    ("aᎠb.example", "xn--ab-5f1i.example", "unproven"), ("aꭰb.example", "xn--ab-5f1i.example", "unproven")])
+    ("a" * 64 + ".example", "a" * 64 + ".example", "unproven"),
+    ("api.example.com:x", "api.example.com", "unproven"), ("api.example.com", "api.example.com:", "unproven"),
+    ("api.example.com", "api.example.com:443", "proven"),
+    # SPEC 6.7: printable ASCII only, never percent-decoded, no leading zero in an IPv6 address's dotted quad
+    ("bücher.example", "xn--bcher-kva.example", "unproven"), ("faß.example", "fass.example", "unproven"),
+    (" api.example.com", "api.example.com", "unproven"), ("%61pi.example.com", "api.example.com", "unproven"),
+    ("h.com%00.evil", "api.example.com", "unproven"), ("%5b", "api.example.com", "unproven"),
+    ("::ffff:1.2.03.4", "1.2.3.4", "unproven"), ("1.2.3.4", "::ffff:01.2.3.4", "unproven")])
 def test_an_effects_host_is_compared_in_canonical_form(host, claim, result):
     msg = message(claim_args={"host": claim}, event={**EVENT, "data": {**EVENT["data"], "host": host}})
     assert check(msg)["claims"][0]["result"] == result
@@ -197,24 +197,72 @@ def first_part(netloc):
         raise ValueError("Invalid IPv6 URL")
 
 
-@pytest.mark.parametrize("check", [None, lambda netloc: None, first_part], ids=["native", "none", "first-part"])
+@pytest.mark.parametrize("emu", [{}, {"_check_bracketed_netloc": lambda netloc: None},
+                                 {"_check_bracketed_netloc": first_part}, {"_WHATWG_C0_CONTROL_OR_SPACE": ""},
+                                 {"_WHATWG_C0_CONTROL_OR_SPACE": "", "_UNSAFE_URL_BYTES_TO_REMOVE": []}],
+                         ids=["native", "no-bracket-check", "first-part", "no-c0-strip", "no-strip"])
 @pytest.mark.parametrize("host, url, result", [
-    # SPEC 6.7 bracket rule: one pair around an IPv6 or IPvFuture address that opens the host after the last `@`
+    # SPEC 6.7 bracket rule: one pair around an IPv6 or IPvFuture address that opens the host after the last `@`,
+    # checked before anything else reads the URL
     ("good.com", "http://[x]@good.com/", "unproven"), ("api.example.com", "http://[::1]@api.example.com/", "unproven"),
     ("api.example.com", "http://[::1]@evil.example/", "unproven"), ("api.example.com", "[::1]@api.example.com/x",
                                                                     "unproven"),
     ("::1", "http://[zz]@[::1]/", "unproven"), ("::1", "http://[::1]x/", "unproven"), ("x", "http://[@x::1]/", "unproven"),
+    ("api.example.com", "http://[::1]@/", "unproven"), ("::1", "http://[::1]@/", "unproven"),
+    ("api.example.com", "file://[::1]@api.example.com/", "unproven"),
+    # SPEC 6.7 step 1: what urlsplit strips (leading controls and spaces, tabs and line breaks) differs by release
+    ("a.example", " http://a.example\\@b.example/", "unproven"), ("a.example", "\x01http://a.example/", "unproven"),
+    ("a.example", "ht\ttp://a.example\\@b.example/", "unproven"),
     ("::1", "http://[::1]:8080/", "proven"), ("::1", "http://u@[::1]/x", "proven"), ("1.2.3.4", "http://[::ffff:1.2.3.4]/",
                                                                                       "proven"),
     ("good.com", "http://good.com/a[1]", "proven"), ("other.com", "http://good.com/?q=]", "failed")])
-def test_the_bracket_rule_is_the_specs_not_urlsplits(check, host, url, result, monkeypatch):
+def test_no_verdict_depends_on_the_urlsplit_release(emu, host, url, result, monkeypatch):
     """urlsplit's own bracket check differs between Python releases (none, the first bracketed part, the part after the
-    last `@`): under each, the verdict is the same."""
+    last `@`), and so does what it strips: under each, the verdict is the same."""
     urllib.parse.clear_cache()   # urlsplit caches what it read
-    if check:
-        monkeypatch.setattr(urllib.parse, "_check_bracketed_netloc", check, raising=False)
+    for name, value in emu.items():
+        monkeypatch.setattr(urllib.parse, name, value, raising=False)
     try:
         assert pcm_verify.reached_host({"host": host}, fetched(url))[0] == result
+    finally:
+        urllib.parse.clear_cache()
+
+
+@pytest.mark.parametrize("host, url", [
+    ("fass.example", "http://fa%C3\t%9F.example/"), ("fass.example", "http://faß.example/"),
+    ("example.com", "http://exa\N{MONGOLIAN TODO SOFT HYPHEN}mple.com/"),
+    ("ab.example", "http://a\N{HANGUL FILLER}b.example/"), ("xn--x-qib.example", "http://x" + chr(0x378) + ".example/"),
+    ("xn--bcher-kva.example", "http://bücher.example/"), ("::1", "http://[::\N{FULLWIDTH DIGIT ONE}]/"),
+    *(("a.example", url) for url in ("http://a.example/café", " http://a.example/", "\x01http://a.example/",
+                                     "http://a.ex\tample/", "http://a.example/ x", "http://a.example/\x7f"))])
+def test_only_printable_ascii_is_read(host, url):
+    """SPEC 6.7 step 1: a URL with any character outside U+0021 to U+007E won't parse: IDNA 2003, UTS 46 and the
+    readers of each Unicode version name some hosts apart, and URL readers drop spaces, tabs and controls differently,
+    even inside a percent-escape."""
+    assert pcm_verify.reached_host({"host": host}, fetched(url))[0] == "unproven"
+
+
+@pytest.mark.parametrize("host, url", [
+    ("a.example", "http://%61.example/"), ("a.example", "http:\\\\%61.example/"),
+    ("a.example", "http://a.example\\@%61.example/"), ("h.com", "http://%5bh.com%5d/"),
+    ("h.com.evil", "http://h.com%00.evil/"), ("::1", "http://[::1%25eth0]/")])
+def test_a_host_with_a_percent_is_unproven(host, url):
+    """SPEC 6.7 step 5: a host is never percent-decoded, in the browser's reading or the generic one."""
+    assert pcm_verify.reached_host({"host": host}, fetched(url))[0] == "unproven"
+
+
+@pytest.mark.parametrize("old", [False, True], ids=["this-release", "lenient-ipaddress"])
+def test_an_ipv6_dotted_quad_with_a_leading_zero_is_unproven(old, monkeypatch):
+    """SPEC 6.7: ::ffff:01.2.3.4 is no IPv6 address. Python before 3.9.5 reads it as ::ffff:1.2.3.4, emulated here."""
+    if old:
+        octet = ipaddress._BaseV4._parse_octet.__func__
+        monkeypatch.setattr(ipaddress._BaseV4, "_parse_octet", classmethod(lambda c, s: octet(c, s.lstrip("0") or "0")))
+    urllib.parse.clear_cache()
+    try:
+        for host, recs in (("1.2.3.4", fetched("http://[::ffff:01.2.3.4]/")),
+                           ("1.2.3.4", fetched("file://[::ffff:01.2.3.4]/")),   # the bracket rule comes first
+                           ("::ffff:01.2.3.4", fetched("http://1.2.3.4/"))):
+            assert pcm_verify.reached_host({"host": host}, recs)[0] == "unproven", (host, recs)
     finally:
         urllib.parse.clear_cache()
 
@@ -243,6 +291,44 @@ def test_approved_by_names_what_was_approved():
                                   {"policy_decision": {"tool_use_id": "c2"}}, {"policy_decision": {"tool": ""}}])
 def test_approved_by_needs_a_persons_own_approval_of_the_decision_its_request_names(edit):
     assert pcm_verify.approved_by({"person": "alice", "call": "c1"}, approval(**edit))[0] == "failed"
+
+
+def test_approved_by_does_not_depend_on_record_order():
+    """SPEC 6.6: records that disagree on what the person approved fail the claim in either order: a decision listed
+    unopened and opened, two requests of one approval naming two decisions (the other one in the evidence or not), two
+    approvals of the call naming different decisions. Records that agree prove it, by the first approval; an opened
+    decision gives its args."""
+    claim, motd = {"person": "alice", "call": "c1"}, {"path": "/etc/motd"}
+    dec, req, app = approval("read_file")
+    pay = ({"type": "policy.decision", "seq": 4, "data": {"tool": "pay", "decision": "ask", "decision_id": "d2",
+                                                          "tool_use_id": "c1"}}, None)
+    again = ({"type": "approval", "seq": 6, "data": dict(app[0]["data"], approval_id="a2")}, None)
+
+    def request(aid, did):
+        return {"type": "approval.request", "seq": 5, "data": {"approval_id": aid, "decision_id": did}}, None
+    two = "approval seq 3: its approval.request records name 2 decisions"
+    for recs, why in (([dec, (dec[0], motd), req, app], "2 different decisions approved as call c1 by alice"),
+                      ([dec, req, pay, request("a1", "d2"), app], two), ([dec, req, app, request("a1", "d2")], two),
+                      ([dec, req, app, pay, request("a2", "d2"), again], "2 different decisions approved as")):
+        for order in (recs, recs[::-1]):
+            got = pcm_verify.approved_by(claim, order)
+            assert got[0] == "failed" and why in got[1], (order, got)
+    for recs, want in (([dec, req, app, request("a2", "d1"), again], {"tool": "read_file", "args": None}),
+                       ([(dec[0], motd), req, app], {"tool": "read_file", "args": motd})):
+        end = "" if want["args"] is None else ' with args {"path":"/etc/motd"}'
+        for order in (recs, recs[::-1]):
+            assert pcm_verify.approved_by(claim, order) == (
+                "proven", f'approval seq 3 by alice of "read_file" call c1{end}', want), order
+
+
+def test_a_record_listed_twice_fails():
+    """SPEC 6.2: evidence that lists a record twice fails, so one opened and one unopened can't make the result depend
+    on their order."""
+    msg = message()
+    records = msg["claims"][0]["evidence"]["records"]
+    records.append(dict(records[0]))
+    got = check(signed(msg, pcm_verify.MESSAGE_TAG))["claims"][0]
+    assert (got["result"], got["detail"]) == ("failed", "record 2: the same record as record 1")
 
 
 @pytest.mark.parametrize("claim, path, result", [
@@ -274,10 +360,11 @@ def test_which_paths_are_malformed(path, why):
     assert got is None if why is None else why in got
 
 
-@pytest.mark.parametrize("url, host", [("file://a.example/x", None), ("gopher://a.example/", None),
-                                       ("//a.example/x", "a.example"), ("http://%5b::1%5d/", "[")])
+@pytest.mark.parametrize("url, host", [("file://a.example/x", ""), ("gopher://a.example/", ""),
+                                       ("//a.example/x", "a.example"), ("http://%5b::1%5d/", None)])
 def test_only_a_special_or_schemeless_url_has_a_host(url, host):
-    assert pcm_verify.url_info(url).get("host") == host
+    """SPEC 6.7 step 4: "" is no host, None a host that won't parse."""
+    assert pcm_verify._url_host(url) == host
 
 
 @pytest.mark.parametrize("suite", [
