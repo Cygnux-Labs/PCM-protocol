@@ -322,7 +322,8 @@ def test_two_keys_of_one_log_are_the_receivers_error():
     """SPEC 10.1: one Ed25519 key per log name, so a key names one log; a hybrid key or another log's key is fine."""
     second = vkey(NAME, b"\x01" * 32)
     for logs in ([VKEY, second], [second, VKEY]):
-        with pytest.raises(ValueError, match="2 Ed25519 keys of log"):
+        with pytest.raises(ValueError, match="2 Ed25519 keys for log .*; PCM verifies with one: pass a trust file "
+                                             "with only the current key"):
             pcm_verify.verify(message(), dict(TRUST, logs=logs), [DOC])
     assert check(message())["verdict"] == "accept"
     assert pcm_verify.verify(message(), dict(TRUST, logs=[VKEY, vkey("example.org/other", b"\x01" * 32)]),

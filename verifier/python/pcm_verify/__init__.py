@@ -1021,8 +1021,8 @@ def verify(message, trust, schemas, me=None, strict=False, now=None, replay=None
         parse_vkey(w["vkey"])
     for name, n in collections.Counter(k[0] for k in logs if k[2] == ED25519).items():
         if n > 1:   # SPEC 10.1: one key per log name, so the key that signed a message names one log
-            raise ValueError(f"trust pins {n} Ed25519 keys of log {name}: PCM 0.1 has one key per log, so pin only "
-                             "the log's current key")
+            raise ValueError(f"trust pins {n} Ed25519 keys for log {name}; PCM verifies with one: pass a trust file "
+                             "with only the current key")
     out = {"signature": None, "replay": None, "schema": None, "grants": None, "claims": None, "verdict": "reject",
            "reasons": [], "skipped": ["replay"] * (replay is None) + ["recipient"] * (me is None)}
     errs = errors(MESSAGE, message)
