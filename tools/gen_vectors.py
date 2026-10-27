@@ -28,9 +28,12 @@ from tracekit.policy2.engine import Engine
 from tracekit.signer import logkey, service as svc
 from tracekit.signer.rpc_schema import REQUESTS
 
-OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vectors")
-A, B, M, ALICE, CAROL, DAVE, EGRESS = (CallerIdentity("uid", u, True)
-                                       for u in ("990101", "990102", "990107", "990001", "990008", "990009", "990200"))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT = os.path.join(ROOT, "vectors")
+with open(os.path.join(ROOT, "registry", "tools.json"), encoding="utf-8") as _f:
+    TOOLS = json.load(_f)   # PCM 0.1's frozen tool placement table (SPEC 10.2), every vector's `tools`
+A, B, M, ALICE, CAROL, DAVE, ERIN, ERIN_AGENT, EGRESS, SENSOR = (CallerIdentity("uid", u, True) for u in (
+    "990101", "990102", "990107", "990001", "990008", "990009", "990010", "990011", "990200", "990201"))
 C = "uid:990103"
 GW = CallerIdentity("mtls", "spiffe://example/executor", True)   # a tool executor: its results are T2
 SUITE = "pytest -q tests/test_refund.py"
@@ -68,18 +71,25 @@ def loose(text):
 
 
 class Signer:
-    """A Tracekit signer in a temp dir: alice approves, and so does uid:990009, whom no person maps to; the executor GW
-    runs tools; M and carol are in tenant acme."""
+    """A Tracekit signer in a temp dir: alice approves, and so does uid:990009, whom no person maps to; erin may
+    approve her own agent's calls (self_approval: allow); the policy asks a person about pcm.grant, pay and read_file
+    calls and denies a Bash call of tests/test_denied.py; the executor GW runs tools; an egress observer and a Tetragon
+    import report effects; M and carol are in tenant acme."""
 
     def __init__(self, origin, key):
         self.dir = tempfile.mkdtemp(prefix="pcm-vec-")
         self.ids = itertools.count()
         self.s = svc.SignerService(
-            self.dir, policy=Engine({"ask": [{"id": "PCM-GRANT", "tool": "pcm.grant", "pattern": "^"}]}),
-            approvals={"approvers": ["uid:990001", "uid:990008", "uid:990009"],
-                       "persons": {"uid:990001": "alice", "uid:990008": "carol"}}, origin=origin, log_key=key,
+            self.dir, policy=Engine({"ask": [{"id": "PCM-GRANT", "tool": "pcm.grant", "pattern": "^"},
+                                             {"id": "PAY", "tool": "pay", "pattern": "^"},
+                                             {"id": "READ", "tool": "read_file", "pattern": "^"}],
+                                     "deny": [{"id": "NO-DENIED", "tool": "Bash", "pattern": "test_denied"}]}),
+            approvals={"approvers": ["uid:990001", "uid:990008", "uid:990009", "uid:990010"], "self_approval": "allow",
+                       "persons": {"uid:990001": "alice", "uid:990008": "carol", "uid:990010": "erin",
+                                   "uid:990011": "erin"}}, origin=origin, log_key=key,
             gateways=[f"mtls:{GW.subject}"],
-            authorize={f"mtls:{GW.subject}": ["decide", "complete"], "uid:990200": ["observe_effect"]},
+            authorize={f"mtls:{GW.subject}": ["decide", "complete"], "uid:990200": ["observe_effect"],
+                       "uid:990201": ["observe_effect"]},
             tenants={"uid:990107": "acme", "uid:990008": "acme"}, fsck_every_s=0)
         self.vkey = self.s.vkey
 
@@ -94,9 +104,10 @@ class Signer:
 
 
 class Run:
-    def __init__(self, signer, who):
+    def __init__(self, signer, who, run_id=None):
+        """A run of `who`; `run_id`: the id the client picks (run ids are the client's, unique per log and tenant)."""
         self.signer, self.who, self.seqs, self.gw = signer, who, itertools.count(), itertools.count()
-        r = signer.call(who, "register_run", agent={"name": "agent"})
+        r = signer.call(who, "register_run", agent={"name": "agent"}, **({"run_id": run_id} if run_id else {}))
         self.creds = {"run_id": r["run_id"], "run_token": r["run_token"]}
         self.agent = f"{who.scheme}:{who.subject}"
         self.frm = {"agent": self.agent, "run": r["run_id"], "tenant": r["tenant"]}
@@ -116,34 +127,58 @@ class Run:
                       args_digest=event_hash({"tool": tool, "args": args}), status=status, **via)
         return d["run_seq"], r["run_seq"]
 
-    def observed(self, host):
-        """run_seq of the effect.observed an egress observer reports: the run reached `host`."""
-        ts = svc._iso(time.time())
+    def effect(self):
+        """run_seq of the run's latest effect.observed."""
+        return [e["run_seq"] for e in self.call("read", limit=1000)["events"] if e["type"] == "effect.observed"][-1]
+
+    def observed(self, host, connections=1):
+        """run_seq of the effect.observed an egress observer reports: a minute of the run's traffic to `host`, with
+        `connections` connections opened (0: the connect failed, so no byte went either way)."""
+        ts, n = svc._iso(time.time()), 512 * bool(connections)
         self.signer.call(EGRESS, "observe_effect", instance="egress-1", effects=[
-            {"kind": "net", "host": host, "port": 443, "bytes_out": 512, "bytes_in": 2048, "connections": 1,
+            {"kind": "net", "host": host, "port": 443, "bytes_out": n, "bytes_in": 4 * n, "connections": connections,
              "first_ts": ts, "last_ts": ts, **self.creds}])
-        return next(e["run_seq"] for e in self.call("read", limit=1000)["events"] if e["type"] == "effect.observed")
+        return self.effect()
+
+    def sensed(self, host, **kw):
+        """run_seq of the effect.observed a Tetragon import reports: a process of the run called connect to `host`."""
+        self.signer.call(SENSOR, "observe_effect", instance="sensor-1", sensor="tetragon", callers=[self.agent],
+                         effects=[{"kind": "connect", "ts": svc._iso(time.time()), "pid": 7,
+                                   "binary": "/usr/bin/curl", "host": host, "port": 443, **self.creds, **kw}])
+        return self.effect()
+
+    def approval(self, tcid):
+        """run_seqs of call `tcid`'s latest approval's policy.decision, approval.request and approval: what was
+        approved, the request that names it and the answer (SPEC 6.6 approved_by)."""
+        recs = self.call("read", limit=1000)["events"]
+        a = [x for x in recs if x["type"] == "approval" and x["data"]["tool_use_id"] == tcid][-1]
+        r = next(x for x in recs if x["type"] == "approval.request"
+                 and x["data"]["approval_id"] == a["data"]["approval_id"])
+        d = next(x for x in recs if x["type"] == "policy.decision"
+                 and x["data"].get("decision_id") == r["data"]["decision_id"])
+        return [d["run_seq"], r["run_seq"], a["run_seq"]]
 
     def approve(self, tcid, args, approver):
-        """(decision, run_seq of the approval) of a pcm.grant call of `args` that `approver` approved."""
+        """(decision, run_seqs of its decision, request and approval) of a pcm.grant call of `args` that `approver`
+        approved."""
         d = self.call("decide", stream="s", client_seq=next(self.seqs), tool_call_id=tcid, tool="pcm.grant",
                       args_source="parsed", args=args)
         aid = self.call("approval_request", tool_call_id=tcid)["approval_id"]
         self.signer.call(approver, "approval_decide", approval_id=aid, decision="approve")
-        return d, next(e["run_seq"] for e in self.call("read", limit=1000)["events"]
-                       if e["type"] == "approval" and e["data"]["tool_use_id"] == tcid)
+        return d, self.approval(tcid)
 
-    def grant(self, tcid, intent, subject=None, delegable=False, expires_s=3600, approver=ALICE):
-        """(root grant `approver` approved, run_seq of her approval), as the SDK's pcm_grant makes it."""
-        args = {"subject": subject or self.agent, "intent": intent, "caveats": CAVEATS,
+    def grant(self, tcid, intent, subject=None, delegable=False, expires_s=3600, approver=ALICE, caveats=CAVEATS):
+        """(root grant `approver` approved, run_seqs of its decision, request and approval), as the SDK's pcm_grant
+        makes it."""
+        args = {"subject": subject or self.agent, "intent": intent, "caveats": caveats,
                 "expires_at": svc._iso(time.time() + expires_s), "delegable": delegable}
-        d, seq = self.approve(tcid, args, approver)
+        d, seqs = self.approve(tcid, args, approver)
         self.call("approval_consume", tool_call_id=tcid, tool="pcm.grant", args_source="parsed", args=args)
         grant = self.call("pcm_grant", tool_call_id=tcid, args=args)["grant"]
         self.call("complete", stream="s", client_seq=next(self.seqs), tool_call_id=tcid, decision_id=d["decision_id"],
                   args_digest=event_hash({"tool": "pcm.grant", "args": args}), status="ok",
                   result={"grant": event_hash(grant)})
-        return grant, seq
+        return grant, seqs
 
     def evidence(self, seqs, opened=None):
         """Evidence of records `seqs` under a fresh checkpoint; `opened` {decision run_seq: its args}."""
@@ -172,7 +207,7 @@ def fresh(msg, seen=()):
 
 def check(inp):
     """What tracekit.pcm.verify returns for a vector's input: the `seen` messages go first through the same receiver."""
-    assert inp["tools"] == placed(), "tracekit.pcm.verify places tools with its own table"
+    assert inp["tools"] == placed(), "registry/tools.json is not tracekit's PCM 0.1 table (tracekit/pcm/tools.json)"
     o, now, rp = inp["options"], pcm._epoch(inp["options"]["now"]), inp["options"]["replay"]
     r = rp and pcm.Replay(rp["window_s"], rp["per_sender"], now=pcm._epoch(rp["started"]))
     for m in (rp or {}).get("seen", []):
@@ -197,7 +232,7 @@ def cases(s, s2):
     def vector(name, description, msg, schemas, want="", trust=trust, me="uid:990102", strict=False, replay=None,
                now=None):
         out.append((name, description, {
-            "message": msg, "schemas": schemas, "trust": trust, "tools": placed(),
+            "message": msg, "schemas": schemas, "trust": trust, "tools": TOOLS,
             "options": {"me": me, "strict": strict, "now": now or at(msg, 1), "replay": replay}}, want))
 
     def resign(obj, purpose, **changes):
@@ -205,8 +240,8 @@ def cases(s, s2):
 
     ref, qref, pref = (pcm.schema_ref(d) for d in (DOC, QUOTE, PASSED))
     a, b = Run(s, A), Run(s, B)
-    root, seq = a.grant("grant-1", ref)
-    ev = a.evidence([seq])
+    root, seqs = a.grant("grant-1", ref)
+    ev = a.evidence(seqs)   # the pcm.grant decision, the approval.request that names it, alice's approval
     approved = {"type": "approved_by", "args": {"person": "alice", "call": "grant-1"}, "evidence": ev}
     tp = {"type": "tests_passed", "args": {"suite": SUITE}}
 
@@ -221,8 +256,9 @@ def cases(s, s2):
 
     # accept and accept-unproven
     m = a.send("uid:990102", ref, claims=[approved], grants=[root])
-    vector("accept-approved-by", "A refund request under alice's root grant, with an approved_by claim her approval "
-           "record proves; replay checked.", m, [DOC], replay=fresh(m))
+    vector("accept-approved-by", "A refund request under alice's root grant, with an approved_by claim proven by her "
+           "approval, the approval.request it answers and the pcm.grant decision that request names; replay "
+           "checked.", m, [DOC], replay=fresh(m))
     m = a.send("uid:990102", ref, claims=[approved, ran("Bash", SUITE)], grants=[root])
     vector("accept-tests-passed-t2", "The accept message plus tests_passed proven by a result the tool executor wrote "
            "(T2).", m, [DOC])
@@ -322,12 +358,13 @@ def cases(s, s2):
     def failed(name, description, claim, want, **kw):
         vector(f"reject-claim-{name}", description, a.send("uid:990102", ref, claims=[claim], grants=[root]), [DOC],
                want, **kw)
-    rec, h = ev["records"][0], ev["records"][0]["hash"]
-    failed("changed-record-hash", "approved_by whose record hash has one hex digit changed.",
-           dict(approved, evidence=dict(ev, records=[dict(rec, hash=h[:-1] + ("1" if h[-1] == "0" else "0"))])),
+    rec, h, rest = ev["records"][0], ev["records"][0]["hash"], ev["records"][1:]
+    failed("changed-record-hash", "approved_by whose first record's hash has one hex digit changed.",
+           dict(approved, evidence=dict(ev, records=[dict(rec, hash=h[:-1] + ("1" if h[-1] == "0" else "0"))] + rest)),
            "hash does not match the event")
-    failed("cut-proof", "approved_by whose inclusion proof lost its last hash.",
-           dict(approved, evidence=dict(ev, records=[dict(rec, proof=rec["proof"][:-1])])), "not in the checkpoint")
+    failed("cut-proof", "approved_by whose first record's inclusion proof lost its last hash.",
+           dict(approved, evidence=dict(ev, records=[dict(rec, proof=rec["proof"][:-1])] + rest)),
+           "not in the checkpoint")
     o = Run(s2, A)
     moved = dict(approved, evidence=dict(ev, checkpoint=o.evidence([0])["checkpoint"]))
     failed("unpinned-log-note", "approved_by under a checkpoint note of a log trust does not pin.", moved,
@@ -345,10 +382,10 @@ def cases(s, s2):
            "with the nonce of this one (re-signed with the other log's test key); trust pins both logs. A sender is "
            "the pair (log key, agent), so uid:990101 of the test log is another sender and its nonce is new.", q,
            [QUOTE], trust=dict(trust, logs=[s.vkey, s2.vkey]), replay=fresh(q, [twin]))
-    failed("proof-non-canonical-base64", "approved_by whose first proof entry has an unused bit of its last base64 "
-           "character set: the same 32 bytes, but only canonical base64 is taken.",
-           dict(approved, evidence=dict(ev, records=[dict(rec, proof=[loose(rec["proof"][0])] + rec["proof"][1:])])),
-           "not in the checkpoint")
+    failed("proof-non-canonical-base64", "approved_by whose first record's first proof entry has an unused bit of its "
+           "last base64 character set: the same 32 bytes, but only canonical base64 is taken.",
+           dict(approved, evidence=dict(ev, records=[dict(rec, proof=[loose(rec["proof"][0])] + rec["proof"][1:])]
+                                        + rest)), "not in the checkpoint")
     failed("witnesses-required-unmet", "approved_by under a note with no cosignature; trust requires one witness.",
            approved, "0 pinned cosignature(s), 1 required",
            trust=dict(trust, witnesses=[WITNESS], witnesses_required=1))
@@ -358,12 +395,46 @@ def cases(s, s2):
            dict(approved, args={"person": "alice", "call": "grant-2"}), "no approval of grant-2")
     failed("pytest-or-true", "tests_passed of `pytest ... || true`, run by the executor (T2): its status is not the "
            "tests'.", ran("Bash", SUITE + " || true"), "is not a single test command")
-    _, dseq = a.approve("grant-dave", {"subject": a.agent, "intent": ref, "caveats": CAVEATS,
-                                       "expires_at": root["expires_at"], "delegable": False}, DAVE)
+    _, dseqs = a.approve("grant-dave", {"subject": a.agent, "intent": ref, "caveats": CAVEATS,
+                                        "expires_at": root["expires_at"], "delegable": False}, DAVE)
     failed("approved-by-unmapped-identity", "approved_by naming uid:990009, an approver no person in the signer's "
-           "approvals configuration maps to, with its approval record as evidence: only a person's name proves it.",
-           {"type": "approved_by", "args": {"person": "uid:990009", "call": "grant-dave"},
-            "evidence": a.evidence([dseq])}, "no approval of grant-dave by the person uid:990009")
+           "approvals configuration maps to, with its approval, request and decision as evidence: only a person's name "
+           "proves it.", {"type": "approved_by", "args": {"person": "uid:990009", "call": "grant-dave"},
+                          "evidence": a.evidence(dseqs)}, "no approval of grant-dave by the person uid:990009")
+    failed("approved-by-without-decision", "approved_by whose evidence holds alice's approval and the approval.request "
+           "it answers, but not the policy.decision the request names: the call id is the agent's own name for the "
+           "call, so without its decision nothing says what was approved.",
+           dict(approved, evidence=a.evidence(seqs[1:])), "holds no decision of the call it approved")
+    pay = a.call("decide", stream="s", client_seq=next(a.seqs), tool_call_id="pay-1", tool="pay",
+                 args_source="parsed", args={"amount": 50000, "order": 81})
+    a.call("decide", stream="s", client_seq=next(a.seqs), tool_call_id="pay-1", tool="read_file",
+           args_source="parsed", args={"path": "/etc/motd"})
+    s.call(ALICE, "approval_decide", approval_id=a.call("approval_request", tool_call_id="pay-1")["approval_id"],
+           decision="approve")
+    _, preq, papp = a.approval("pay-1")
+    failed("approved-by-other-decision", "approved_by of call pay-1, which the agent decided twice: a pay of 50000, "
+           "then a read_file of /etc/motd. alice approved the read_file (the approval.request names its decision), and "
+           "the evidence holds the pay decision with that request and approval: an approval is of the decision its "
+           "request names, not of every decision of the call id.",
+           {"type": "approved_by", "args": {"person": "alice", "call": "pay-1"},
+            "evidence": a.evidence([pay["run_seq"], preq, papp])}, "holds no decision of the call it approved")
+    er = Run(s, ERIN_AGENT)
+    _, eseqs = er.approve("grant-erin", {"subject": er.agent, "intent": ref, "caveats": CAVEATS,
+                                         "expires_at": root["expires_at"], "delegable": False}, ERIN)
+    vector("reject-claim-approved-by-self-approval", "approved_by erin, sent by her own agent's run (uid:990011, which "
+           "the approvals configuration maps to erin too), with her approval of its call, the request and the decision "
+           "as evidence; the signer allows self-approval, so it recorded the answer with self_approved true: a person "
+           "approving her own agent's call is no independent approval.",
+           er.send("uid:990102", qref, claims=[{"type": "approved_by", "args": {"person": "erin", "call": "grant-erin"},
+                                                "evidence": er.evidence(eseqs)}]), [QUOTE],
+           "no approval of grant-erin by the person erin")
+    vector("reject-claim-evidence-from-another-run", "approved_by with alice's approval records as evidence, sent by "
+           "another run of the same agent: evidence must come from the sender's own run.",
+           Run(s, A).send("uid:990102", qref, claims=[approved]), [QUOTE], "not the sender's")
+    vector("reject-claim-evidence-from-another-tenant", "approved_by with alice's approval records as evidence, sent by "
+           "uid:990107 of tenant acme from a run it registered under the run id of A's run (a client picks its run "
+           "id): the records are of tenant default, so they are not the sender's.",
+           Run(s, M, run_id=a.frm["run"]).send("uid:990102", qref, claims=[approved]), [QUOTE], "not the sender's")
     note = ev["checkpoint"]
     text = note[:note.find("\n\n") + 1]
     vector("accept-witnessed", "approved_by under a note cosigned by the pinned witness; trust requires one witness.",
@@ -391,6 +462,15 @@ def cases(s, s2):
            "claim checker reads, under a checkpoint the test log key signs offline over the edited record: a record "
            "that is no valid tracekit.event.v2 event fails.",
            dict(approved, evidence=relog(ev["records"], lambda i, e: dict(e, prev_hash=5))), "not a valid event")
+    failed("approved-by-agent-approver", "approved_by whose evidence is alice's approval, its request and decision, "
+           "with approver_kind agent added to the approval, under a checkpoint the test log key signs offline over the "
+           "edited records (an honest signer writes no person on an agent approver's answer): an agent approver's "
+           "answer proves no person's approval.",
+           dict(approved, evidence=relog(ev["records"], lambda i, e: dict(e, data=dict(e["data"], approver_kind="agent"))
+                                         if e["type"] == "approval" else e)), "no approval of grant-1 by the person alice")
+    failed("witness-key-in-logs", "approved_by with trust pinning the witness's cosignature key in logs, next to the "
+           "test log key: a key in logs that is no Ed25519 or hybrid log key fails the note.", approved,
+           "wrong signature type", trust=dict(trust, logs=[s.vkey, WITNESS["vkey"]]))
     failed("tests-passed-malformed-no-evidence", "tests_passed of `pytest ... || true` with no evidence: a suite that "
            "is no test command is malformed, so the claim fails without evidence too.",
            {"type": "tests_passed", "args": {"suite": SUITE + " || true"}}, "is not a single test command")
@@ -431,6 +511,9 @@ def cases(s, s2):
             ran("Bash", "python3 -m pytest -q"))
     claimed("reject-claim-tests-failed", "tests_passed whose T2 result is an error.",
             ran("Bash", SUITE, status="error"), "and failed")
+    claimed("reject-claim-tests-passed-denied-call", "tests_passed of `pytest -q tests/test_denied.py`, whose "
+            "policy.decision is deny; the executor then reported the call ran and succeeded (T2): a denied decision "
+            "matches no call.", ran("Bash", "pytest -q tests/test_denied.py"), "no call in the evidence ran")
     opened = ran("Bash", SUITE)
     dec, res = opened["evidence"]["records"]
     claimed("reject-claim-salt-without-args", "tests_passed whose decision record carries its salt but not its args.",
@@ -464,10 +547,35 @@ def cases(s, s2):
             "file or another.", {"type": "file_written", "args": {"path": "/work/report.txt", "digest": sha},
                                  "evidence": call("Write", {"file_path": "report.txt", "content": "total: 81\n"})},
             "can't tell whether")
+    for name, path, written, want, what in (
+            ("reject-claim-file-written-backslash", "/work/report.txt", "/work\\report.txt",
+             "no call in the evidence wrote", "a path that starts with / is read by POSIX rules, where `\\` is part of "
+             "a name, so the call wrote the file `work\\report.txt` in /"),
+            ("accept-unproven-file-written-drive-separators", "C:\\work\\report.txt", "C:/work/report.txt",
+             "can't tell whether", "the two are one file on Windows, but the record doesn't say which system ran the "
+             "call, and on POSIX C:/work/report.txt is a relative path"),
+            ("accept-file-written-drive-path", "C:\\work\\report.txt", "C:\\work\\report.txt", "",
+             "a drive path is proven by a call of the claim's own string")):
+        claimed(name, f"file_written of {path} by a Write of {written} the executor ran (T2): {what}.",
+                {"type": "file_written", "args": {"path": path, "digest": sha},
+                 "evidence": call("Write", {"file_path": written, "content": "total: 81\n"})}, want)
     observed = a.evidence([a.observed("api.example.com")])
     claimed("accept-reached-host-observed", "reached_host proven by the effect.observed record an egress observer "
-            "reported to the signer.", {"type": "reached_host", "args": {"host": "api.example.com"},
-                                         "evidence": observed})
+            "reported to the signer: a minute with one connection to the host.",
+            {"type": "reached_host", "args": {"host": "api.example.com"}, "evidence": observed})
+    for name, seq, want, what in (
+            ("accept-unproven-reached-host-no-connection", a.observed("api.example.com", connections=0),
+             "saw no connection to", "an egress observer's minute of the run's traffic to the host with connections 0 "
+             "(its connect failed): the run tried the host, nothing says it reached it"),
+            ("accept-unproven-reached-host-sensor-connect", a.sensed("api.example.com"), "an attempt",
+             "a kernel sensor's (Tetragon's) record that a process of the run called connect to the host: the attempt, "
+             "not an opened connection"),
+            ("reject-claim-reached-host-denied-connect", a.sensed("api.example.com", denied=True),
+             "no call in the evidence", "a kernel sensor import's connect of the run to the host, marked denied (the "
+             "sensor blocked it): a denied connect reaches nothing, and nothing else in the evidence says the run "
+             "reached the host")):
+        claimed(name, f"reached_host api.example.com by {what}.",
+                {"type": "reached_host", "args": {"host": "api.example.com"}, "evidence": a.evidence([seq])}, want)
     claimed("accept-unproven-reached-host-unreadable-claim", "reached_host of a..example with the observed evidence: "
             "a host with an empty label won't parse, so the claim is unproven.",
             {"type": "reached_host", "args": {"host": "a..example"}, "evidence": observed},
@@ -536,6 +644,23 @@ def cases(s, s2):
            "message, so the 3rd left first and raised the floor to its time; the 2nd is older than the floor.",
            q2, [QUOTE], "older than the messages this receiver remembers",
            replay={"window_s": None, "started": at(q1, -60), "per_sender": 1, "seen": [q3, q1]}, now=at(q3, 1))
+    # replay: which messages spend their nonce
+    twin = "this message with the same sender, ts and nonce, re-signed with the test log key"
+    vector("accept-replay-misaddressed-spends-no-nonce", f"The receiver uid:990102 first got {twin} but addressed to "
+           "uid:990103: a message for another receiver spends no nonce here, so this one is fresh.", q, [QUOTE],
+           replay=fresh(q, [resign(q, "pcm", to={"agent": C})]))
+    vector("accept-replay-schema-rejected-spends-no-nonce", f"The receiver first got {twin} but with order as the "
+           'string "81", which its schema refuses: a message rejected for its schema spends no nonce, so this one is '
+           "fresh.", q, [QUOTE], replay=fresh(q, [resign(q, "pcm", intent={"type": qref, "args": {
+               **ARGS, "order": "81"}})]))
+    over = a.send("uid:990102", ref, {**ARGS, "amount": 50000}, [approved], [root])
+    again = resign(a.send("uid:990102", ref, claims=[approved], grants=[root]), "pcm", nonce=over["nonce"])
+    vector("reject-replay-grant-failure-spends-nonce", "The receiver first got a message of the same sender with this "
+           "nonce whose grant check failed (amount 50000 over the cap of 20000); this valid one carries that nonce, "
+           "re-signed with the test log key: a message rejected for its grants spends its nonce, so this one is a "
+           "replay.", again, [DOC], "replayed: this nonce was seen before", replay=fresh(again, [over]))
+    vector("accept-skipped-replay-and-recipient", "A valid refund.quote checked with no replay state and no receiver "
+           "identity (me null), as an audit: the result names both checks in skipped.", q, [QUOTE], me=None)
 
     # schema field types
     ticket = {"pcm_schema": 0, "name": "ticket.open", "fields": {
@@ -580,6 +705,50 @@ def cases(s, s2):
              "names uid:990107, not the parent's subject, as its issuer")):
         vector(f"reject-grant-{name}", f"A's child to B {what}; {edited}.",
                b.send(C, pref, grants=[droot, resign(child, "pcm-grant", **change)]), [PASSED], want, me=C)
+    for name, change, want, what in (
+            ("root-with-parent", {"parent": event_hash(droot)}, "the root grant has a parent",
+             "with its parent set to another grant's hash"),
+            ("root-without-person", {"issuer": {k: v for k, v in root["issuer"].items() if k != "person"}},
+             "names no person", "with issuer.person removed (the signer names the person on every root grant)")):
+        vector(f"reject-grant-{name}", f"alice's root grant {what}, re-signed with the test log key.",
+               a.send("uid:990102", ref, claims=[approved], grants=[resign(root, "pcm-grant", **change)]), [DOC], want)
+    vector("accept-grant-expires-at-ts", "A message whose ts is its root grant's expires_at, re-signed with the test log "
+           "key (the signer takes ts from its clock): a grant still holds at its expires_at.",
+           resign(a.send("uid:990102", ref, claims=[approved], grants=[root]), "pcm", ts=root["expires_at"]), [DOC])
+    for name, caveat, args, what in (
+            ("string-for-int", cv("order", "==", "81"), ARGS, 'order == "81", the string "81" for the int field order'),
+            ("bool-for-int", cv("order", "==", True), {**ARGS, "order": 1},
+             "order == true, a bool for the int field order, and a message with order 1")):
+        g, _ = a.grant(f"grant-{name}", pref, caveats=[CAVEATS[0], caveat])
+        vector(f"reject-grant-caveat-{name}", f"A root grant alice approved with {what}: nothing is converted, so a "
+               "caveat's value of another JSON type than its field's is no valid caveat, and no args satisfy it.",
+               a.send("uid:990102", pref, args, grants=[g]), [PASSED], "not a valid int value")
+
+    # narrowing an `in` set and a time bound: alice grants A region in [eu, us] and due <= 2026-12-31 (delegable)
+    scoped = {"pcm_schema": 0, "name": "refund.scoped", "grant": True, "fields": {
+        **FIELDS, "region": {"type": "enum", "values": ["eu", "us", "apac"]}, "due": {"type": "time"}}}
+    sref, due = pcm.schema_ref(scoped), "2026-12-31T00:00:00.000000Z"
+    sargs = {**ARGS, "region": "eu", "due": "2026-11-01T09:00:00.000000Z"}
+    sroot, _ = a.grant("grant-s", sref, delegable=True,
+                       caveats=CAVEATS + [cv("region", "in", ["eu", "us"]), cv("due", "<=", due)])
+
+    def scoped_caveats(region, before):
+        return NARROWER + [cv("region", "in", region), cv("due", "<=", before)]
+
+    def scoped_child(region, before):
+        return a.call("pcm_delegate", parent=sroot, subject="uid:990102", caveats=scoped_caveats(region, before),
+                      expires_at=sroot["expires_at"], delegable=False)["grant"]
+    for name, region, before, what, wide, widened in (
+            ("in-set", ["eu"], due, "region in [eu, us] to region in [eu]", (["eu", "us", "apac"], due),
+             "region in [eu, us, apac], a superset"),
+            ("time-bound", ["eu", "us"], "2026-11-30T00:00:00.000000Z", "due <= 2026-12-31 to due <= 2026-11-30",
+             (["eu", "us"], "2027-01-31T00:00:00.000000Z"), "due <= 2027-01-31, a later bound")):
+        kid = scoped_child(region, before)
+        vector(f"accept-delegation-{name}", f"A's child to B narrows {what}.",
+               b.send(C, sref, sargs, grants=[sroot, kid]), [scoped], me=C)
+        vector(f"reject-grant-{name}-widened-child", f"A's child to B has {widened} instead; {edited}.",
+               b.send(C, sref, sargs, grants=[sroot, resign(kid, "pcm-grant", caveats=scoped_caveats(*wide))]),
+               [scoped], "dropped or widened", me=C)
     return out
 
 

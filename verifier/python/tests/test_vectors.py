@@ -19,14 +19,18 @@ import pcm_verify
 HERE = pathlib.Path(__file__).resolve().parent
 VECTORS = HERE.parents[2] / "vectors"
 INDEX = json.loads((VECTORS / "index.json").read_text())
+REGISTRY = HERE.parents[2] / "registry"
+TOOLS_SHA256 = "15f8410f513344e4c60327d4fc3dd14949ebeaf7722f641d985d3ca721c8fe07"   # SPEC 10.2: PCM 0.1's table
 
 
 def conformance(out):
-    """The fields a verifier must match: verdict, signature.ok, replay.ok, schema.ok, grants.result, claim results."""
+    """The fields a verifier must match (SPEC 13.2): verdict, signature.ok, replay.ok, schema.ok, grants.result, claim
+    results and skipped."""
     part = lambda name, key: None if out[name] is None else out[name][key]   # noqa: E731
     return {"verdict": out["verdict"], "signature": part("signature", "ok"), "replay": part("replay", "ok"),
             "schema": part("schema", "ok"), "grants": part("grants", "result"),
-            "claims": None if out["claims"] is None else [c["result"] for c in out["claims"]]}
+            "claims": None if out["claims"] is None else [c["result"] for c in out["claims"]],
+            "skipped": out["skipped"]}
 
 
 def run(inp):
@@ -34,8 +38,8 @@ def run(inp):
     replay = rp and pcm_verify.Replay(rp["window_s"], rp["per_sender"], started=rp["started"])
     kw = dict(me=o["me"], strict=o["strict"], now=o["now"], replay=replay)
     for m in (rp or {}).get("seen", []):
-        pcm_verify.verify(m, inp["trust"], inp["schemas"], inp["tools"], **kw)
-    return pcm_verify.verify(inp["message"], inp["trust"], inp["schemas"], inp["tools"], **kw)
+        pcm_verify.verify(m, inp["trust"], inp["schemas"], **kw)
+    return pcm_verify.verify(inp["message"], inp["trust"], inp["schemas"], **kw)
 
 
 def test_no_tracekit_import():
@@ -46,6 +50,16 @@ def test_index_lists_every_vector():
     assert sorted(v["file"] for v in INDEX) == sorted(p.name for p in VECTORS.glob("*.json") if p.name != "index.json")
 
 
+def test_the_vectors_were_made_with_the_frozen_table():
+    """registry/tools.json is PCM 0.1's table (its digest is in SPEC 10.2), the verifier places tools with it, and
+    every vector was generated with it."""
+    raw = (REGISTRY / "tools.json").read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == TOOLS_SHA256
+    assert pcm_verify.TOOLS == json.loads(raw)
+    for v in INDEX:
+        assert json.loads((VECTORS / v["file"]).read_text())["input"]["tools"] == pcm_verify.TOOLS, v["name"]
+
+
 @pytest.mark.parametrize("name", [v["name"] for v in INDEX])
 def test_vector(name):
     v = json.loads((VECTORS / f"{name}.json").read_text())
@@ -53,7 +67,8 @@ def test_vector(name):
 
 
 # ---------------------------------------------------------------------------------------------------- hostile input
-# A log of our own, so a test can sign what it needs: one approval record, its checkpoint and a message citing it.
+# A log of our own, so a test can sign what it needs: one egress observer's record that the run reached a host, its
+# checkpoint and a message citing it.
 KEY = Ed25519PrivateKey.from_private_bytes(bytes(32))
 PUB = KEY.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
 NAME = "example.org/hostile-test-log"
@@ -63,11 +78,11 @@ TRUST = {"logs": [VKEY], "witnesses": [], "witnesses_required": 0}
 DOC = {"pcm_schema": 0, "name": "note", "fields": {"n": {"type": "int", "min": 0, "max": 10}}}
 RUN = "0" * 32
 ZERO = "sha256:" + "0" * 64
-EVENT = {"schema_version": "tracekit.event.v2", "id": "1" * 32, "seq": 0, "prev_hash": ZERO,
-         "ts": "2026-10-27T12:00:00.000000Z", "run_id": RUN, "agent_id": "main", "parent_id": None, "source": "sdk",
-         "type": "approval", "data": {"tool_use_id": "call-1", "approval_id": "apr-1", "decision": "approve",
-                                      "approver": "uid:3", "channel": "rpc", "self_approved": False,
-                                      "person": "alice"},
+TS = "2026-10-27T12:00:00.000000Z"
+EVENT = {"schema_version": "tracekit.event.v2", "id": "1" * 32, "seq": 0, "prev_hash": ZERO, "ts": TS, "run_id": RUN,
+         "agent_id": "main", "parent_id": None, "source": "signer", "type": "effect.observed", "data": {
+             "observer": "uid:4", "kind": "net", "host": "api.example.com", "port": 443, "bytes_out": 1, "bytes_in": 1,
+             "connections": 1, "first_ts": TS, "last_ts": TS, "attribution": "token"},
          "log_id": "2" * 32, "tenant": "t", "run_seq": 0, "run_prev_hash": ZERO}
 
 
@@ -91,7 +106,7 @@ def note(size, root):
 
 def message(args=None, claim_args=None, event=EVENT, proof=()):
     h = pcm_verify.record_hash(event) if isinstance(event, dict) else "sha256:" + "0" * 64
-    claim = {"type": "approved_by", "args": {"person": "alice", "call": "call-1"} if claim_args is None else claim_args,
+    claim = {"type": "reached_host", "args": {"host": "api.example.com"} if claim_args is None else claim_args,
              "evidence": {"checkpoint": note(1, hashlib.sha256(b"\x00" + bytes.fromhex(h[7:])).digest()),
                           "records": [{"event": event, "hash": h, "proof": list(proof)}]}}
     return signed({"pcm": 0, "id": "0" * 32, "ts": "2026-10-27T12:00:00.000000Z", "nonce": "1" * 32,
@@ -101,7 +116,7 @@ def message(args=None, claim_args=None, event=EVENT, proof=()):
 
 
 def check(msg):
-    return pcm_verify.verify(msg, TRUST, [DOC], {})
+    return pcm_verify.verify(msg, TRUST, [DOC])
 
 
 def test_own_log_accepts():
@@ -137,18 +152,12 @@ def test_a_decision_without_its_id_matches_nothing():
         msg = message()
         msg["claims"] = [{"type": "tests_passed", "args": {"suite": "pytest -q"}, "evidence": {
             "checkpoint": note(2, hashlib.sha256(b"\x01" + leaves[0] + leaves[1]).digest()), "records": records}}]
-        out = pcm_verify.verify(signed(msg, pcm_verify.MESSAGE_TAG), TRUST, [DOC], {"Bash": "shell"})
-        return out["claims"][0]
+        return check(signed(msg, pcm_verify.MESSAGE_TAG))["claims"][0]
 
     def no_id(e):
         return {**e, "data": {k: v for k, v in e["data"].items() if k != "decision_id"}}
     assert result(dec, res)["result"] == "proven", result(dec, res)
     assert result(no_id(dec), no_id(res))["result"] == "failed"
-
-
-EFFECT = {**EVENT, "type": "effect.observed", "data": {
-    "observer": "uid:4", "kind": "net", "host": "api.example.com", "port": 443, "bytes_out": 1, "bytes_in": 1,
-    "connections": 1, "first_ts": EVENT["ts"], "last_ts": EVENT["ts"], "attribution": "token"}}
 
 
 @pytest.mark.parametrize("host, claim, result", [
@@ -160,9 +169,37 @@ EFFECT = {**EVENT, "type": "effect.observed", "data": {
     ("h.com%00.evil", "api.example.com", "unproven"), ("api.example.com:x", "api.example.com", "unproven"),
     ("api.example.com", "api.example.com:", "unproven"), ("api.example.com", "api.example.com:443", "proven")])
 def test_an_effects_host_is_compared_in_canonical_form(host, claim, result):
-    msg = message(event={**EFFECT, "data": {**EFFECT["data"], "host": host}})
-    msg["claims"][0].update(type="reached_host", args={"host": claim})
-    assert check(signed(msg, pcm_verify.MESSAGE_TAG))["claims"][0]["result"] == result
+    msg = message(claim_args={"host": claim}, event={**EVENT, "data": {**EVENT["data"], "host": host}})
+    assert check(msg)["claims"][0]["result"] == result
+
+
+@pytest.mark.parametrize("claim, path, result", [
+    # SPEC 6.6: a path from / by POSIX rules (`\` is part of a name), a drive path by Windows rules and proven only
+    # by a call of its own string; case counts
+    ("/repo\\a.py", "/repo\\a.py", "proven"), ("/repo//./a\\b", "/repo/a\\b", "proven"),
+    ("/repo\\a.py", "/repo/a.py", "failed"), ("/repo/a.py", "/repo\\a.py", "failed"),
+    ("/repo/a.py", "\\repo\\a.py", "failed"), ("/repo/x/a.py", "x\\a.py", "failed"),
+    ("/repo/a.py", "C:/repo/a.py", "failed"), ("/home/u/C:/repo/a.py", "C:/repo/a.py", "unproven"),
+    ("C:/repo/a.py", "C:/repo/a.py", "proven"), ("C:\\repo\\a.py", "C:/repo/a.py", "unproven"),
+    ("C:/repo/a.py", "C:\\repo\\.\\a.py", "unproven"), ("C:\\repo\\a.py", "repo\\a.py", "unproven"),
+    ("C:\\repo\\a.py", "\\repo\\a.py", "unproven"), ("C:\\repo\\a.py", "D:\\repo\\a.py", "failed"),
+    ("C:\\repo\\a.py", "c:\\repo\\a.py", "failed")])
+def test_a_backslash_separates_only_in_a_drive_path(claim, path, result):
+    digest = "sha256:" + hashlib.sha256(b"x = 1\n").hexdigest()
+    d = {"tool_use_id": "c", "tool": "Write", "decision": "allow", "decision_id": "d"}
+    recs = [({"type": "policy.decision", "data": d}, {"file_path": path, "content": "x = 1\n"}),
+            ({"type": "tool.result", "source": "gateway", "tier": "T2",
+              "data": {"tool_use_id": "c", "decision_id": "d", "ok": True}}, None)]
+    assert pcm_verify.malformed("file_written", {"path": claim, "digest": digest}) is None
+    assert pcm_verify.file_written({"path": claim, "digest": digest}, recs)[0] == result
+
+
+@pytest.mark.parametrize("path, why", [("/repo\\..\\a.py", None), ("C:\\repo\\..\\a.py", "has a `..`"),
+                                       ("\\\\server\\share\\a.py", "is relative"), ("C:a.py", "is relative"),
+                                       ("\\repo\\a.py", "is relative")])
+def test_which_paths_are_malformed(path, why):
+    got = pcm_verify.malformed("file_written", {"path": path, "digest": ZERO})
+    assert got is None if why is None else why in got
 
 
 @pytest.mark.parametrize("url, host", [("file://a.example/x", None), ("gopher://a.example/", None),
@@ -193,14 +230,31 @@ def test_no_test_command(suite):
                                    {"type": "file_written", "args": {"path": "work/x", "digest": ZERO}},
                                    {"type": "file_written", "args": {"path": "/a/../x", "digest": ZERO}}])
 def test_a_malformed_claim_fails_without_evidence(claim):
-    assert pcm_verify.check_claim(claim, message(), TRUST, {})["result"] == "failed"
+    assert pcm_verify.check_claim(claim, message(), TRUST)["result"] == "failed"
 
 
 @pytest.mark.parametrize("bad", ["not a vkey", VKEY + "="])
 def test_a_bad_vkey_raises_wherever_it_sits(bad):
     for trust in ({"logs": [VKEY, bad]}, {"logs": [bad, VKEY]}, {"logs": [VKEY], "witnesses": [{"vkey": bad}]}):
         with pytest.raises(ValueError):
-            pcm_verify.verify(message(), trust, [DOC], {})
+            pcm_verify.verify(message(), trust, [DOC])
+
+
+def vkey(name, seed):
+    public = Ed25519PrivateKey.from_private_bytes(seed).public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    key = b64(bytes([pcm_verify.ED25519]) + public)
+    return f"{name}+{pcm_verify._key_id(name, pcm_verify.ED25519, public).hex()}+{key}"
+
+
+def test_two_keys_of_one_log_are_the_receivers_error():
+    """SPEC 10.1: one Ed25519 key per log name, so a key names one log; a hybrid key or another log's key is fine."""
+    second = vkey(NAME, b"\x01" * 32)
+    for logs in ([VKEY, second], [second, VKEY]):
+        with pytest.raises(ValueError, match="2 Ed25519 keys of log"):
+            pcm_verify.verify(message(), dict(TRUST, logs=logs), [DOC])
+    assert check(message())["verdict"] == "accept"
+    assert pcm_verify.verify(message(), dict(TRUST, logs=[VKEY, vkey("example.org/other", b"\x01" * 32)]),
+                             [DOC])["verdict"] == "accept"
 
 
 @pytest.mark.parametrize("args", [[1], "n", None, {"n": 2 ** 60}, {"n": 1.0}, {"n": True}])
@@ -249,9 +303,9 @@ def hybrid(name):
 
 
 def test_hybrid_key_fails_only_its_own_logs_notes():
-    other = pcm_verify.verify(message(), dict(TRUST, logs=[VKEY, hybrid("example.org/other")]), [DOC], {})
+    other = pcm_verify.verify(message(), dict(TRUST, logs=[VKEY, hybrid("example.org/other")]), [DOC])
     assert other["verdict"] == "accept", other["reasons"]
-    own = pcm_verify.verify(message(), dict(TRUST, logs=[VKEY, hybrid(NAME)]), [DOC], {})
+    own = pcm_verify.verify(message(), dict(TRUST, logs=[VKEY, hybrid(NAME)]), [DOC])
     assert own["claims"][0]["result"] == "failed" and "SLH-DSA" in own["claims"][0]["detail"]
 
 
@@ -259,12 +313,12 @@ def test_hybrid_key_fails_only_its_own_logs_notes():
                                    {"logs": [VKEY], "witnesses_required": "1"}])
 def test_bad_trust_raises_value_error(trust):
     with pytest.raises(ValueError):
-        pcm_verify.verify(message(), trust, [DOC], {})
+        pcm_verify.verify(message(), trust, [DOC])
 
 
 @pytest.mark.parametrize("name", ["tools.json", "tracekit.event.v2.json"])
 def test_packaged_copies_are_the_registry(name):
-    assert (HERE.parent / "pcm_verify" / name).read_text() == (HERE.parents[2] / "registry" / name).read_text()
+    assert (HERE.parent / "pcm_verify" / name).read_text() == (REGISTRY / name).read_text()
 
 
 # ---------------------------------------------------------------------------------------------------- CLI

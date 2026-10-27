@@ -1,14 +1,12 @@
-"""python -m pcm_verify MESSAGE --trust TRUST --schema SCHEMA [--schema ...] [--tools TOOLS] [--me ID] [--strict]
-[--json]. Exit 0 accept, 3 accept-unproven, 1 reject, 2 a usage error or an input it can't read."""
+"""python -m pcm_verify MESSAGE --trust TRUST --schema SCHEMA [--schema ...] [--me ID] [--strict] [--json]. Exit 0
+accept, 3 accept-unproven, 1 reject, 2 a usage error or an input it can't read."""
 import argparse
 import json
-import pathlib
 import sys
 
 from pcm_verify import MAX_SAFE_INT, verify
 
 EXIT = {"accept": 0, "accept-unproven": 3, "reject": 1}
-TOOLS = pathlib.Path(__file__).with_name("tools.json")   # registry/tools.json, copied by tools/gen_schemas.py
 
 
 def _refuse(s):
@@ -51,8 +49,6 @@ def main(argv=None):
                                                   '"witnesses_required": n}')
     p.add_argument("--schema", required=True, action="append",
                    help="a schema document, or a JSON list of them; repeat for more")
-    p.add_argument("--tools", help="the tool placement table {tool: class}; default: the reference table "
-                                   "(registry/tools.json) this package ships")
     p.add_argument("--me", help="this receiver's identity: a message to another agent is rejected")
     p.add_argument("--strict", action="store_true", help="every claim type the schema lists must be proven")
     p.add_argument("--json", action="store_true", help="print the whole result as JSON")
@@ -62,10 +58,10 @@ def main(argv=None):
         for path in a.schema:
             doc = load(path)
             schemas += doc if isinstance(doc, list) else [doc]
-        trust, tools = load(a.trust), load(a.tools or TOOLS)
-        if not isinstance(trust, dict) or not isinstance(tools, dict):
-            raise ValueError("the trust file and the tool table are JSON objects")
-        out = verify(load(a.message), trust, schemas, tools, me=a.me, strict=a.strict)
+        trust = load(a.trust)
+        if not isinstance(trust, dict):
+            raise ValueError("the trust file is a JSON object")
+        out = verify(load(a.message), trust, schemas, me=a.me, strict=a.strict)
     except (OSError, ValueError, TypeError, KeyError, AttributeError, RecursionError) as e:
         print(f"pcm_verify: can't check: {type(e).__name__}: {e}", file=sys.stderr)
         return 2
@@ -75,6 +71,8 @@ def main(argv=None):
         print(out["verdict"])
         for r in out["reasons"]:   # the sender chose parts of them: escape controls, non-ASCII and lone surrogates
             print(f"  {json.dumps(r)[1:-1]}")
+        if out["skipped"]:
+            print(f"  not checked: {', '.join(out['skipped'])}")
     return EXIT[out["verdict"]]
 
 

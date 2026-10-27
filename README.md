@@ -24,8 +24,9 @@ This is what `tracekit pcm demo` does, with a real signer:
 1. Agent A asks for a grant: "A may send `refund.request` with `amount <= 20000` (cents) and `order == 81`, for one
    hour". The signer won't sign that on A's say-so. It holds the request until alice, a person, approves it. Then it
    signs the grant.
-2. A asks B for a $120.00 refund. It attaches alice's grant and a claim, `approved_by alice`, with alice's approval
-   record from A's signed log as evidence. The signer signs the message as A, and only as A.
+2. A asks B for a $120.00 refund. It attaches alice's grant and a claim, `approved_by alice`, with records from A's
+   signed log as evidence: alice's approval, the request it answers and the `pcm.grant` decision she approved. The
+   signer signs the message as A, and only as A.
 3. B checks the signature, the schema, the grant and the evidence: **accept**.
 4. A sends the same request, adding "tests passed" with no evidence: **accept-unproven**. B sees that this part is
    only A's word.
@@ -59,8 +60,8 @@ python -m pcm_verify MESSAGE --trust TRUST --schema SCHEMA --me uid:990102
 
 `MESSAGE` is the message JSON, `TRUST` pins the signer's log key (`{"logs": ["<vkey>"]}`), `SCHEMA` is the schema
 document of the message's intent, and `--me` is the receiver's own identity, so a message sent to someone else is
-rejected. The tool placement table defaults to `registry/tools.json`, which the package ships; pass `--tools` for
-another. It prints the verdict: `accept`, `accept-unproven` or `reject`, with the reasons.
+rejected. Tools are placed with PCM 0.1's frozen table, `registry/tools.json`, which the package ships. It prints the
+verdict: `accept`, `accept-unproven` or `reject`, with the reasons and the checks it skipped (`not checked: replay`).
 
 The CLI does not check replay: it has no memory of earlier messages. That is fine for an audit. A receiver that acts
 on messages keeps one `pcm_verify.Replay` for its whole life and passes it to `pcm_verify.verify` (SPEC section 9).
@@ -74,7 +75,7 @@ so replicas that answer for one identity must route each sender to one replica o
 | [`SPEC.md`](SPEC.md) | the PCM 0.1 draft specification |
 | [`schemas/`](schemas) | JSON Schemas of the message, grant, claim, evidence and schema document |
 | [`vectors/`](vectors) | test vectors: inputs and the results a verifier must give |
-| [`registry/tools.json`](registry/tools.json) | the reference tool placement table |
+| [`registry/tools.json`](registry/tools.json) | PCM 0.1's frozen tool placement table (SPEC 10.2) |
 | [`registry/tracekit.event.v2.json`](registry/tracekit.event.v2.json) | the event schema of the evidence profile `tracekit.event.v2`, as Tracekit ships it |
 | [`verifier/python`](verifier/python) | the standalone verifier, `pcm_verify`: Python, with no Tracekit code |
 | [`docs/ts-verifier-plan.md`](docs/ts-verifier-plan.md) | the plan for a TypeScript verifier |

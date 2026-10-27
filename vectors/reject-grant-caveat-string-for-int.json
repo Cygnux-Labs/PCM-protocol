@@ -1,0 +1,191 @@
+{
+  "name": "reject-grant-caveat-string-for-int",
+  "description": "A root grant alice approved with order == \"81\", the string \"81\" for the int field order: nothing is converted, so a caveat's value of another JSON type than its field's is no valid caveat, and no args satisfy it.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "ca4ca057363ca9d4028c7dd8b6bc5084",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.passed@sha256:7caec9ad65e3cdc40ea059d076e182427496bef14614fbf14ead9c3e0549dd60",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "grants": [
+        {
+          "pcm_grant": 0,
+          "ts": "2026-10-27T18:03:31.680489Z",
+          "issuer": {
+            "kind": "person",
+            "id": "uid:990001",
+            "run": "ca4ca057363ca9d4028c7dd8b6bc5084",
+            "tenant": "default",
+            "approval_id": "apr-dc818fe46c08f9fa4a60efae29d03029",
+            "person": "alice"
+          },
+          "subject": "uid:990101",
+          "intent": "refund.passed@sha256:7caec9ad65e3cdc40ea059d076e182427496bef14614fbf14ead9c3e0549dd60",
+          "caveats": [
+            {
+              "field": "amount",
+              "op": "<=",
+              "value": 20000
+            },
+            {
+              "field": "order",
+              "op": "==",
+              "value": "81"
+            }
+          ],
+          "expires_at": "2026-10-27T19:03:31.675830Z",
+          "delegable": false,
+          "parent": null,
+          "sig": {
+            "key": "example.com/pcm-test-log+0bb91e66",
+            "sig": "1pbb5gYd5CY695101faGECWZJFKb+AbL1B+YA2iaBYP4G0xY+VjR5ZwkjqIipGGe/JJzi9ZaKjjr5Ku90g6VAw=="
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "7b50e4713ebd60a9c225dc004dd93b58",
+      "ts": "2026-10-27T18:03:31.680907Z",
+      "nonce": "7072320f4032a7b498bd1b80d0d659ad",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "DNcVnNS99SpIfRBvoSj3n2ZgOsKxCKrO+1UijvHwouzxQyav7sZqPrTBT0G9vnzqX5RcQbIX2qB6L8ww8RqDBw=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.passed",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        },
+        "grant": true
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "Edit": "fs",
+      "Glob": "fs",
+      "Grep": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "Write": "fs",
+      "bash": "shell",
+      "container.exec": "shell",
+      "create_charge": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_refund": "payment",
+      "create_transfer": "payment",
+      "execute_query": "sql",
+      "execute_sql": "sql",
+      "fetch": "http",
+      "get_balance": "payment",
+      "get_transaction": "payment",
+      "gmail_send_message": "email",
+      "http_get": "http",
+      "http_post": "http",
+      "http_request": "http",
+      "list_payments": "payment",
+      "list_transactions": "payment",
+      "local_shell": "shell",
+      "mcp:fetch/fetch": "http",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "pay_invoice": "payment",
+      "query_database": "sql",
+      "requests_delete": "http",
+      "requests_get": "http",
+      "requests_patch": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "run_shell_command": "shell",
+      "run_sql": "sql",
+      "run_terminal_cmd": "shell",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "send_payment": "payment",
+      "shell": "shell",
+      "sql_db_query": "sql",
+      "srt:request": "http",
+      "terminal": "shell",
+      "transfer_funds": "payment",
+      "web_fetch": "http"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-27T18:03:32.680907Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.passed@sha256:7caec9ad65e3cdc40ea059d076e182427496bef14614fbf14ead9c3e0549dd60",
+      "errors": []
+    },
+    "grants": {
+      "result": "failed",
+      "steps": 1,
+      "root": {
+        "kind": "person",
+        "id": "uid:990001",
+        "person": "alice"
+      },
+      "problems": [
+        "grant 0: order == \"81\": not a valid int value",
+        "grant 0: order 81 breaks order == \"81\""
+      ]
+    },
+    "claims": [],
+    "verdict": "reject",
+    "reasons": [
+      "grant: grant 0: order == \"81\": not a valid int value",
+      "grant: grant 0: order 81 breaks order == \"81\""
+    ],
+    "skipped": [
+      "replay"
+    ]
+  }
+}

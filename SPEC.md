@@ -95,8 +95,8 @@ grant, not A, sets the limit.
 - **Person**: a human approver the signer's approvals configuration names. Not an agent.
 - **T1, T2**: who recorded a tool result. T1: the agent's own process reported it. T2: an attesting gateway or
   executor ran the call and recorded the result itself.
-- **Tool placement table**: a fixed map from tool name to tool class (`shell`, `http`, ...), shipped with the verifier
-  (section 10.2).
+- **Tool placement table**: PCM 0.1's fixed map from tool name to tool class (`shell`, `http`, ...),
+  `registry/tools.json` (section 10.2).
 - **Control character**: a code point below U+0020 (the C0 controls), as [C2SP-NOTE] uses the term. U+007F (DEL) is
   not one: a rule that refuses it names it (6.8).
 - **White space**: a code point whose Unicode general category is Zs or whose bidirectional class is WS, B or S:
@@ -168,18 +168,18 @@ The message, with its claim and grant shown in sections 6.6 and 7.1:
 
 ```json
 {
- "from": {"agent": "uid:990101", "run": "bb650aec66cc29fb4ee0de297fd3392f", "tenant": "default"},
+ "from": {"agent": "uid:990101", "run": "ca4ca057363ca9d4028c7dd8b6bc5084", "tenant": "default"},
  "to": {"agent": "uid:990102"},
  "intent": {"type": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
             "args": {"amount": 12000, "order": 81}},
  "claims": ["... one approved_by claim, section 6.6 ..."],
  "grants": ["... alice's root grant, section 7.1 ..."],
  "pcm": 0,
- "id": "3bbe19efad3c109917731d71bd8bdfe6",
- "ts": "2026-10-27T14:11:57.612864Z",
- "nonce": "270bfcc642e6360e64b4e3c51a92c506",
+ "id": "ee4a6471b915e045f702dbb510f20c6e",
+ "ts": "2026-10-27T18:03:28.036966Z",
+ "nonce": "384f379ffc2524d63ab12057b19e6465",
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "kifSgYHZQo0HMTspKWXTcA8A/M5qv36s4GLO5oLUTCQuW/tlscekbjNmzN+qCu/lFtQLCOgChfAULJng1IuWAA=="}
+         "sig": "91qFTtYibJ9vTNUjSfl5aDKn49M0j5/Q26QSmjaAGzDKzv6W5BUldEK47avP/LhLHKFQOzZ+stCdjwpVauzvCA=="}
 }
 ```
 
@@ -194,8 +194,7 @@ PCM hashes and signs the JSON Canonicalization Scheme (JCS) [RFC8785] encoding o
 
 ### 4.2 Signatures
 
-Messages and grants are signed with Ed25519 [RFC8032] by the signer's PCM key, which may be its log key (4.5). The
-signed bytes are:
+Messages and grants are signed with Ed25519 [RFC8032] by the signer's log key (4.5). The signed bytes are:
 
 ```
 JCS( the object without its "sig" member, plus the member "t": TAG )
@@ -218,7 +217,7 @@ The bytes signed for the message in 3.4 start:
 and further on, in JCS key order:
 
 ```
-..."nonce":"270bfcc642e6360e64b4e3c51a92c506","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
+..."nonce":"384f379ffc2524d63ab12057b19e6465","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
 ```
 
 The note's line breaks appear as the two characters `\n`: JCS escapes them.
@@ -278,14 +277,13 @@ The agent never holds a signing key. It sends the message body to the signer, an
   in order among its tool calls.
 - The signer does not check the claims or grants of a message. The verifier does.
 
-### 4.5 The PCM key (decided, 0.1)
+### 4.5 The signing key (decided, 0.1)
 
-A signer SHOULD sign messages and grants with a dedicated PCM key, used for nothing else. A signer MAY sign them with
-its log key instead, relying on domain separation by the `pcm.*` tags (4.2, 14.5). Either way the trust anchors name the
-key: it is a vkey of type 0x01 in trust.json `logs`, under the log's own name (the name `sig.key` carries and the
-evidence origin check of 6.2 step 2 compares), so a receiver pins it like any log key and needs no other trust member.
-Rationale: a fault in PCM signing should not force rotating the key that signs the log, but a receiver must still be
-able to tell which log a message speaks for.
+A PCM 0.1 signer MUST sign messages and grants with its log key: the one Ed25519 key that trust.json `logs` pins under
+the log's name (10.1), which also signs the log's checkpoints. The `pcm.*` tags keep the purposes apart (4.2, 14.5).
+A dedicated PCM key, used for nothing else, needs a trust member of its own beside `logs`, so it is left to a later
+draft (Appendix B question 2). Rationale: with one key per log name, the key that signed a message names exactly one
+log, so the replay sender (9) and the evidence origin (6.2 step 2) are unambiguous.
 
 ## 5. Intent schemas
 
@@ -378,11 +376,13 @@ Each claim gets one result:
 - **proven**: the evidence verifies and a record in it says what the claim says, recorded by a party other than the
   agent (6.4).
 - **unproven**: there is no evidence, or the only matching record is the agent's own report (T1), or the matching
-  call is of a tool the verifier can't place (6.5), or the verifier can't tell whether a record matches: a host that
-  won't parse (6.7), a `Write` of a relative path that may be the claimed file (6.6).
+  call is of a tool the verifier can't place (6.5), or the only matching record shows an attempt to reach a host, not
+  a connection (6.6), or the verifier can't tell whether a record matches: a host that won't parse (6.7), a `Write`
+  of a relative path, or of a drive path spelled otherwise, that may be the claimed file (6.6).
 - **failed**: the claim's args are invalid or malformed (a `file_written` path that is relative or has a `..`
   segment, 6.6; a `tests_passed` suite that is no test command, 6.8), the evidence does not verify, or no record in it
-  says what the claim says. The args and malformed checks come before the evidence: a malformed claim is `failed`
+  says what the claim says (an approval without the decision it approved says nothing of what was approved, 6.6).
+  The args and malformed checks come before the evidence: a malformed claim is `failed`
   with or without evidence, at every conformance level (vectors `reject-claim-tests-passed-malformed-no-evidence`,
   `reject-claim-file-written-relative-no-evidence`). **[Implemented]**
 
@@ -422,10 +422,10 @@ A verifier checks an evidence item in this order. The first failure makes the cl
    - A line whose (name, key id) no pinned key has is skipped. A line of a pinned Ed25519 log key MUST verify over the
      text (4.3). A line of a pinned witness key is exactly 72 bytes after the key id: an 8-byte big-endian time `t`,
      then an Ed25519 signature over `cosignature/v1\ntime <t>\n` followed by the text.
-   - A key in `logs` that is a cosignature key, or a key in `witnesses` that is not, fails the note.
-   - At least one pinned Ed25519 log key named after the origin MUST have a valid line; other pinned keys of that
-     name need none (a dedicated PCM key, 4.5, signs no checkpoint). When trust pins a hybrid key named after the
-     origin, its line MUST be present and valid (10.1).
+   - A key in `logs` that is a cosignature key, or a key in `witnesses` that is not, fails the note (vector
+     `reject-claim-witness-key-in-logs`: a witness key pinned in `logs`).
+   - The Ed25519 log key trust pins under the origin's name (one at most, 10.1) MUST have a valid line. When trust
+     pins a hybrid key named after the origin, its line MUST be present and valid (10.1).
 2. **Same log.** The note's origin equals the key name in the message's `sig.key` (the part before the last `+`).
    Evidence from another log fails, even if that log is pinned too (section 14.1).
 3. **Witnesses.** The note carries at least `witnesses_required` valid cosignatures from pinned witness keys
@@ -436,7 +436,10 @@ A verifier checks an evidence item in this order. The first failure makes the cl
       check passes with leaf index `event.seq`, the note's tree size and root, and leaf hash
       `SHA-256(0x00 || the 32 bytes hash names)`. Interior nodes are `SHA-256(0x01 || left || right)`
       [RFC6962] [RFC9162]. Else "record i: not in the checkpoint".
-   3. `event.tenant == from.tenant` and `event.run_id == from.run`: the record is from the sender's own run.
+   3. `event.tenant == from.tenant` and `event.run_id == from.run`: the record is from the sender's own run. Run ids
+      are the client's, unique only per log and tenant, so both are compared (vectors
+      `reject-claim-evidence-from-another-run`, `reject-claim-evidence-from-another-tenant`: a run of another tenant
+      registered under the sender's run id).
    4. `event` is a valid event of the evidence profile (6.4): `schema_version` is `tracekit.event.v2` and the event
       matches that profile's event schema, `registry/tracekit.event.v2.json`; else "record i: not a valid event". A
       pinned log can still be hostile, and a checker must not meet a record without the fields it reads.
@@ -470,10 +473,18 @@ The profile's trust assumptions. A verifier relies on them, and a log that offer
   is that identity. `data.person` is there only when the signer's approvals configuration maps that identity to a
   person's name. An agent approver's answer carries `approver_kind: "agent"`. A signer without an approvals
   configuration lets any identity of the run's tenant but the run's own answer, and records no `approver_kind`: such
-  an answer may come from another agent process (6.6, `approved_by`).
+  an answer may come from another agent process (6.6, `approved_by`). `data.self_approved` is `true` when the
+  answering identity, or the person it maps to, is the run's own agent or that agent's person.
+- `approval.request` records are written by the signer only, when it asks for an answer about a `policy.decision` it
+  recorded: `data.decision_id` names that decision, and `data.approval_id` is the id the answer's `approval` record
+  carries.
 - `effect.observed` records are written by the signer only, from an observer's report. The signer gives a report to
   the run whose token came with it, or else to the latest open run of the identity the observer names, by time. With
-  two runs of one identity open at once, an effect can land in the other run.
+  two runs of one identity open at once, an effect can land in the other run. A `net` record is an egress observer's
+  count of the run's traffic to one host in one minute: `data.connections` is the number of connections it opened to
+  the host, 0 when every connect failed (or for a later minute of a connection opened before). A `connect` record is a
+  kernel sensor's report that a process of the run called connect to the host: an attempt, which may have failed.
+  `data.denied` appears on `connect` records only: the sensor blocked the attempt.
 - A `tool.result` record's top-level `source` and `tier` are set by the signer from the authenticated caller. They are
   `"gateway"` and `"T2"` only when an attesting gateway or executor ran the call and recorded its result. Nothing in
   `data` sets them.
@@ -492,21 +503,22 @@ The fields each checker reads:
 | every record | `seq` (log index), `tenant`, `run_id`, `type`, `data` |
 | `policy.decision` | `data.tool`, `data.decision` (`allow`, `ask`, `deny`), `data.decision_id`, `data.tool_use_id`, `data.args_commitment` |
 | `tool.result` | top-level `source` and `tier`; `data.decision_id`, `data.tool_use_id`, `data.ok`; `data.via` (detail text only) |
-| `approval` | `data.decision`, `data.tool_use_id`, `data.person`, `data.approver_kind` (absent means `person`), `data.self_approved` |
-| `effect.observed` | `data.host`, `data.kind`, `data.denied`; `data.observer` (detail text only) |
+| `approval` | `data.decision`, `data.tool_use_id`, `data.approval_id`, `data.person`, `data.approver_kind` (absent means `person`), `data.self_approved` |
+| `approval.request` | `data.approval_id`, `data.decision_id` |
+| `effect.observed` | `data.host`, `data.kind` (`net` or `connect`), `data.connections` (`net`), `data.denied` (`connect`); `data.observer` (detail text only) |
 
 A real `approval` record, as evidence carries it:
 
 ```json
-{"schema_version": "tracekit.event.v2", "id": "355a699d3b9517be68b62f40dcaff0bd", "seq": 5,
- "prev_hash": "sha256:cd50e5be123d0cbb792581b0b878096000231b2245cec964d0ac123782abd181",
- "ts": "2026-10-27T14:11:57.591019Z", "run_id": "bb650aec66cc29fb4ee0de297fd3392f", "agent_id": "main",
+{"schema_version": "tracekit.event.v2", "id": "c3dce747e850569b74e3891aba636393", "seq": 5,
+ "prev_hash": "sha256:b7bfb9e79279fb53a9150a44703370a7b638b87f74eb35badd72dce8508eec24",
+ "ts": "2026-10-27T18:03:28.018920Z", "run_id": "ca4ca057363ca9d4028c7dd8b6bc5084", "agent_id": "main",
  "parent_id": null, "source": "sdk", "type": "approval",
- "data": {"tool_use_id": "grant-1", "approval_id": "apr-f64cebe370aa43f2c14051fa70226929", "decision": "approve",
+ "data": {"tool_use_id": "grant-1", "approval_id": "apr-1d2c2e92bc8d5d9eeef19ecfd943aa94", "decision": "approve",
           "approver": "uid:990001", "approver_identity": {"scheme": "uid", "subject": "990001", "attested": true},
           "channel": "rpc", "self_approved": false, "person": "alice"},
- "tenant": "default", "log_id": "4b583d8211fe9891e76921977c9d6f37", "run_seq": 3,
- "run_prev_hash": "sha256:cd50e5be123d0cbb792581b0b878096000231b2245cec964d0ac123782abd181",
+ "tenant": "default", "log_id": "b92395338b39e901fa25715a224ab0eb", "run_seq": 3,
+ "run_prev_hash": "sha256:b7bfb9e79279fb53a9150a44703370a7b638b87f74eb35badd72dce8508eec24",
  "request_id": "r4", "tool_call_id": "grant-1"}
 ```
 
@@ -527,7 +539,8 @@ evidence item is:
 1. Start with `failed` ("no call in the evidence …").
 2. For each record with an opening (so a `policy.decision`) whose opened `args` are an object, that has
    `data.tool` and `data.decision_id` (the event schema leaves both optional; a decision without them matches no
-   call: vector `reject-claim-decision-without-id`), and where `data.decision != "deny"`: `match(data.tool, args)`
+   call: vector `reject-claim-decision-without-id`), and where `data.decision != "deny"` (a denied call matches
+   nothing, even with a result: vector `reject-claim-tests-passed-denied-call`): `match(data.tool, args)`
    answers yes, no, or can't tell. Can't tell: candidate `unproven` ("the verifier can't tell whether call …"); next
    record. No: next record. Yes:
    1. If `class` is set and the placement table does not map `data.tool` to `class`: candidate `unproven`; next record.
@@ -543,13 +556,13 @@ holds an opened decision and its result, both recorded through an attesting exec
 ```json
 [{"event": {"type": "policy.decision", "seq": 10, "source": "gateway", "tier": "T2", "...": "...",
             "data": {"tool_use_id": "call-9", "tool": "Bash", "decision": "allow",
-                     "decision_id": "dec-6f24de7a414a186e04e9f2a8895ecd6a", "via": "mtls:spiffe://example/executor",
-                     "args_commitment": "hmac-sha256:73d99aec597b8b4d7c370d3f009f7baaf221c25189ca6495a35c95b566815ad8",
+                     "decision_id": "dec-b2aed75524671c455994060babfe77c6", "via": "mtls:spiffe://example/executor",
+                     "args_commitment": "hmac-sha256:a63fb58a71f320704ce7d261fdb2c2b1d5abc9558994ed04a7310a61817816fb",
                      "...": "..."}},
-  "salt": "09e381912a1cac093f63e0b22261446f4796d480b3b882438df786426c7ba2a1",
+  "salt": "72f361d4f482f64aa98783623c1cd020c807e193d2f72656f0ee71198788f9d3",
   "args": {"command": "pytest -q tests/test_refund.py"}, "hash": "...", "proof": ["..."]},
  {"event": {"type": "tool.result", "seq": 11, "source": "gateway", "tier": "T2", "...": "...",
-            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-6f24de7a414a186e04e9f2a8895ecd6a",
+            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-b2aed75524671c455994060babfe77c6",
                      "via": "mtls:spiffe://example/executor", "...": "..."}},
   "hash": "...", "proof": ["..."]}]
 ```
@@ -595,9 +608,29 @@ real test run from another. Vectors: `accept-tests-passed-t2`, `accept-tests-pas
 
 **`approved_by {person, call}`** **[Implemented]**
 
-`proven` when a record has `type == "approval"`, `data.decision == "approve"`, `data.tool_use_id == call`,
-`data.person == person`, `data.approver_kind` is absent or `"person"`, and `data.self_approved` is not `true`. Else
-`failed`. No T2 is needed: the signer writes approvals.
+`call` is the agent's own name for a call (a `tool_use_id`), so an approval alone says nothing of what was approved.
+The claim is `proven` when the records of one evidence item hold all three of:
+
+1. an `approval` record with `data.decision == "approve"`, `data.tool_use_id == call`, `data.person == person`,
+   `data.approver_kind` absent or `"person"`, and `data.self_approved` not `true`;
+2. an `approval.request` record whose `data.approval_id` equals that approval's `data.approval_id`;
+3. a `policy.decision` record whose `data.decision_id` equals that request's `data.decision_id`, with
+   `data.tool_use_id == call` and a `data.tool` that is not empty: the decision the request asked about.
+
+Else `failed`. An approval that meets item 1 without the other two is `failed` too, not `unproven` ("… the evidence
+holds no decision of the call it approved"): the sender chooses its evidence and can always add them, and without them
+the agent's call id is all that would say what was approved (vectors `reject-claim-approved-by-without-decision`;
+`reject-claim-approved-by-other-decision`, where the agent decided two calls under one id and the evidence holds the
+decision the request does not name). No T2 is needed: the signer writes all three records. An agent approver's answer
+(`reject-claim-approved-by-agent-approver`) and a self-approval (`reject-claim-approved-by-self-approval`: erin
+approves a call of her own agent's run) prove no person's approval.
+
+**What was approved (decided, 0.1).** The `detail` of a proven claim MUST name the decision's `data.tool` and, when the
+evidence opens the decision (6.3), its opened args, in full, as JCS: `approval seq 5 by alice of pcm.grant call
+grant-1`, or `approval seq 7 by alice of read_file call refund-81-approved with args {"path":"/etc/motd"}`. A receiver
+MUST read the tool and args in the detail, not only the result. Rationale: the agent names its calls, so a claim that
+alice approved `refund-81-approved` can be proven by her approval of a `read_file` call the agent named so; only the
+decision says what she saw. The args are never cut short, so padding can't push a field out of sight.
 
 **Only a configured person (decided, 0.1).** `person` is compared with `data.person` only, never with
 `data.approver`. `data.person` is there only when the signer's approvals configuration maps the answering identity
@@ -606,24 +639,37 @@ Rationale: without an approvals configuration any identity of the tenant may ans
 human looked. **[Implemented]** (vector `reject-claim-approved-by-unmapped-identity`: `uid:990009` answers and no person
 maps to it.)
 
-What `proven` means: the person the signer's approvals configuration names `person` answered "approve" to call
-`call`.
+What `proven` means: the person the signer's approvals configuration names `person` answered "approve" when the
+signer asked about the decision the detail names: a call `call` of that tool, with those args when opened.
 
-The claim of `accept-approved-by`, with its evidence:
+The claim of `accept-approved-by`, with its evidence (the decision, the request and the approval of 6.4; events
+shortened to the fields the checker reads):
 
 ```json
 {"type": "approved_by", "args": {"person": "alice", "call": "grant-1"},
  "evidence": {
-  "checkpoint": "example.com/pcm-test-log\n9\nZXhZWXHeS0bz3YSEmavclQ625T/zTkJWtlj3/UlZ+wQ=\n\n— example.com/pcm-test-log C7keZnFJpPe6KxvhUXDapyf7QZJdtlzTv0SDuxIlD64H7S6IE97K6Xm5kP8T8oS2i/l1n5X0wObT6q5ghWvaowA7fgU=\n",
-  "records": [{"event": {"...": "the approval record of 6.4"},
-               "hash": "sha256:28f907f8a23ad9da3c6e8c13628ac6f3ddf1917a16e82887c3851c98cd5056ff",
-               "proof": ["z37pA0XQSZRpEOunXdL8E9y90bPpvcvqsuKsjeIF4JU=",
-                         "wR29D4XHHgZQ6WrODvNbSPZnh6yrg7QBlEJlDHfEgFQ=",
-                         "HLiOLzvRXW9DnSkqg/8Zd/4fQxgKsOZzT44slptKTEg=",
-                         "uARbbqEXw3+3ZhPuu9TNSX3t4aLteFhrKkVXzJEBCtg="]}]}}
+  "checkpoint": "example.com/pcm-test-log\n9\n/PdGPT4fz2Qqik7tDD+59ec2+roL3q+25cFqZzX5HCQ=\n\n— example.com/pcm-test-log C7keZim/1AcIBBK2FDzACejPPJnYomqvV5YeLHAf7hcw3bOLcp/Ljkq0Z0ZXI6eVUi0Oy6qWbyokRbUHCFo9o7mI5gE=\n",
+  "records": [
+   {"event": {"type": "policy.decision", "seq": 3, "...": "...",
+              "data": {"tool_use_id": "grant-1", "tool": "pcm.grant", "decision": "ask",
+                       "decision_id": "dec-2e2a9d71b749a89e9cffe63add596a76", "...": "..."}},
+    "hash": "sha256:9e38ce5476297488576fb62725aed11943a9708c22472fbc41f41a049b502afe",
+    "proof": ["wef20f80k8WeOsGoGUOn4R+z1W9NhKnFZ/I6eGcVonQ=", "ouTsrhuiukTEQfy0YtNc60lSsTwyt6aKxR+gpkvBEVk=",
+              "ysORMuiFrvAH/6VringqIYAMnB/B5Sb46qfmTneRgz0=", "qwNLUg28jmVldV3QwzWpx7ymvLv4MkL4bEoFIsAzM2w="]},
+   {"event": {"type": "approval.request", "seq": 4, "...": "...",
+              "data": {"approval_id": "apr-1d2c2e92bc8d5d9eeef19ecfd943aa94",
+                       "decision_id": "dec-2e2a9d71b749a89e9cffe63add596a76", "...": "..."}},
+    "hash": "sha256:b7bfb9e79279fb53a9150a44703370a7b638b87f74eb35badd72dce8508eec24",
+    "proof": ["1s8xpq57AtJUYul2YyP7DFeHdN3NHxZWvuqNfFGtGkA=", "7oIg3wsiWUySx219/g+dK2De4Oi2IBbmuKn2YFj4Nns=",
+              "1BIwB/g9zRm8MwAwlRjogiUXj/WoB+HPW6gbzuEGm/c=", "qwNLUg28jmVldV3QwzWpx7ymvLv4MkL4bEoFIsAzM2w="]},
+   {"event": {"...": "the approval record of 6.4"},
+    "hash": "sha256:0f3241ada46c102736f2531a440e3bb942c426bd8800acf15549995de97f64ea",
+    "proof": ["tsoD/Lx6qYUuOqo1BTmgDMxGfnyoxxo9y6qMWx59L6A=", "7oIg3wsiWUySx219/g+dK2De4Oi2IBbmuKn2YFj4Nns=",
+              "1BIwB/g9zRm8MwAwlRjogiUXj/WoB+HPW6gbzuEGm/c=", "qwNLUg28jmVldV3QwzWpx7ymvLv4MkL4bEoFIsAzM2w="]}]}}
 ```
 
-Result: `{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of grant-1"}`. The vectors
+Result: `{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of pcm.grant call grant-1"}`:
+alice approved the `pcm.grant` call that asked for the grant of 7.1. The vectors
 show the other outcomes: one hex digit of `hash` changed (`reject-claim-changed-record-hash`: "record 1: hash does not
 match the event"), the proof's last hash cut (`reject-claim-cut-proof`), another person named
 (`reject-claim-wrong-person`), the approval of another call (`reject-claim-approval-of-another-call`), a proof entry
@@ -635,11 +681,17 @@ Hosts are compared in the form of 6.7.
 
 1. If the claim's `host` won't parse (6.7): `unproven` ("… is no host the verifier can read"). Vector
    `accept-unproven-reached-host-unreadable-claim` (`a..example`, an empty label).
-2. `proven` when a record has `type == "effect.observed"`, `data.kind` is `"net"` or `"connect"`, `data.denied` is
-   absent or false, and `data.host` has the claim's compared form. The signer wrote it from an egress observer or a
-   kernel sensor (vector `accept-reached-host-observed`). Such a record whose `data.host` is absent or won't parse is a
-   candidate `unproven`.
-3. Else the best of that candidate and `Ran(match, "http")`, where `match` reads the args member `url`: not a string,
+2. **A connection, not an attempt (decided, 0.1).** `proven` when a record has `type == "effect.observed"`,
+   `data.kind == "net"`, `data.connections` above 0, and a `data.host` that has the claim's compared form: an egress
+   observer saw the run open a connection to the host (vector `accept-reached-host-observed`). Candidates `unproven`:
+   a `net` record of that host with `data.connections` 0 ("saw no connection to … open"; vector
+   `accept-unproven-reached-host-no-connection`), a `connect` record of that host whose `data.denied` is absent or
+   false (an attempt; vector `accept-unproven-reached-host-sensor-connect`), and a `net` or `connect` record, not
+   denied, whose `data.host` is absent or won't parse. A `connect` record with `data.denied == true` counts for
+   nothing (vector `reject-claim-reached-host-denied-connect`). Rationale: a kernel sensor reports the call to
+   connect, which can fail, and an egress observer counts a minute with no connection when its connect upstream failed;
+   either says the run tried the host, not that it reached it.
+3. Else the best of the candidates and `Ran(match, "http")`, where `match` reads the args member `url`: not a string,
    or a URL with no host (6.7 step 2: a scheme other than `http`, `https`, `ws`, `wss` and `ftp`, such as `file:`,
    `mailto:` or `gopher:`, or no host at all): no; a URL whose host won't parse: can't tell; else yes when the URL's
    host has the claim's compared form.
@@ -649,25 +701,38 @@ Vectors: `accept-reached-host-http` (`https://API.Example.COM:8443/v1` is `api.e
 `accept-reached-host-idn`, `accept-reached-host-unassigned`, `reject-claim-reached-host-other-host`,
 `reject-claim-reached-host-file-url`, `accept-unproven-reached-host-bracket`, `accept-unproven-reached-host-ambiguous`,
 `accept-unproven-reached-host-deviation`, `accept-unproven-reached-host-no-ipv6`, `accept-unproven-reached-host-nul`,
-`accept-unproven-reached-host-claim-bad-port`.
+`accept-unproven-reached-host-claim-bad-port`, `accept-unproven-reached-host-no-connection`,
+`accept-unproven-reached-host-sensor-connect`, `reject-claim-reached-host-denied-connect`.
 
 **`file_written {path, digest}`** **[Implemented]**
 
-A path is **absolute** when, with `\` read as `/`, it starts with `/` or with an ASCII letter, `:` and `/` (`C:/x`).
-A path is **rewritten** this way: `\` becomes `/`, and the path is split into segments at `/`. An absolute path with
-no `..` segment keeps its segments but the empty and `.` ones, joined by `/`, behind `//` when it starts with exactly
-two slashes, behind `/` when it starts with one or with three or more, and behind nothing when it starts with a drive
-letter: `//a//b/./` is `//a/b`, `///a/` is `/a`, `C:/x//y` is `C:/x/y`. (This is POSIX `normpath`, Python's
-`posixpath.normpath`.) Any other path keeps only its segments after its last `..` segment, without the empty and `.`
-ones, joined by `/`.
+**Path rules (decided, 0.1).** The claim's `path` picks one of two sets of rules, and a call's path is read by the
+claim's rules:
+
+- **Windows rules**, when `path` is a **drive path**: an ASCII letter, `:`, then `\` or `/` (`C:\work\a.txt`,
+  `C:/work/a.txt`). `\` and `/` both separate segments. A path is absolute when it is a drive path.
+- **POSIX rules**, for any other `path`. Only `/` separates segments; `\` is part of a segment, so `/work\a.txt` is the
+  file `work\a.txt` in `/`. A path is absolute when it starts with `/`, so `C:/x` is relative here.
+
+A path is **rewritten** this way: under Windows rules every `\` becomes `/` first; then the path is split into
+segments at `/`. An absolute path with no `..` segment keeps its segments but the empty and `.` ones, joined by `/`,
+behind `//` when it starts with exactly two slashes, behind `/` when it starts with one or with three or more, and
+behind nothing when it starts with a drive letter: `//a//b/./` is `//a/b`, `///a/` is `/a`, `C:\x//y` is `C:/x/y`.
+(This is POSIX `normpath`, Python's `posixpath.normpath`.) Any other path keeps only its segments after its last `..`
+segment, without the empty and `.` ones, joined by `/`. Paths are compared as they are written, case included:
+`c:\work\a.txt` is not `C:\work\a.txt`. Rationale: the record does not say on which system the call ran, so a path is
+read the one way that holds on the system its claim names: a POSIX path never has `\` as a separator, and a drive path
+names one file only on Windows.
 
 Steps 1 and 2 make a claim malformed, so they apply with or without evidence (6.1).
 
-1. If `path`, with `\` read as `/`, has a `..` segment: `failed` ("name the file's own path").
-2. **Absolute paths only (decided, 0.1).** If `path` is not absolute: `failed` ("… is relative: name the file's
-   absolute path"). Rationale: a relative path names a different file from each working directory, so it can't say
-   which file was written. Vectors `reject-claim-file-written-relative` (a Write of the same relative path, which
-   would match without this rule), `reject-claim-file-written-relative-no-evidence`.
+1. If `path`, split by its rules, has a `..` segment: `failed` ("name the file's own path"). (`/work\..\a.txt` has
+   none: under POSIX rules `work\..\a.txt` is one segment.)
+2. **Absolute paths only (decided, 0.1).** If `path` is not absolute by its rules: `failed` ("… is relative: name the
+   file's absolute path"). So `\work\a.txt`, `C:a.txt` and `\\server\share\a.txt` are relative. Rationale: a relative
+   path names a different file from each working directory, so it can't say which file was written. Vectors
+   `reject-claim-file-written-relative` (a Write of the same relative path, which would match without this rule),
+   `reject-claim-file-written-relative-no-evidence`.
 3. Else `Ran(match)` with no class. `match` is no unless all of these hold:
    - the tool is a write tool: its name maps to the file operation `write` in the reference table, which in 0.1 is the
      tool `Write` only (an `op` member in the args is the agent's word and is ignored);
@@ -675,13 +740,21 @@ Steps 1 and 2 make a claim malformed, so they apply with or without evidence (6.
    - the args member `content` is a string, and `"sha256:" + hex(SHA-256(UTF-8 content)) == digest` (what `sha256sum`
      prints for the file, with `sha256:` in front). Edits without the full content never count.
 
-   Then, with `want` the claim's rewritten `path` and `got` the args' rewritten path: `got == want` is yes. A `got`
-   that is not absolute, where `"/" + want` ends with `"/" + got`, is can't tell: the record does not hold the
-   working directory, so it may be this file or another (`unproven`, never `proven`; vector
-   `accept-unproven-file-written-relative-call`). Anything else is no.
+   Then, with `want` the claim's rewritten `path`, `raw` the args' file path and `got` that path rewritten by the
+   claim's rules:
+   - `got` absolute and `got == want`: yes under POSIX rules. Under Windows rules, yes only when `raw` is the claim's
+     `path` exactly, else can't tell: `C:/work/a.txt` is the claim's file `C:\work\a.txt` on Windows but a relative
+     path on POSIX, and the record does not say which system ran the call (vectors `accept-file-written-drive-path`,
+     `accept-unproven-file-written-drive-separators`).
+   - `got` not absolute, where `"/" + want` ends with `"/" + got`: can't tell: the record does not hold the working
+     directory, so it may be this file or another (`unproven`, never `proven`; vector
+     `accept-unproven-file-written-relative-call`).
+   - Anything else is no. A Write of `/work\report.txt` does not write `/work/report.txt` (vector
+     `reject-claim-file-written-backslash`).
 
 Vectors: `accept-file-written`, `reject-claim-file-written-wrong-digest`, `reject-claim-file-written-dotdot`,
-`reject-claim-file-written-relative`, `accept-unproven-file-written-relative-call`.
+`reject-claim-file-written-relative`, `accept-unproven-file-written-relative-call`, `reject-claim-file-written-backslash`,
+`accept-unproven-file-written-drive-separators`, `accept-file-written-drive-path`.
 
 ### 6.7 Hosts (decided, 0.1)
 
@@ -737,9 +810,17 @@ since the reference implementation uses them. The vectors were made on CPython 3
      SHOULD NOT send such URLs (Appendix B question 1). Both refuse `http://[x]@good.com/` (vector
      `accept-unproven-reached-host-bracket`).
 
+     **A reader without the bracket check (decided, 0.1).** A verifier whose generic reading makes neither bracket
+     check MUST instead take a call's URL that holds a `[` or `]` anywhere, other than one `[` and one `]` around a
+     host whose canonical form (step 3) is an IPv6 address, as a URL whose host won't parse. An IPv4-mapped or NAT64
+     address in brackets has an IPv4 canonical form, so its brackets count. Such a verifier can give `unproven` where
+     one that checks gives `proven` or `failed` (`http://good.com/a[1]`), never the reverse. Rationale: a reader
+     without the check reads a host from `http://[x]@good.com/`, which a checking reader refuses, so the bracket is a
+     place where the two readers differ, and a host two readers read apart proves nothing.
+
      Note: the generic reading is Python's `urllib.parse.urlsplit(url).hostname`, which refuses a URL by raising
      `ValueError`. CPython 3.11.12 and later make the first bracket check, 3.11.4 to 3.11.11 the second, and earlier
-     releases neither, so a verifier that uses `urlsplit` needs CPython 3.11.4 or later.
+     releases neither, so a verifier that uses `urlsplit` on a release before 3.11.4 applies the rule above.
 
    An empty reading counts as none. A URL the generic reading refuses: the host won't parse. Else put each reading
    that is not none in canonical form (step 3). Neither reading: the URL has no host. Two readings whose canonical
@@ -853,7 +934,7 @@ A grant says: this subject may send this intent, within these caveats, until thi
 |---|---|
 | `pcm_grant` | the integer `0` |
 | `ts` | TS, when the signer signed it |
-| `issuer` | `{"kind": "person" \| "agent", "id": string <= 256, "person"?: string <= 256, "run": ID, "tenant": ID, "approval_id"?: ID}`, closed. `tenant` is the issuing run's tenant. |
+| `issuer` | `{"kind": "person" \| "agent", "id": string <= 256, "person"?: string <= 256, "run": ID, "tenant": ID, "approval_id"?: ID}`, closed. `tenant` is the issuing run's tenant. A root grant's issuer (`kind: "person"`) carries `person`, the name the signer's approvals configuration gives the approver (7.4); a child's (`kind: "agent"`) has none. |
 | `subject` | IDENTITY, who may use the grant |
 | `intent` | SCHEMA_REF |
 | `caveats` | at most 16 `{"field", "op", "value"}`; `field` at most 64, `^[a-z][a-z0-9_]*$`; `op` one of `==` `<=` `>=` `<` `>` `in` |
@@ -865,15 +946,15 @@ A grant says: this subject may send this intent, within these caveats, until thi
 The root grant of `accept-approved-by`, signed after alice approved it:
 
 ```json
-{"pcm_grant": 0, "ts": "2026-10-27T14:11:57.591727Z",
- "issuer": {"kind": "person", "id": "uid:990001", "run": "bb650aec66cc29fb4ee0de297fd3392f", "tenant": "default",
-            "approval_id": "apr-f64cebe370aa43f2c14051fa70226929", "person": "alice"},
+{"pcm_grant": 0, "ts": "2026-10-27T18:03:28.020197Z",
+ "issuer": {"kind": "person", "id": "uid:990001", "run": "ca4ca057363ca9d4028c7dd8b6bc5084", "tenant": "default",
+            "approval_id": "apr-1d2c2e92bc8d5d9eeef19ecfd943aa94", "person": "alice"},
  "subject": "uid:990101",
  "intent": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
  "caveats": [{"field": "amount", "op": "<=", "value": 20000}, {"field": "order", "op": "==", "value": 81}],
- "expires_at": "2026-10-27T15:11:57.589997Z", "delegable": false, "parent": null,
+ "expires_at": "2026-10-27T19:03:28.017815Z", "delegable": false, "parent": null,
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "p1Ce1ce1N/4FwzNPBTRB8/TQ45mjQHqYZRpYcZc9qtFGwyYQrpt4YpX9ZEO+4q7zbpCFb5lAcLkAhXwaGhh8Bg=="}}
+         "sig": "3WA/xsSrUSzDwrt17cpjSSswaWhFQ/27SWU5AgeoMzwp1EuGI8fC7+prsC6yHlx79CW7oL2Z0PuKALUIrXYmAw=="}}
 ```
 
 ### 7.2 Caveats
@@ -901,7 +982,10 @@ For comparison, each caveat is rewritten as one of `== v`, `in S`, `<= b`, `>= b
 
 **Args satisfy a caveat** when the field is present in `intent.args` and the single-value caveat `== args[field]`
 implies the caveat by the table in 7.3. So types must match exactly: `true` does not pass `<= 5`, and `"81"` does not
-pass `== 81`. A missing field never passes.
+pass `== 81`. A missing field never passes. A signer need not know the intent's schema document, so it can sign a
+grant whose caveat value has another JSON type than its field; a verifier rejects it twice over, as no valid caveat
+and as one no args satisfy (vectors `reject-grant-caveat-string-for-int`: `order == "81"`; `reject-grant-caveat-bool-for-int`:
+`order == true` with order 1, which a comparison that converts would pass).
 
 ### 7.3 Narrowing: a child is only narrower
 
@@ -928,6 +1012,12 @@ Consequences (parent `amount <= 20000, order == 81`):
 | `amount <= 20000, order >= 81, order <= 81` | `order == 81: dropped or widened` (bounds never imply an equality) |
 | parent `k in ["a","b"]`, child `k in ["a","b","c"]` | `k in ["a", "b"]: dropped or widened` |
 
+Vectors for an `in` set and a `time` bound, under a parent with `region in ["eu","us"]` and
+`due <= "2026-12-31T00:00:00.000000Z"`: `accept-delegation-in-set` (child `region in ["eu"]`),
+`reject-grant-in-set-widened-child` (`region in ["eu","us","apac"]`), `accept-delegation-time-bound` (child
+`due <= "2026-11-30T00:00:00.000000Z"`), `reject-grant-time-bound-widened-child` (`due <= "2027-01-31T00:00:00.000000Z"`).
+A `time` value compares as a string (3.2).
+
 Also: the intent is fixed (a child is for its parent's intent), and expiry only shrinks (a child's `expires_at` is
 no later than its parent's).
 
@@ -940,13 +1030,15 @@ signer MUST refuse to issue a root grant unless all of these hold **[Implemented
 - the agent made a tool call `pcm.grant` whose args are exactly the grant's `subject`, `intent`, `caveats`,
   `expires_at` and `delegable`, and that call was approved and the approval consumed with exactly these args;
 - the approver is a person, not an agent approver; not the run's own agent (self-approved); not the grant's subject;
+- the approvals configuration maps the approving identity to a person's name: an identity it lets answer but names
+  no person for (an OIDC subject included) can't approve a root grant;
 - `expires_at` is after now and at most 24 hours from now;
 - the `pcm.grant` call has no result yet (one grant per approval: section 14.8);
 - the run is not held or quarantined.
 
-The grant's `issuer` is `{"kind": "person", "id": <approver identity>, "person"?: <the name the approvals
-configuration gives>, "run", "tenant", "approval_id"}`. A policy that does not ask a person about `pcm.grant` leaves
-nothing to consume, so no root grant can be made (fail closed).
+The grant's `issuer` is `{"kind": "person", "id": <approver identity>, "person": <the name the approvals configuration
+gives>, "run", "tenant", "approval_id"}`. A policy that does not ask a person about `pcm.grant` leaves nothing to
+consume, so no root grant can be made (fail closed).
 
 The signer SHOULD record each grant it signs as a record in the issuing run, as it does for messages (4.4), holding
 the grant's hash, subject and intent, and the approval id (a root) or the parent's hash (a child).
@@ -960,7 +1052,7 @@ MAY ask the signer for a child. A signer MUST refuse a child unless **[Implement
 - the parent's `issuer.tenant` is the caller's tenant (no cross-tenant delegation);
 - the caller is the parent's `subject`;
 - the parent is `delegable`;
-- the parent has not expired, and the child's `expires_at` is no later than the parent's;
+- the parent has not expired, and the child's `expires_at` is after now and no later than the parent's;
 - the child's caveats narrow the parent's (7.3).
 
 The child gets `issuer: {"kind": "agent", "id": <the caller>, "run", "tenant"}`, the parent's `intent`, `parent:
@@ -977,15 +1069,15 @@ one problem; any problem makes the grants result `failed`. **[Implemented]**
 | signature | every grant's `sig.key` equals the message's `sig.key` ("signed by …, not the log that signed the message"), and the grant verifies (4.3) with TAG `pcm.grant.v0` under that pinned key (14.18) | `grant-tampered`, `grant-unpinned-key`, `grant-from-another-log` |
 | intent | every grant's `intent` equals `intent.type` | `grant-other-intent` |
 | caveats | every grant's caveats are valid for the intent's document (7.2) | `grant-bad-caveat` |
-| expiry | the message's `ts` is not after any grant's `expires_at` | `grant-expired` |
+| expiry | the message's `ts` is not after any grant's `expires_at` (a message signed at `expires_at` passes) | `grant-expired`; `accept-grant-expires-at-ts` passes |
 | tenant | every grant's `issuer.tenant` equals `from.tenant` | `grant-cross-tenant` |
-| args | `intent.args` satisfies every caveat of every grant, not only the last | `grant-amount-over-caveat`, `delegation-over-child-cap` |
-| root | grant 0 has `parent: null`, `issuer.kind == "person"`, and `issuer.id != subject` | `grant-root-by-agent`, `grant-issuer-is-subject` |
+| args | `intent.args` satisfies every caveat of every grant, not only the last | `grant-amount-over-caveat`, `delegation-over-child-cap`, `grant-caveat-string-for-int`, `grant-caveat-bool-for-int` |
+| root | grant 0 has `parent: null`, `issuer.kind == "person"`, an `issuer.person` that is not empty, and `issuer.id != subject` | `grant-root-with-parent`, `grant-root-by-agent`, `grant-root-without-person`, `grant-issuer-is-subject` |
 | link | each later grant's `parent` is `H(the grant before it)` | `grant-broken-parent` |
 | delegable | the grant before each later grant is `delegable` | `grant-below-non-delegable` |
 | who delegates | each later grant's issuer is `{"kind": "agent", "id": <the previous grant's subject>}` | `grant-child-wrong-issuer` |
 | expiry shrinks | each later grant's `expires_at` is no later than the previous grant's | `grant-child-outlives-parent` |
-| narrows | each later grant's caveats narrow the previous grant's (7.3) | `grant-widening-child`, `grant-widen-and-tighten-child`, `grant-missing-caveat-child` |
+| narrows | each later grant's caveats narrow the previous grant's (7.3) | `grant-widening-child`, `grant-widen-and-tighten-child`, `grant-missing-caveat-child`, `grant-in-set-widened-child`, `grant-time-bound-widened-child` |
 | subject | the last grant's `subject` equals `from.agent` | `grant-subject-not-sender` |
 
 The result is `{"result": "none" | "ok" | "failed", "steps": <number of grants>, "root": <grant 0's issuer kind, id
@@ -1009,8 +1101,15 @@ Output **[Implemented]**:
  "schema": {"ok": bool, "ref": string, "errors": [string]} | null,
  "grants": <7.6 result> | null,
  "claims": [{"type", "result", "detail"}] | null,
- "reasons": [string]}
+ "reasons": [string],
+ "skipped": [string]}
 ```
+
+**Skipped checks (decided, 0.1).** `skipped` lists the checks the caller did not ask for, in this order: `"replay"`
+when no replay state was given, `"recipient"` when `me` was not given. It is in every result, a rejected envelope's too
+(vector `accept-skipped-replay-and-recipient`: neither given). A result whose `skipped` is not empty is an audit
+result: a receiver MUST NOT act on it (9). Rationale: an `accept` without the replay or recipient check says less than
+one with them, and the result itself must say so, not only the caller's memory of how it called.
 
 Steps, in this order:
 
@@ -1018,11 +1117,12 @@ Steps, in this order:
    `envelope: …`. Stop.
 2. **Signature.** Verify `sig` as in 4.2 and 4.3 with TAG `pcm.message.v0`. If it fails: `reject`, `signature.ok`
    false, the later parts `null`. Stop. No claim work is done for a forged message.
-3. **Replay and recipient.** If replay state is given, check it (section 9) and record the message. Then, if `me` is
-   given and `to.agent != me`, the replay part fails with "addressed to <to.agent>, not <me>". With neither:
-   `{"ok": null, "detail": "not checked"}`.
-4. **Schema.** Check every given schema document (5.2; a bad one is a configuration error). Find the document whose
+3. **Schema.** Check every given schema document (5.2; a bad one is a configuration error). Find the document whose
    reference equals `intent.type`, and check the args (5.3).
+4. **Recipient, then replay.** If `me` is given and `to.agent != me`, the replay part fails with "addressed to
+   <to.agent>, not <me>", and the replay state is neither checked nor changed. Else, if replay state is given, check
+   it (section 9); it records the message only when step 3 found no error. With neither: `{"ok": null, "detail": "not
+   checked"}`.
 5. **Grants.** If the document was found, check the chain (7.6). Else `grants` is `null`.
 6. **Claims.** For each claim in order: check its args and whether it is malformed (6.1), which fails it with or
    without evidence; then, if it has evidence, the evidence (6.2) and its checker (6.6). No evidence: `unproven`
@@ -1046,8 +1146,8 @@ The expected result of `accept-approved-by` (receiver `uid:990102`, a fresh repl
  "replay": {"ok": true, "detail": "fresh"},
  "schema": {"ok": true, "ref": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c", "errors": []},
  "grants": {"result": "ok", "steps": 1, "root": {"kind": "person", "id": "uid:990001", "person": "alice"}, "problems": []},
- "claims": [{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of grant-1"}],
- "verdict": "accept", "reasons": []}
+ "claims": [{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of pcm.grant call grant-1"}],
+ "verdict": "accept", "reasons": [], "skipped": []}
 ```
 
 Each step stops a different vector: the envelope `reject-envelope-pcm-false` ("envelope: $.pcm: expected integer,
@@ -1075,7 +1175,8 @@ For a message whose signature passed, with `t = ts` and `sender = (sig.key, from
    `t < started` ("sent before this receiver started: ask for it again").
 3. Refuse when `t <= floor[sender]` ("older than the messages this receiver remembers from the sender").
 4. Refuse when `nonce` is in `seen[sender]` ("replayed: this nonce was seen before").
-5. Else append `(nonce, t)` to `seen[sender]`. Entries stay in the order the messages arrived, not in `ts` order.
+5. Else, if the message is to be recorded (below), append `(nonce, t)` to `seen[sender]`; either way it passes
+   ("fresh"). Entries stay in the order the messages arrived, not in `ts` order.
    If `window_s` is set: while the first entry's `t` is older than `now − window_s`, remove it (the window refuses it
    anyway); stop at the first entry that is not. Then, while `seen[sender]` has more than `per_sender` entries,
    remove the first and set `floor[sender]` to the larger of the floor and its `t`.
@@ -1098,7 +1199,15 @@ Rationale: a replica that keeps its own state takes a message another replica al
 could be acted on once per replica (14.14).
 
 The recipient check: a receiver MUST pass its own identity as `me`. A message addressed to another fails ("addressed to
-uid:990102, not uid:990103"). The replay state records the message before the recipient check runs (section 8, step 3).
+uid:990102, not uid:990103").
+
+**Which messages spend their nonce (decided, 0.1).** The recipient check runs before the replay check, and a message
+it fails leaves the replay state as it was. The replay check records a message (step 5) only when its schema check
+passed. A message rejected for its grants or claims is recorded all the same. Rationale: a message addressed to
+another receiver is not this receiver's to spend, and one whose schema the receiver lacks or refuses may come again
+once the receiver has the right document; a message rejected for its grants or claims would be rejected again, so
+spending its nonce costs nothing. Vectors `accept-replay-misaddressed-spends-no-nonce`,
+`accept-replay-schema-rejected-spends-no-nonce`, `reject-replay-grant-failure-spends-nonce`.
 
 Signer and receiver clocks MUST agree within the window (use NTP).
 
@@ -1116,7 +1225,7 @@ A receiver pins keys in a trust document:
 
 | Member | Required | Value |
 |---|---|---|
-| `logs` | yes | one or more log vkeys (4.3). They verify messages, grants and evidence checkpoints. |
+| `logs` | yes | one or more log vkeys (4.3), one Ed25519 key per log name. They verify messages, grants and evidence checkpoints. |
 | `witnesses` | no | witness keys, each `{"name", "vkey"}`, the vkey of type 0x04 (C2SP tlog-cosignature). Default none. |
 | `witnesses_required` | no | how many pinned witness cosignatures each evidence checkpoint needs. Default 0. |
 
@@ -1130,9 +1239,14 @@ any message, as for a bad schema document (5.2), wherever the vkey sits in the l
 listed before the key that verifies a message stops the check, and one listed after it fails only the evidence, so
 the result would depend on the order of the list. **[Implemented]**
 
-A trust document MUST NOT pin keys of two different logs under one name. Keys that share a name are one log's
-rotations. The evidence check compares log names (6.2 step 2), and a note is accepted when any pinned Ed25519 key of
-its origin's name signs it, so two logs under one name would let one log's evidence pass for the other's (14.1).
+**One key per log (decided, 0.1).** A trust document MUST pin at most one Ed25519 key under each log name in `logs`.
+A verifier MUST refuse a trust document that pins two or more, as a configuration error, reported like a bad vkey
+before any message ("trust pins 2 Ed25519 keys of log …"). A hybrid key (below) under the same name does not count.
+Rationale: PCM 0.1 declares no key rotation, so two keys under one name may be two logs; the evidence check compares
+log names (6.2 step 2) while a message names its key, so two logs under one name would let one log's evidence pass for
+the other's (14.1), and the replay sender (9) would split one log in two. With one key per name, the key that signed a
+message names one log. To rotate a log key, replace it in the trust document (14.24). A configuration error is no
+vector (13.2); the standalone verifier's tests cover this rule.
 
 A log may also pin a hybrid key: a vkey of type 0xff whose key bytes are the ASCII text `tracekit/slh-dsa-sha2-128s`
 followed by the 32-byte SLH-DSA-SHA2-128s public key [FIPS205], under the log's own name. When trust pins one, every
@@ -1143,10 +1257,16 @@ any pinned hybrid key.
 
 ### 10.2 The tool placement table
 
-The verifier places tools with a fixed table, `{tool name: class}`. It MUST ship the table itself, or take it from its
-operator. It MUST NOT take it from a message, a bundle or a sender. The reference table is `registry/tools.json`
-(Appendix C says how it was made). For example `Bash`, `bash`, `shell` and `container.exec` are `shell`; `WebFetch`,
-`fetch` and `http_get` are `http`. A tool not in the table is unplaced. **[Implemented]**
+The verifier places tools with a fixed table, `{tool name: class}`.
+
+**The table is protocol data (decided, 0.1).** PCM 0.1's table is `registry/tools.json` in this repository, 54 tool
+names, frozen: the SHA-256 of the file is `15f8410f513344e4c60327d4fc3dd14949ebeaf7722f641d985d3ca721c8fe07`. A
+verifier MUST place tools with exactly this table, which it ships, and MUST NOT take a table from a message, a bundle,
+a sender or its operator. For example `Bash`, `bash`, `shell` and `container.exec` are `shell`; `WebFetch`, `fetch`
+and `http_get` are `http`. A tool not in the table is unplaced, so a custom shell or http tool gives `unproven` until a
+later PCM version adds its name. Rationale: two verifiers with different tables give one claim different results, so
+the table is part of the protocol, like the runner list of 6.8; an earlier draft derived it from an implementation's
+policy packs, where adding a pack changed verdicts. **[Implemented]**
 
 ## 11. Transport bindings
 
@@ -1253,20 +1373,24 @@ list of `{"name", "file", "description", "verdict"}`. Each `vectors/<name>.json`
    "options": {"me": "uid:990102", "strict": false, "now": "YYYY-MM-DDTHH:MM:SS.ffffffZ",
                "replay": null}},
  "expected": {"verdict": "...", "signature": {}, "replay": {}, "schema": {}, "grants": {}, "claims": [],
-              "reasons": []}}
+              "reasons": [], "skipped": []}}
 ```
 
-- `tools` is the tool placement table the verifier uses for this vector: `registry/tools.json` when the vectors were
-  made.
+- `tools` is the table the vectors were made with: PCM 0.1's table, `registry/tools.json` (10.2), the same in every
+  vector. A verifier places tools with its own copy of that table, which equals it.
 - `options.replay` is `null` (no replay state) or `{"window_s": seconds or null, "started": TS, "per_sender": n,
   "seen": [earlier messages]}`. The verifier creates one replay state with these parameters and verifies each message
-  of `seen` in order with it (same trust, schemas, `me`, `strict` and `now`; their results are ignored, and one whose
-  signature fails is not recorded), then verifies `message`. `now` is the receiver's clock for all of them.
+  of `seen` in order with it (same trust, schemas, `me`, `strict` and `now`; their results are ignored, and each is
+  recorded or not as section 9 says: not when its signature, recipient or schema check fails), then verifies
+  `message`. `now` is the receiver's clock for all of them.
 - `expected` is the full result the reference implementation returned for that input.
 
+A trust document or schema document the verifier must refuse as a configuration error (5.2, 10.1) is no vector: it
+has no result to compare. Those rules are covered by the standalone verifier's tests.
+
 **Conformance rule.** A verifier conforms on a vector when its `verdict`, `signature.ok`, `replay.ok`, `schema.ok`,
-`grants.result` and every `claims[i].result` equal the expected ones (a part that is `null` in `expected` must be
-absent or `null`). The `detail`, `reasons` and `problems` strings are for people, not compared.
+`grants.result`, every `claims[i].result` and `skipped` equal the expected ones (a part that is `null` in `expected`
+must be absent or `null`). The `detail`, `reasons` and `problems` strings are for people, not compared.
 
 A vector is a Level 2 vector when any claim of its message carries `evidence`; otherwise it is a Level 1 vector. A
 verifier conforms to a level when it conforms on every vector of that level.
@@ -1279,8 +1403,10 @@ assumption PCM rests on, with the rule that closes or bounds it.
 1. **Cross-log evidence replay.** An agent on another signer reused a victim's run id and tenant, then replayed the
    victim's evidence in its own messages. Run ids are chosen by clients and are unique only per log. **Rule:** the
    evidence checkpoint's origin MUST equal the log name of the key that signed the message (6.2 step 2), and a trust
-   document MUST NOT pin two logs under one name (10.1). Vector: `reject-claim-evidence-from-another-log`, where trust
-   pins both logs. Grants and replay state have the same problem: 14.18.
+   document pins one key per log name (10.1). Within one log, records must be of the sender's run and tenant (6.2
+   step 4.3). Vectors: `reject-claim-evidence-from-another-log`, where trust pins both logs;
+   `reject-claim-evidence-from-another-run`, `reject-claim-evidence-from-another-tenant`. Grants and replay state have
+   the same problem: 14.18.
 2. **T1 is not proof.** A tool result the agent's own process reported is its own word. **Rule:** only a T2 result
    (an attesting gateway or executor recorded it) or a signer-side record (a person's approval, an observer's effect)
    proves a claim; T1 gives `unproven`, never `proven`. The T2 mark MUST be read from the record's own attested fields
@@ -1295,18 +1421,23 @@ assumption PCM rests on, with the rule that closes or bounds it.
 5. **Key reuse.** The log key signs checkpoints and also PCM messages and grants. **Rule:** domain separation by the `t`
    tag. The tags `pcm.message.v0` and `pcm.grant.v0` differ from every other purpose the key or the signer signs, and
    the signed bytes are a JCS object, which starts with `{` and holds no raw line break, so they can never parse as a
-   checkpoint note's text. A signer SHOULD use a dedicated PCM key and MAY use its log key (4.5); one that uses its log
-   key turns a bug in PCM signing into rotating the log key. Vector: `reject-grant-signature-as-message`.
+   checkpoint note's text. PCM 0.1 signs with the log key (4.5), so a fault in PCM signing that exposes the key means
+   rotating the log key (14.24); a key for messages and grants only is future work (Appendix B question 2). Vector:
+   `reject-grant-signature-as-message`.
 6. **Person-rooted grants.** A caveat-free grant is the widest grant. **Rule:** a root grant MUST come from a person's
-   approval, never an agent approver's, never self-approved, never by the grant's subject; the signer MUST require an
-   approvals configuration (7.4). The verifier MUST reject a root whose issuer kind is not `person`, or whose issuer
-   is its subject (7.6). Vectors: `reject-grant-root-by-agent`, `reject-grant-issuer-is-subject`.
+   approval, never an agent approver's, never self-approved, never by the grant's subject, and only from an approver
+   the signer's approvals configuration names a person for; the signer MUST require an approvals configuration (7.4).
+   The verifier MUST reject a root whose issuer kind is not `person`, that names no person, that has a parent, or
+   whose issuer is its subject (7.6). Vectors: `reject-grant-root-by-agent`, `reject-grant-root-without-person`,
+   `reject-grant-root-with-parent`, `reject-grant-issuer-is-subject`.
 7. **Delegation.** **Rule:** `delegable` is set by the approving person. A non-delegable grant cannot be passed on, by
    the signer or in a chain a verifier accepts. Children only narrow (7.3): a missing caveat is widening; widening one
    caveat while tightening another fails; an equality is narrowed only by the same equality; enum sets shrink only by
-   subset; expiry only shrinks; the intent is fixed. Vectors: `accept-delegation-narrowing`,
-   `accept-delegation-less-than`, `reject-delegation-over-child-cap`, `reject-grant-below-non-delegable`,
-   `reject-grant-widening-child`, `reject-grant-widen-and-tighten-child`, `reject-grant-missing-caveat-child`,
+   subset; a time bound only tightens; expiry only shrinks, and a signer makes no child that has already expired
+   (7.5); the intent is fixed. Vectors: `accept-delegation-narrowing`, `accept-delegation-less-than`,
+   `accept-delegation-in-set`, `accept-delegation-time-bound`, `reject-delegation-over-child-cap`,
+   `reject-grant-below-non-delegable`, `reject-grant-widening-child`, `reject-grant-widen-and-tighten-child`,
+   `reject-grant-missing-caveat-child`, `reject-grant-in-set-widened-child`, `reject-grant-time-bound-widened-child`,
    `reject-grant-broken-parent`, `reject-grant-child-outlives-parent`, `reject-grant-child-wrong-issuer`.
 8. **One grant per approval.** **Rule:** the signer MUST refuse a second root grant once the `pcm.grant` call has its
    result. A signer that does not also track grants per approval can, until then, mint more grants from the same
@@ -1324,9 +1455,14 @@ assumption PCM rests on, with the rule that closes or bounds it.
     means"): a receiver compares `suite` with the suites it accepts.
 11. **`file_written`.** **Rule:** only write tools count (by tool name, not by an `op` in the args), only with the full
     content, checked by its SHA-256 digest; a claim path with `..` fails, and so does a relative one, with or without
-    evidence; a `Write` of a relative path is `unproven`, never `proven` (6.6). Vectors: `accept-file-written`,
-    `reject-claim-file-written-wrong-digest`, `reject-claim-file-written-dotdot`, `reject-claim-file-written-relative`,
-    `reject-claim-file-written-relative-no-evidence`, `accept-unproven-file-written-relative-call`.
+    evidence; a `Write` of a relative path is `unproven`, never `proven` (6.6). An earlier draft read every `\` as
+    `/`, so a Write of the POSIX file `/work\report.txt` (one file named `work\report.txt` in `/`) proved
+    `/work/report.txt`. **Rule:** a path from `/` is read by POSIX rules, a drive path by Windows rules, and a drive
+    path is proven only by a call of its very string, since the record does not say which system ran the call (6.6).
+    Vectors: `accept-file-written`, `reject-claim-file-written-wrong-digest`, `reject-claim-file-written-dotdot`,
+    `reject-claim-file-written-relative`, `reject-claim-file-written-relative-no-evidence`,
+    `accept-unproven-file-written-relative-call`, `reject-claim-file-written-backslash`,
+    `accept-unproven-file-written-drive-separators`, `accept-file-written-drive-path`.
 12. **Hostile input.** A pinned log can be hostile, and a caller can pass any object. **Rule:** a verifier MUST NOT
     crash on hostile input: args that are not an object, wrong JSON types, invalid or non-canonical base64, non-ASCII
     proof entries, events that are not objects or not valid events of the profile, records without a field a checker
@@ -1401,8 +1537,8 @@ assumption PCM rests on, with the rule that closes or bounds it.
     They can sign messages as any identity, run and tenant of the log, with any `ts` and `nonce`, so neither the
     replay window nor grant expiry holds them back; root grants with any issuer, caveats and expiry (the 24-hour cap
     of 7.4 binds only an honest signer: a verifier does not check how long a grant lives); and checkpoints over
-    records they made up, so evidence proves whatever they wrote. A dedicated PCM key (4.5) is no safer in 0.1: it is
-    pinned in `logs`, so a verifier also takes it on that log's checkpoints (Appendix B question 2). Witnesses (10.1)
+    records they made up, so evidence proves whatever they wrote. PCM 0.1 signs all three with the one log key (4.5),
+    so a leak of it forges all three (Appendix B question 2). Witnesses (10.1)
     help with checkpoints only: with `witnesses_required` set, forged evidence needs a checkpoint the witnesses
     cosigned, which they give only to a log consistent with the one they saw, so a forgery either fails or forks the
     log in a way the honest signer's next checkpoint exposes. Messages and grants carry no cosignature. PCM 0.1 has
@@ -1410,10 +1546,13 @@ assumption PCM rests on, with the rule that closes or bounds it.
     forged message, which the key's holder chose, can't tell it from an honest one. **Rule:** a receiver that learns
     a pinned key leaked SHOULD remove it from its trust document at once, which fails every message and grant the key
     signed, honest ones too (their senders ask for new grants), and SHOULD treat what it accepted under that key
-    since the leak as unverified, dating messages by its own record of when they arrived, not by `ts`. To rotate a
-    key that did not leak, pin the new key next to the old one under the log's name (10.1), switch the signer to it,
-    and remove the old key once the last grant it signed has expired, at most 24 hours later (7.4); an auditor keeps
-    the old key for the messages it has to check again.
+    since the leak as unverified, dating messages by its own record of when they arrived, not by `ts`. PCM 0.1
+    declares no rotation: a trust document pins one key per log name (10.1). To rotate a key that did not leak,
+    switch the signer to the new key and replace the old key with the new one in each receiver's trust document.
+    From then on whatever the old key signed fails there: its senders ask for new grants and send again, and the
+    signer's next checkpoints, signed with the new key, cover the old records too, so evidence can be made again. A
+    receiver that still pins the old key refuses what the new key signs until it switches. An auditor checks old
+    messages with a trust document that pins the old key.
 25. **The signer is the trusted computing base.** Every guarantee in this document rests on the signer: that it signs
     only as the calling run (4.4); that it alone sets a message's `id`, `ts` and `nonce` and assigns each record's
     `seq` in its log; that it sets a record's `source` and `tier`, and writes approvals and effects, only from callers
@@ -1433,6 +1572,24 @@ assumption PCM rests on, with the rule that closes or bounds it.
     name the placement table places, a tool of another class (6.4), so an operator does not name an executor action
     after a placed tool. Future work: a trust member that pins which attesting parties (`data.via`) may attest each
     tool class, so a receiver need not trust every executor of a pinned log (Appendix B question 4).
+27. **An approval of a call the agent named.** The agent names its calls: it can decide a `read_file` call under the
+    id `refund-81-approved`, have a person approve it, and claim that the person approved `refund-81-approved`. An
+    earlier draft proved `approved_by` from the approval record alone, so the claim was `proven`, and nothing in the
+    result said what was approved. **Rule:** `approved_by` needs the `approval.request` the approval answers and the
+    `policy.decision` that request names, and a proven claim's detail names the decision's tool and, when opened, its
+    args in full; a receiver reads them (6.6). An agent that decided two calls under one id can't pass the approval
+    of one off as the other's, since the request names one decision. Vectors:
+    `reject-claim-approved-by-without-decision`, `reject-claim-approved-by-other-decision`.
+28. **An attempt is not a connection.** A kernel sensor reports a process's call to connect, and an egress observer
+    records a minute with no connection when its connect upstream failed; an earlier draft took either as proof that
+    the run reached the host. **Rule:** only an egress observer's `net` record with `data.connections` above 0
+    proves `reached_host`; a `connect` record or a `net` record with none gives `unproven`, and a denied `connect`
+    gives nothing (6.6). Vectors: `accept-unproven-reached-host-no-connection`,
+    `accept-unproven-reached-host-sensor-connect`, `reject-claim-reached-host-denied-connect`.
+29. **A placement table that moves.** An earlier draft took the table of 10.2 from the tool names an implementation's
+    policy packs mapped, so a pack added or edited changed which calls were placed and so the verdicts of messages
+    already sent; two verifiers of different versions disagreed. **Rule:** PCM 0.1's table is frozen protocol data
+    with a stated digest, and a verifier uses exactly it (10.2).
 
 Also: PCM authenticates the signer, not the agent's intentions. A compromised agent can send any message its grants
 allow. The receiver's own policy decides what to do with an `accept`.
@@ -1589,7 +1746,17 @@ built from an earlier design changes to match.
   one product.
 - **Media type.** `application/vnd.pcm+json` (3.1), not one in a product's vendor tree.
 - **Tool placement.** By a fixed table of tool names (10.2), not by the args: an opened call with a `command` member
-  is not therefore a shell call, nor one with a `url` member an http call (14.3).
+  is not therefore a shell call, nor one with a `url` member an http call (14.3). The table is frozen protocol data,
+  not derived from an implementation's policy (14.29).
+- **Signing key.** The log's one pinned key signs checkpoints, messages and grants (4.5, 10.1), not a dedicated PCM
+  key pinned beside it under the log's name.
+- **`approved_by`.** Proven by the approval with its request and decision, and the detail names what was approved
+  (6.6, 14.27), not by the approval alone.
+- **`reached_host`.** Only by a connection an egress observer saw opened (6.6, 14.28), not by an attempt.
+- **`file_written` paths.** By POSIX or Windows rules, picked by the claim's path (6.6), not with every `\` read as
+  `/`.
+- **Nonces.** Spent only by a message whose recipient and schema checks pass (9), not by every message whose
+  signature verifies.
 - **Root grants.** Only from a person's approval (7.4), never from an agent approver.
 - **Grant issuer tenant and `delegable`.** Both required in every grant (7.1).
 - **Evidence origin.** Evidence must come from the sender's run and from the log that signed the message (6.2 step 2,
@@ -1606,18 +1773,23 @@ A review of the previous draft found an attack on its verifier rules: a `tests_p
 draft closes those; it has no other known open attack on its verifier rules. What `tests_passed` proves still rests
 on the receiver reading `suite` (6.6), and what a T2 result proves rests on how the deployment names its tools (6.4,
 14.26). Questions earlier drafts left open are now decided rules, each marked "(decided, 0.1)": canonical base64
-(4.3), the PCM key (4.5), only a configured person for `approved_by` (6.6), absolute paths for `file_written` (6.6),
-host comparison and deviation characters (6.7), test commands and plain words (6.8), the sender pair and one
-acceptance per receiver (9). Where the reference implementation does less than this document asks, Appendix C.4 says
-so. What remains are questions for a later draft:
+(4.3), the signing key (4.5), only a configured person for `approved_by` and what it names (6.6), connections, not
+attempts, for `reached_host` (6.6), absolute paths and path rules for `file_written` (6.6), host comparison,
+deviation characters and a reader without the bracket check (6.7), test commands and plain words (6.8), skipped
+checks (8), the sender pair, one acceptance per receiver and which messages spend their nonce (9), one key per log
+(10.1) and the frozen tool table (10.2). Where the reference implementation does less than this document asks,
+Appendix C.4 says so. What remains are questions for a later draft:
 
 1. **Host reading follows particular readers** (6.7). Step 2's generic reading is what Python's `urlsplit` does, and
-   it allows two bracket checks because CPython releases differ; NFKC runs at the verifier's Unicode version; and step
-   4 is IDNA 2003. A statement of the rule closer to the WHATWG host parser and UTS 46, with one bracket rule, is
-   open; until then the vectors pin the cases that matter and senders keep to ASCII hosts and plain URLs.
-2. **A dedicated PCM key is pinned like a log key** (4.5). It sits in trust.json `logs`, so a verifier would also
-   take it on that log's checkpoints. A trust member that pins a key for messages and grants only would separate the
-   two; it changes the trust document, so it waits for a later draft.
+   it allows two bracket checks, and a stricter rule for a reader with neither, because CPython releases differ; NFKC
+   runs at the verifier's Unicode version; and step 4 is IDNA 2003. A statement of the rule closer to the WHATWG host
+   parser and UTS 46, with one bracket rule, is open; until then the vectors pin the cases that matter and senders
+   keep to ASCII hosts and plain URLs.
+2. **A key for messages and grants only, and key rotation** (4.5, 10.1). PCM 0.1 signs messages and grants with the
+   log key and pins one key per log name. A trust member that pins a key for messages and grants only would let a
+   fault in PCM signing leave the log key alone, and a way to declare a rotation (two keys of one log, each with the
+   time from which it is valid) would let receivers rotate without a gap and give a key a validity period (14.24).
+   Both change the trust document, so they wait for a later draft.
 3. **The regular expression dialect of `id` patterns** (5.2) is not fixed. Schema authors keep to what ECMAScript and
    Python `re` read alike.
 4. **Which attesting party may attest each tool class** (6.4, 14.26). A verifier trusts every attesting gateway or
@@ -1639,15 +1811,18 @@ with the normative text, that is a bug in one of them: open an issue.
   `pcm_delegate` (7.5) and `pcm_evidence` (6.2, 14.16) in `tracekit/signer/service.py`, with their shapes in
   `tracekit/signer/rpc_schema.py`. Its user docs are `docs/pcm.md` and the PCM 0.1 rows of `docs/limits.md`.
 - **Generated files.** `tools/gen_schemas.py` writes `schemas/` from Tracekit's RPC shapes (`PCM_MESSAGE`,
-  `PCM_GRANT`, ...), `registry/tracekit.event.v2.json` from its event schema, and `registry/tools.json` from
-  `tracekit.pcm.claims.placed()`: the tool names the policy packs shipped with Tracekit map to a class, leaving out
-  patterns and names two packs class differently. `tools/gen_vectors.py` writes `vectors/` by running a Tracekit
-  signer and `tracekit.pcm.verify` on CPython 3.11.15 (Unicode 14.0.0), and checks that `placed()` equals
-  `registry/tools.json`.
+  `PCM_GRANT`, ...) and `registry/tracekit.event.v2.json` from its event schema. `registry/tools.json` is not
+  generated: it was made from the tool names the policy packs of Tracekit 1.4 mapped to a class, leaving out patterns
+  and names two packs class differently, and then frozen (10.2). Tracekit ships the same file as
+  `tracekit/pcm/tools.json`, which `tracekit.pcm.claims.placed()` reads; `tools/gen_schemas.py` stops when the two
+  tables differ and copies the registry's into the standalone verifier. `tools/gen_vectors.py` writes `vectors/` by
+  running a Tracekit signer and `tracekit.pcm.verify` on CPython 3.11.15 (Unicode 14.0.0), gives every vector the
+  registry's table, and checks that it equals `placed()`.
 - **Verifiers.** Tracekit's `tracekit.pcm.verify` and the standalone `pcm_verify` in `verifier/python` (Python, with no
-  Tracekit code) are Level 2 verifiers (13.1). The standalone verifier ships a copy of `registry/tools.json` and uses
-  it unless its operator passes another. It does not implement SLH-DSA, so it fails evidence that needs a hybrid line
-  (10.1). Neither CLI keeps replay state: both are for audit (9).
+  Tracekit code) are Level 2 verifiers (13.1). The standalone verifier ships a copy of `registry/tools.json` and places
+  tools with it; its tests check the file's digest and that every vector carries that table. It does not implement
+  SLH-DSA, so it fails evidence that needs a hybrid line (10.1). Neither CLI keeps replay state: both are for audit
+  (9), and both print the skipped checks as `not checked: replay` (8).
 
 ### C.2 Where each rule lives in Tracekit
 
@@ -1660,14 +1835,16 @@ with the normative text, that is a bug in one of them: open an issue.
 | 4.3 signatures | `tracekit.pcm.check_sig`; canonical base64 in `tracekit.format.checkpoint._unb64`; Ed25519 in `tracekit.crypto.verify_v2`, the rules of Tracekit's v2 evidence format |
 | 5 schema documents | `tracekit.pcm.SCHEMA_DOC`, `check_schema`; a bad document makes `verify` raise `ValueError` |
 | 6.2 evidence | `tracekit.pcm.claims.evidence`; notes in `tracekit.format.checkpoint.open_note` |
-| 6.6 paths | `tracekit.policy2.classes.fs_path` |
-| 6.7 hosts | `tracekit.policy2.classes.url_info`; `tracekit.pcm.claims._host`, `_a_label`, `_deviant` |
+| 6.6 `approved_by`, `reached_host` | `tracekit.pcm.claims.approved_by`, `reached_host` |
+| 6.6 paths | `tracekit.pcm.claims._path`, `malformed`, `file_written`; Tracekit's policy rules read paths with `tracekit.policy2.classes.fs_path`, which reads every `\` as `/`, so policy verdicts don't follow 6.6 |
+| 6.7 hosts | `tracekit.policy2.classes.url_info`; `tracekit.pcm.claims._host`, `_a_label`, `_deviant`; the rule for a reader without the bracket check in `_old_brackets`, on when `URLSPLIT_CHECKS_BRACKETS` is false |
 | 6.8 test commands | `tracekit.pcm.claims.test_command`, `TEST_RUNNERS`, `NO_TESTS` |
 | 7.3 narrowing | `tracekit.pcm.narrows` |
 | 7.6 grant chains | `tracekit.pcm.verify_grants` |
 | 8 verification | `tracekit.pcm.verify` (an invalid envelope lists up to 8 reasons) |
-| 9 replay | `tracekit.pcm.Replay` |
-| 10.2 tool placement | `tracekit.pcm.claims.placed()` |
+| 9 replay | `tracekit.pcm.Replay`; `Replay.check(record=False)` checks without recording |
+| 10.1 one key per log | `tracekit.pcm.verify`, which raises `ValueError` |
+| 10.2 tool placement | `tracekit.pcm.claims.placed()`, reading `tracekit/pcm/tools.json` |
 
 ### C.3 Behaviour beyond the protocol
 
@@ -1675,8 +1852,11 @@ with the normative text, that is a bug in one of them: open an issue.
   the calling run's own agent (uid:990101, run …, tenant default)`, and refuses a caller that holds the run token but
   is not the run's owner, such as a tailer or an observer (4.4). It writes an `ext` record with `name: pcm.sent` for
   each message it signs (4.4) and one with `name: pcm.grant` for each grant (7.4).
-- **Root grants.** No policy pack shipped with Tracekit asks a person about `pcm.grant`, so a deployment adds the rule
-  itself (7.4). `docs/pcm.md` shows:
+- **Root grants.** The signer refuses a root grant whose approver `approvals.persons` in `signer.yaml` maps to no
+  person, with `forbidden: a root grant needs the approval of a person signer.yaml's approvals.persons names: <id>
+  maps to none`; an OIDC approver that `approvals.persons` does not map is one (7.4). It refuses a child whose
+  `expires_at` is not after now with `invalid_request` (7.5). No policy pack shipped with Tracekit asks a person about
+  `pcm.grant`, so a deployment adds the rule itself (7.4). `docs/pcm.md` shows:
 
   ```yaml
   tools:
@@ -1686,10 +1866,14 @@ with the normative text, that is a bug in one of them: open an issue.
   ```
 - **Trust documents.** Tracekit's `trust.json` also has `algs`, `rekor`, `monitors`, and witnesses as
   `{"vkey", "class"}`; a PCM verifier ignores what it does not read (10.1). Tracekit names a log
-  `tracekit.local/<log id>` by default, which is unique, but an operator can choose any origin (10.1).
+  `tracekit.local/<log id>` by default, which is unique, but an operator can choose any origin (10.1). After a key
+  rotation, the `trust.json` Tracekit keeps for its bundles pins the log's old keys beside the new one; that one is no
+  PCM trust document, and `tracekit.pcm.verify` refuses it (10.1): a receiver needs one that pins only each log's
+  current key.
 - **`id` patterns** run with Python `re` in its default Unicode mode, where `\d` also matches digits such as `٣` (5.2).
 - **Hosts.** Tracekit reads hosts with Python's `urllib.parse.urlsplit`, `unicodedata` and `idna` codec (6.7). It still
-  runs on Python 3.9, whose `urlsplit` makes neither bracket check: verify PCM messages on CPython 3.11.4 or later.
+  runs on Python 3.9, whose `urlsplit` makes neither bracket check; there it applies the rule of 6.7 for a reader
+  without the check. The standalone verifier needs CPython 3.11.4 or later.
 - **The tool executor** (`tracekit/executor.py`, tier T2) runs HTTP actions its operator names in its configuration,
   and records a call as `ok` when the upstream's HTTP status is under 400. A T2 call of a tool named `Bash` can
   therefore be such an action (6.4, 14.26).
@@ -1723,7 +1907,7 @@ Each is marked `lean:` in Tracekit's code and has a row in its `docs/limits.md`.
 2. **One grant per approval holds only after the call's result** (7.4, 14.8). Until the `pcm.grant` call has its
    result, repeated `pcm_grant` calls on the same consumed approval can mint grants that differ only in `ts`.
    Tracekit's SDK completes the call at once.
-3. **Messages and grants are signed with the log key** (4.5), as the MAY allows, not with a dedicated PCM key.
 
 Also marked `lean:` in its code, though this document asks no more: messages and grants carry no SLH-DSA signature
-(4.3); the deviation check covers a call's whole URL (6.7 step 3); and hosts follow IDNA 2003, not UTS 46 (6.7).
+(4.3); the deviation check covers a call's whole URL (6.7 step 3); hosts follow IDNA 2003, not UTS 46 (6.7); and the
+tool table is PCM 0.1's frozen one, so a custom shell or http tool stays unplaced (10.2).

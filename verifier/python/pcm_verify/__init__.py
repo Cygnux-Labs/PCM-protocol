@@ -1,5 +1,5 @@
 """PCM 0.1 standalone verifier: checks a proof-carrying message offline, with only the receiver's trust file (pinned
-log and witness keys), the schema documents it agreed on and the tool placement table.
+log and witness keys) and the schema documents it agreed on. PCM 0.1's tool placement table ships with it.
 
 It needs the standard library, rfc8785 and cryptography, nothing else. Tracekit is the reference implementation; the
 vectors in ../../vectors pin where the two must agree."""
@@ -23,7 +23,7 @@ import rfc8785
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-__all__ = ["MEDIA_TYPE", "Replay", "check_schema", "schema_ref", "verify"]
+__all__ = ["MEDIA_TYPE", "TOOLS", "Replay", "check_schema", "schema_ref", "verify"]
 
 MEDIA_TYPE = "application/vnd.pcm+json"
 MESSAGE_TAG, GRANT_TAG = "pcm.message.v0", "pcm.grant.v0"
@@ -490,6 +490,7 @@ def verify_inclusion(index, size, leaf, proof, root):
 # ---------------------------------------------------------------------------------------------------- evidence
 PROFILE = "tracekit.event.v2"   # the one evidence profile (SPEC 6.4): every record is a valid event of its schema
 EVENT = json.loads(pathlib.Path(__file__).with_name(f"{PROFILE}.json").read_text(encoding="utf-8"))
+TOOLS = json.loads(pathlib.Path(__file__).with_name("tools.json").read_text(encoding="utf-8"))   # SPEC 10.2, frozen
 
 
 class EvidenceError(ValueError):
@@ -549,7 +550,7 @@ def _data(e):
 _RANK = {"proven": 0, "unproven": 1, "failed": 2}
 
 
-def _ran(recs, match, what, tools, cls=None):
+def _ran(recs, match, what, cls=None):
     """(result, detail) of "a call whose opened args match ran and succeeded": proven by a result the signer recorded
     as T2, unproven by the agent's own (T1) result, by a tool the table does not place as `cls`, or by a call `match`
     can't tell (None)."""
@@ -563,7 +564,7 @@ def _ran(recs, match, what, tools, cls=None):
                        key=lambda o: _RANK[o[0]])
         if not m:
             continue
-        if cls and tools.get(d["tool"]) != cls:
+        if cls and TOOLS.get(d["tool"]) != cls:
             best = min(("unproven", f"a tool the verifier can't place as a {cls} tool"), best, key=lambda o: _RANK[o[0]])
             continue
         for x, _ in recs:
@@ -614,27 +615,42 @@ def malformed(type_, a):
     if type_ == "tests_passed" and not test_command(a["suite"]):
         return f"{a['suite'][:64]!r} is not a single test command"
     if type_ == "file_written":
-        path = a["path"].replace("\\", "/")
-        if ".." in path.split("/"):
-            return f"{a['path'][:64]} has a `..`: name the file's own path"
-        if not _ABSOLUTE.match(path):
-            return f"{a['path'][:64]} is relative: name the file's absolute path"
+        path, windows = a["path"], _DRIVE.match(a["path"])
+        if ".." in (path.replace("\\", "/") if windows else path).split("/"):   # SPEC 6.6 step 1, by the path's rules
+            return f"{path[:64]} has a `..`: name the file's own path"
+        if not (windows or path.startswith("/")):
+            return f"{path[:64]} is relative: name the file's absolute path"
     return None
 
 
-def tests_passed(a, recs, tools):
+def tests_passed(a, recs):
     return _ran(recs, lambda tool, args: _first(args, "command", "cmd", "commands") == a["suite"],
-                f"ran {a['suite'][:64]!r}", tools, "shell")
+                f"ran {a['suite'][:64]!r}", "shell")
 
 
-def approved_by(a, recs, tools):
+def approved_by(a, recs):
+    """SPEC 6.6: the person's approval of call `call`, with the approval.request it answers and the policy.decision
+    that request names. The call id is the agent's own name for the call, so only the decision says what was approved:
+    the detail names its tool, and its args when the evidence opens them."""
+    best = ("failed", f"no approval of {a['call']} by the person {a['person']}")
     for e, _ in recs:
         d = _data(e)
-        if e.get("type") == "approval" and d.get("decision") == "approve" and d.get("tool_use_id") == a["call"] \
-                and d.get("person") == a["person"] \
-                and d.get("approver_kind", "person") == "person" and d.get("self_approved") is not True:
-            return "proven", f"approval seq {e.get('seq')} by {a['person']} of {a['call']}"
-    return "failed", f"no approval of {a['call']} by the person {a['person']}"
+        if not (e.get("type") == "approval" and d.get("decision") == "approve" and d.get("tool_use_id") == a["call"]
+                and d.get("person") == a["person"] and d.get("approver_kind", "person") == "person"
+                and d.get("self_approved") is not True):
+            continue
+        asked = {_data(x).get("decision_id") for x, _ in recs
+                 if x.get("type") == "approval.request" and _data(x).get("approval_id") == d.get("approval_id")}
+        for x, args in recs:
+            c = _data(x)
+            if x.get("type") == "policy.decision" and c.get("decision_id") in asked \
+                    and c.get("tool_use_id") == a["call"] and c.get("tool"):
+                return "proven", (f"approval seq {e.get('seq')} by {a['person']} of {c['tool']} call {a['call']}"
+                                  + ("" if args is None else f" with args {jcs(args).decode()}"))
+        best = ("failed", f"approval seq {e.get('seq')} by {a['person']} of {a['call']}, but the evidence holds no "
+                          "decision of the call it approved: add the approval.request it answers and the "
+                          "policy.decision that request names")
+    return best
 
 
 # The host of a URL, as Tracekit's policy2.classes.url_info reads it (SPEC 6.6 reached_host).
@@ -757,7 +773,7 @@ def _host(host):
     return _a_label(url_info(f"http://[{host}]/" if host.count(":") > 1 else f"http://{host}/").get("host"))
 
 
-def reached_host(a, recs, tools):
+def reached_host(a, recs):
     want = _host(a["host"])
     if want is None:
         return "unproven", f"{a['host'][:64]} is no host the verifier can read"
@@ -766,11 +782,17 @@ def reached_host(a, recs, tools):
         d = _data(e)
         if e.get("type") == "effect.observed" and d.get("kind") in ("net", "connect") and not d.get("denied"):
             got = _host(d.get("host"))
-            if got == want:
+            # SPEC 6.6: only a connection opened reaches a host; a sensor's connect is the attempt, and a net minute
+            # with none a connect that failed
+            if got == want and d.get("kind") == "net" and d.get("connections", 0) > 0:
                 return "proven", f"effect.observed seq {e.get('seq')}: {d.get('observer')} saw the run reach " \
                                  f"{a['host']}"
             if got is None:
                 seen = ("unproven", f"effect.observed seq {e.get('seq')}: a host the verifier can't read")
+            elif got == want:
+                seen = ("unproven", f"effect.observed seq {e.get('seq')}: {d.get('observer')} saw " + (
+                    f"no connection to {a['host']} open" if d.get("kind") == "net" else
+                    f"the run try to connect to {a['host']}, an attempt"))
 
     def match(tool, args):
         info = url_info(args["url"]) if isinstance(args.get("url"), str) else {}
@@ -778,47 +800,51 @@ def reached_host(a, recs, tools):
             return False
         got = None if info.get("ambiguous") or _deviant(args["url"]) else _a_label(info["host"])
         return None if got is None else got == want
-    return min(_ran(recs, match, f"reached {a['host']}", tools, "http"), seen, key=lambda o: _RANK[o[0]])
+    return min(_ran(recs, match, f"reached {a['host']}", "http"), seen, key=lambda o: _RANK[o[0]])
 
 
-def fs_path(raw):
-    """The path a file rule compares: `\\` is `/`; an absolute path (/x, C:/x) without `..` is normalised; otherwise
-    only what follows the last `..`, without empty and `.` segments."""
-    raw = raw.replace("\\", "/")
-    parts = raw.split("/")
-    if (raw.startswith("/") or re.match(r"[A-Za-z]:/", raw)) and ".." not in parts:
-        return posixpath.normpath(raw)
+_DRIVE = re.compile(r"[A-Za-z]:[\\/]")   # a Windows drive path: the only one read with `\` as a separator
+
+
+def _path(raw, windows):
+    """(path, absolute) of a file path as SPEC 6.6 compares it, by Windows rules (`\\` and `/` separate; absolute: a
+    drive path) or POSIX ones (`/` alone separates; absolute: from `/`). An absolute path without `..` is normalised
+    as POSIX normpath does; of any other only what follows its last `..`, without empty and `.` segments."""
+    path = raw.replace("\\", "/") if windows else raw
+    parts = path.split("/")
+    if (_DRIVE.match(raw) if windows else path.startswith("/")) and ".." not in parts:
+        return posixpath.normpath(path), True
     tail = parts[len(parts) - parts[::-1].index(".."):] if ".." in parts else parts
-    return "/".join(p for p in tail if p not in ("", "."))
+    return "/".join(p for p in tail if p not in ("", ".")), False
 
 
 WRITE_TOOLS = ("Write",)   # the tools whose name says they write a whole file; an `op` in the args is the agent's word
 
 
-_ABSOLUTE = re.compile(r"/|[A-Za-z]:/")   # what fs_path keeps absolute
-
-
-def file_written(a, recs, tools):
-    want = fs_path(a["path"])
+def file_written(a, recs):
+    windows = bool(_DRIVE.match(a["path"]))   # the claim's rules read the call's path too
+    want = _path(a["path"], windows)[0]
 
     def match(tool, args):
-        got, content = _first(args, "file_path", "notebook_path", "path"), args.get("content")
-        if not (tool in WRITE_TOOLS and isinstance(got, str) and isinstance(content, str)
+        raw, content = _first(args, "file_path", "notebook_path", "path"), args.get("content")
+        if not (tool in WRITE_TOOLS and isinstance(raw, str) and isinstance(content, str)
                 and "sha256:" + hashlib.sha256(content.encode("utf-8")).hexdigest() == a["digest"]):
             return False
-        got = fs_path(got)
-        if got == want:
-            return True
+        got, absolute = _path(raw, windows)
+        if absolute and got == want:
+            # one file on Windows; the record doesn't say the call ran there, and on POSIX C:/x is relative: only the
+            # claim's own string is surely its file
+            return True if raw == a["path"] or not windows else None
         # a relative path (or what follows a `..`) may be this file, from a working directory the record doesn't hold
-        return None if not _ABSOLUTE.match(got) and ("/" + want).endswith("/" + got) else False
-    return _ran(recs, match, f"wrote {a['path'][:64]} with {a['digest']}", tools)
+        return None if not absolute and ("/" + want).endswith("/" + got) else False
+    return _ran(recs, match, f"wrote {a['path'][:64]} with {a['digest']}")
 
 
 CHECKERS = {"tests_passed": tests_passed, "approved_by": approved_by, "reached_host": reached_host,
             "file_written": file_written}
 
 
-def check_claim(c, msg, trust, tools):
+def check_claim(c, msg, trust):
     errs = check_args(CLAIM_ARGS[c["type"]], c["args"])
     bad = "; ".join(errs) if errs else malformed(c["type"], c["args"])   # with or without evidence (SPEC 6.1)
     if bad:
@@ -827,7 +853,7 @@ def check_claim(c, msg, trust, tools):
         result, detail = "unproven", "no evidence"
     else:
         try:
-            result, detail = CHECKERS[c["type"]](c["args"], evidence(c["evidence"], msg, trust), tools)
+            result, detail = CHECKERS[c["type"]](c["args"], evidence(c["evidence"], msg, trust))
         except EvidenceError as e:
             result, detail = "failed", str(e)
     return {"type": c["type"], "result": result, "detail": detail}
@@ -863,6 +889,8 @@ def verify_grants(msg, doc, trust):
                 out.append(f"{at}: the root grant has a parent")
             if g["issuer"]["kind"] != "person":
                 out.append(f"{at}: the root grant must come from a person's approval")
+            elif not g["issuer"].get("person"):   # SPEC 7.6: a person the signer's approvals configuration names
+                out.append(f"{at}: the root grant's issuer names no person")
             if g["issuer"]["id"] == g["subject"]:
                 out.append(f"{at}: the root grant's issuer is its own subject")
             continue
@@ -904,8 +932,8 @@ class Replay:
         self.window_s, self.per_sender, self.started = window_s, per_sender, _secs(started)
         self.seen, self.floor = {}, {}
 
-    def check(self, msg, now=None):
-        """(ok, detail) for a message whose signature passed; a passing one is remembered."""
+    def check(self, msg, now=None, record=True):
+        """(ok, detail) for a message whose signature passed; a passing one is remembered when `record`."""
         now, sender = _secs(now), (msg["sig"]["key"], msg["from"]["agent"])   # SPEC 9
         try:
             t = epoch(msg["ts"])
@@ -918,9 +946,11 @@ class Replay:
                 return False, "sent before this receiver started: ask for it again"
         if t <= self.floor.get(sender, float("-inf")):
             return False, "older than the messages this receiver remembers from the sender"
-        seen = self.seen.setdefault(sender, collections.OrderedDict())
-        if msg["nonce"] in seen:
+        if msg["nonce"] in self.seen.get(sender, ()):
             return False, "replayed: this nonce was seen before"
+        if not record:
+            return True, "fresh"
+        seen = self.seen.setdefault(sender, collections.OrderedDict())
         seen[msg["nonce"]] = t
         while seen and self.window_s is not None and next(iter(seen.values())) < now - self.window_s:
             seen.popitem(last=False)   # the window refuses it now
@@ -944,20 +974,26 @@ def _verdict(out, doc, strict):
     return ("accept-unproven", soft) if soft else ("accept", [])
 
 
-def verify(message, trust, schemas, tools, me=None, strict=False, now=None, replay=None):
-    """Check a PCM message: envelope, signature, replay (a Replay, or None to skip) and recipient (`me`, or None to
-    skip), the intent's args against its schema document among `schemas`, its grants and its claims. `tools` maps a
-    tool name to its class ("shell", "http", ...). `strict`: every claim type the schema lists must be proven.
+def verify(message, trust, schemas, me=None, strict=False, now=None, replay=None):
+    """Check a PCM message: envelope, signature, the intent's args against its schema document among `schemas`,
+    recipient (`me`, or None to skip) and replay (a Replay, or None to skip), its grants and its claims. Tools are
+    placed with PCM 0.1's table, TOOLS. `strict`: every claim type the schema lists must be proven.
 
-    Returns {verdict: accept | accept-unproven | reject, signature, replay, schema, grants, claims, reasons}; a part is
-    None when the check stopped before it. Raises ValueError for a bad schema document or trust file (the receiver's
-    configuration), never for a bad message."""
+    Returns {verdict: accept | accept-unproven | reject, signature, replay, schema, grants, claims, reasons, skipped};
+    a part is None when the check stopped before it, and `skipped` names the checks not asked for (replay, recipient).
+    Raises ValueError for a bad schema document or trust file (the receiver's configuration), never for a bad
+    message."""
     if errs := errors(TRUST, trust):
         raise ValueError(f"trust: {'; '.join(errs)}")
-    for vk in trust["logs"] + [w["vkey"] for w in trust.get("witnesses", [])]:
-        parse_vkey(vk)   # SPEC 10.1: a bad vkey raises NoteError wherever it sits in the list
+    logs = [parse_vkey(vk) for vk in trust["logs"]]   # SPEC 10.1: a bad vkey raises NoteError wherever it sits
+    for w in trust.get("witnesses", []):
+        parse_vkey(w["vkey"])
+    for name, n in collections.Counter(k[0] for k in logs if k[2] == ED25519).items():
+        if n > 1:   # SPEC 10.1: one key per log name, so the key that signed a message names one log
+            raise ValueError(f"trust pins {n} Ed25519 keys of log {name}: PCM 0.1 has one key per log, so pin only "
+                             "the log's current key")
     out = {"signature": None, "replay": None, "schema": None, "grants": None, "claims": None, "verdict": "reject",
-           "reasons": []}
+           "reasons": [], "skipped": ["replay"] * (replay is None) + ["recipient"] * (me is None)}
     errs = errors(MESSAGE, message)
     if errs:
         out["reasons"] = [f"envelope: {e}" for e in errs[:8]]
@@ -967,10 +1003,6 @@ def verify(message, trust, schemas, tools, me=None, strict=False, now=None, repl
     if e:
         out["reasons"] = [f"signature: {e}"]
         return out
-    ok, detail = replay.check(message, now) if replay is not None else (None, "not checked")
-    if me is not None and message["to"]["agent"] != me:
-        ok, detail = False, f"addressed to {message['to']['agent']}, not {me}"
-    out["replay"] = {"ok": ok, "detail": detail}
     docs = {}
     for i, d in enumerate(schemas):
         if errs := check_schema(d):
@@ -979,9 +1011,14 @@ def verify(message, trust, schemas, tools, me=None, strict=False, now=None, repl
     ref = message["intent"]["type"]
     doc = docs.get(ref)
     errs = [f"unknown schema {ref}"] if doc is None else check_args(doc["fields"], message["intent"]["args"])
+    if me is not None and message["to"]["agent"] != me:   # SPEC 8 step 4: another receiver's: no nonce spent
+        ok, detail = False, f"addressed to {message['to']['agent']}, not {me}"
+    else:   # nor one that fails its schema
+        ok, detail = replay.check(message, now, record=not errs) if replay is not None else (None, "not checked")
+    out["replay"] = {"ok": ok, "detail": detail}
     out["schema"] = {"ok": not errs, "ref": ref, "errors": errs}
     if doc is not None:
         out["grants"] = verify_grants(message, doc, trust)
-    out["claims"] = [check_claim(c, message, trust, tools) for c in message.get("claims", [])]
+    out["claims"] = [check_claim(c, message, trust) for c in message.get("claims", [])]
     out["verdict"], out["reasons"] = _verdict(out, doc, strict)
     return out

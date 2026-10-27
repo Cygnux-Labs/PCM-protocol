@@ -39,11 +39,15 @@ About 600 to 800 lines, mapping one to one onto `tracekit/pcm/__init__.py` and `
 3. **Caveats and grants** (7): `checkCaveats`, `norm`, `implies`, `narrows`, `satisfies`, `verifyGrants`. Small and
    exact; the vectors cover each narrowing rule.
 4. **Replay** (9): the `Replay` class with `window_s`, `started`, `per_sender`, the floor, each sender keyed by
-   (`sig.key`, `from.agent`), and a `ts` that is no real date refused, not thrown.
-5. **Verdict** (8): the order of checks and the `reasons` order.
+   (`sig.key`, `from.agent`), a `ts` that is no real date refused, not thrown, and a check that does not record.
+5. **Verdict** (8): the order of checks (the schema before the recipient and replay checks, so a misaddressed or
+   schema-rejected message spends no nonce), the `reasons` order and `skipped`; a trust document with two Ed25519
+   keys of one log is a configuration error (10.1).
 6. **Evidence and claims** (6): the note origin rule, inclusion, the sender's run, each record a valid event of
    `registry/tracekit.event.v2.json`, openings (HMAC-SHA256 with WebCrypto, compared in constant time), `Ran` with
-   its "can't tell" answer, and the four checkers with the tool placement table from `registry/tools.json`.
+   its "can't tell" answer, and the four checkers with PCM 0.1's frozen tool table, `registry/tools.json` (10.2).
+   `approved_by` links the approval to its `approval.request` and that request's `policy.decision`; `reached_host`
+   is proven by an egress `net` record with connections above 0 only.
 7. **CLI**: `pcm-verify MESSAGE --trust TRUST --schema SCHEMA`, exit 0 accept, 3 accept-unproven, 1 reject, 2 for
    unreadable input, matching the Python verifier.
 
@@ -65,8 +69,9 @@ vector, so each is ported with its own tests:
   (unbalanced `[`/`]`, a bracketed host that is no IPv6 address, a non-ASCII netloc whose NFKC form gains one of
   `/?#@:`) need their own tests; the IDNA 2003 step needs Nameprep with Unicode 3.2 tables and Punycode (a small
   vendored port; the vectors only exercise `bücher.example`, so add Tracekit's own host cases as tests).
-- **`file_written`**: `fs_path` normalisation (`\` as `/`, the suffix after the last `..`), the absolute-path rule
-  and the relative-call "can't tell" result. Small, but easy to get subtly wrong.
+- **`file_written`**: the path rules of SPEC 6.6 (POSIX rules for a path from `/`, where `\` is part of a name;
+  Windows rules for a drive path, proven only by a call of its own string), the suffix after the last `..`, the
+  absolute-path rule and the "can't tell" results. Small, but easy to get subtly wrong.
 - **`id` patterns**: schema documents' patterns run as JavaScript `RegExp`. Python `re` and JavaScript differ (`\d`
   is Unicode in Python, ASCII in JavaScript). Until the spec fixes a dialect, the verifier uses the `u` flag and the
   vectors avoid patterns the two read differently.

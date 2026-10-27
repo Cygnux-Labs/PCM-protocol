@@ -20,15 +20,15 @@ Each `<name>.json`:
    "tools": {"Bash": "shell", "WebFetch": "http", "…": "…"},
    "options": {"me": "uid:990102", "strict": false, "now": "2026-10-27T13:35:08.912345Z", "replay": null}},
  "expected": {"verdict": "reject", "signature": {…}, "replay": {…}, "schema": {…}, "grants": {…}, "claims": […],
-              "reasons": ["grant: grant 0: expired at 2026-10-27T13:35:07.676535Z"]}}
+              "reasons": ["grant: grant 0: expired at 2026-10-27T13:35:07.676535Z"], "skipped": ["replay"]}}
 ```
 
 - `schemas`: the schema documents the receiver agreed on. The message's `intent.type` names one by
   `name@sha256:<hex>`, the SHA-256 of its JCS.
 - `trust`: the pinned log keys (signed-note verifier keys), the witness keys and how many witness cosignatures each
   evidence checkpoint needs.
-- `tools`: the table that places a tool name as a class (`shell`, `http`, …). It is `registry/tools.json` as it was
-  when the vectors were made. A
+- `tools`: the table that places a tool name as a class (`shell`, `http`, …): PCM 0.1's frozen table,
+  `registry/tools.json` (SPEC 10.2), the same in every vector. Your verifier places tools with its own copy of it. A
   `tests_passed` claim needs a `shell` tool, a `reached_host` claim through a call needs an `http` tool; any other
   tool makes the claim `unproven`.
 - `options.me`: the receiver's own identity, or `null` to skip the recipient check.
@@ -37,8 +37,11 @@ Each `<name>.json`:
 - `options.replay`: `null` skips the replay check (`replay.ok` is `null`). Otherwise the receiver's replay state:
   `window_s` (seconds, or `null` to skip the clock checks), `started` (when the receiver started), `per_sender` (how
   many nonces it keeps per sender) and `seen`: earlier messages. Start one fresh replay state, verify each `seen`
-  message with it (same trust, schemas, me, strict and now; ignore their results; one whose signature fails is not
-  recorded), then verify `message`.
+  message with it (same trust, schemas, me, strict and now; ignore their results), then verify `message`. A `seen`
+  message is recorded as SPEC section 9 says: not when its signature, recipient or schema check fails.
+
+A trust or schema document a verifier must refuse as a configuration error (two Ed25519 keys of one log, a bad vkey,
+a bad schema document) has no result to compare, so it is no vector; the standalone verifier's tests cover those.
 
 ## Conformance
 
@@ -50,21 +53,27 @@ A verifier conforms on a vector when these match `expected`:
 - `schema.ok`
 - `grants.result`
 - `claims[i].result`, for every claim, in order
+- `skipped`: the checks not asked for, `replay` (no replay state) and `recipient` (`me` null), in that order
 
 Where `expected` has `null` for a part (the check stopped before it), your result must have no value there too.
-The `detail`, `reasons` and `problems` strings are informative: they say why, and need not match.
+The `detail`, `reasons` and `problems` strings are informative: they say why, and need not match. One `detail` is
+more than that to a receiver: a proven `approved_by` names the tool and opened args of the call that was approved
+(SPEC 6.6), and a receiver reads it.
 
 ## How the vectors are made
 
 `tools/gen_vectors.py` runs a real Tracekit signer in a temp dir. The signer signs every message and grant, and
-writes the records that claims point to. `expected` is what `tracekit.pcm.verify` returns for the input.
+writes the records that claims point to: approvals and their requests, decisions and results through an attesting
+executor, an egress observer's and a kernel sensor import's effects. `expected` is what `tracekit.pcm.verify`
+returns for the input.
 
 Some cases can't come from the signer, because it refuses to make them: a widening child grant, a child below a
-grant that can't be passed on, a root grant issued by an agent, a `ts` in month 13. These are a valid output edited,
-then re-signed with the test log key (or the other log's, for a message of the other log). Records a hostile pinned
-log could send (an event that is no valid event, a decision without its id) are edited and put under a checkpoint
-the test log key signs offline. Envelope and signature cases, such as a non-canonical base64 signature, are edited
-without re-signing. Each one's description says so.
+grant that can't be passed on, a root grant issued by an agent or naming no person, a `ts` in month 13 or equal to a
+grant's expiry, a second message with another message's nonce. These are a valid output edited, then re-signed with
+the test log key (or the other log's, for a message of the other log). Records a hostile pinned log could send (an
+event that is no valid event, a decision without its id, an agent approver's answer naming a person) are edited and
+put under a checkpoint the test log key signs offline. Envelope and signature cases, such as a non-canonical base64
+signature, are edited without re-signing. Each one's description says so.
 
 The log, other-log and witness keys come from a fixed seed, so `trust` is the same on every run. Run ids, message
 ids, nonces and timestamps come from the signer's clock and randomness, so they and the signatures change each time
@@ -77,9 +86,10 @@ With a Tracekit checkout:
 
 ```sh
 cd <this repo>
-PYTHONPATH=<tracekit checkout> python tools/gen_schemas.py   # schemas/ and registry/
+PYTHONPATH=<tracekit checkout> python tools/gen_schemas.py   # schemas/ and the event schema in registry/
 PYTHONPATH=<tracekit checkout> python tools/gen_vectors.py   # vectors/
 ```
 
-`gen_vectors.py` stops if a vector's verdict does not match its name (`accept-`, `accept-unproven-`, `reject-`), or
-if the reasons don't name the cause the vector is for.
+`registry/tools.json` is not regenerated: it is PCM 0.1's frozen table. Both scripts stop if Tracekit's copy
+(`tracekit/pcm/tools.json`) holds another table. `gen_vectors.py` also stops if a vector's verdict does not match its
+name (`accept-`, `accept-unproven-`, `reject-`), or if the reasons don't name the cause the vector is for.

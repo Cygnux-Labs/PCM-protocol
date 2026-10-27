@@ -5,7 +5,7 @@
     "message": {
       "from": {
         "agent": "uid:990101",
-        "run": "8574566a494a572b26c3fd16584fdb38",
+        "run": "ca4ca057363ca9d4028c7dd8b6bc5084",
         "tenant": "default"
       },
       "to": {
@@ -25,54 +25,55 @@
             "suite": "python3 -m pytest -q"
           },
           "evidence": {
-            "checkpoint": "example.com/pcm-test-log\n150\npWMlUFDBBfCRAZ5+E6wUQW6Qko3xFu1daySAgfln+Zo=\n\n— example.com/pcm-test-log C7keZrGcFeB3uOdwM5zUBqKHbvanrcsegiD6713BBWY82MVpyPwuMfTU/YLqxS3TpxHZrB1soUuJ0udugPaz0LW5kgY=\n",
+            "checkpoint": "example.com/pcm-test-log\n167\nYKVlxX67a0jhpJ0wIX0H/Kr1q5lkJwehQeLtSZ/lIx4=\n\n— example.com/pcm-test-log C7keZmnAczvtwAkH9DrKbWfyWAMAhdS0bvFMzf4HtmykRduLipeVliciG14NB0tkVHBDbqQAIJGcj8l+NSxr3LLlAgA=\n",
             "records": [
               {
                 "event": {
                   "schema_version": "tracekit.event.v2",
-                  "id": "ff340c108432dda051f6e4f050900d83",
-                  "seq": 148,
-                  "prev_hash": "sha256:a9e0dbec0498da216f069ce1c2a527043d90907c39e6395bff911d05d9967f8d",
-                  "ts": "2026-10-27T16:02:47.840249Z",
-                  "run_id": "8574566a494a572b26c3fd16584fdb38",
+                  "id": "156032037574a406baa5df68546ee56e",
+                  "seq": 165,
+                  "prev_hash": "sha256:756f2410e5fb09e5fe6c9f0755f9e7a4fb7012128ab05cdf21b45cff36ef923c",
+                  "ts": "2026-10-27T18:03:31.486133Z",
+                  "run_id": "ca4ca057363ca9d4028c7dd8b6bc5084",
                   "agent_id": "main",
                   "parent_id": null,
                   "source": "gateway",
                   "type": "policy.decision",
                   "data": {
-                    "tool_use_id": "call-168",
+                    "tool_use_id": "call-185",
                     "tool": "Bash",
-                    "policy_hash": "sha256:3ff3f19e4716ecac4c7a1ab9372bb8f34c479ffb6b2da392449420a69dea01c5",
+                    "policy_hash": "sha256:3f3eddde6b59a08711e0fa1b50510e76102e81e7797b02ec8da424c82ff2bd47",
                     "engine": "re2@1.1.20251105",
-                    "expires_at": "2026-10-27T16:07:47.840216Z",
+                    "expires_at": "2026-10-27T18:08:31.486075Z",
                     "via": "mtls:spiffe://example/executor",
                     "caller": "uid:990101",
-                    "decision_id": "dec-36e32be015f11bb50663d8510539ae23",
-                    "nonce": "1039d3743cfb0ec6f21b8d3252e4f2f6",
+                    "decision_id": "dec-0a8dd3baeee8bae8abe2c91be200cf93",
+                    "nonce": "78df088fa9833a87a6afb01e2b55f31d",
                     "decision": "allow",
                     "rule_ids": [],
-                    "args_commitment": "hmac-sha256:9ef291bcf029908822a52a6b2e4a9391d320cf4e3c249a64043900e43b37850d"
+                    "args_commitment": "hmac-sha256:5e6775b4df06f920b55584f7479e87c634a07a364f862a47864bc84450755607"
                   },
                   "tenant": "default",
-                  "log_id": "75f11c8ecdf568f4ea0d02ed5b7de869",
-                  "run_seq": 132,
-                  "run_prev_hash": "sha256:a9e0dbec0498da216f069ce1c2a527043d90907c39e6395bff911d05d9967f8d",
-                  "request_id": "r169",
+                  "log_id": "b92395338b39e901fa25715a224ab0eb",
+                  "run_seq": 140,
+                  "run_prev_hash": "sha256:756f2410e5fb09e5fe6c9f0755f9e7a4fb7012128ab05cdf21b45cff36ef923c",
+                  "request_id": "r186",
                   "stream": "gw",
                   "client_seq": 40,
-                  "tool_call_id": "call-168",
+                  "tool_call_id": "call-185",
                   "attempt": 0,
                   "args_source": "parsed",
                   "tier": "T2"
                 },
-                "hash": "sha256:37a146a38d8d585d6266a2c1b918d26ca40b3e957669471f671f70f54ad4e9d9",
+                "hash": "sha256:a4f58b43ac892940c1f71191b69080e7f0828c711dbe30671d163f31cc4b82b9",
                 "proof": [
-                  "8ehAFb51DZ5pCrY4gTUf/qHXvK++PG3ArcMKwmVcvqA=",
-                  "owTugSLj4Hg/7Iqz/R0QMpMisHhHqtLHfl5Bl9hJD9k=",
-                  "3th0SnI2DbT1mqya/vMbRT88BFQj08JkOtCh/Xm3mx4=",
-                  "1L9c1hvvfxA/C0gpK8Aa9hbLlhjOV4QRb0iRYJfDgxk="
+                  "ifEIGXXLEY2Ny5XZEPxW/4qGIgEbxXupJ1nx5tNsiug=",
+                  "pChRHlruf6I0iKRhO1Ly/xdBg1dH9gAYVhHkUTiXv2s=",
+                  "ujrfYOVq8qgdBvC6P0l8OhwBOJAohtwadgzm81y1nTM=",
+                  "FJ/mgY9oZTpsqOQRo1P2a5IKMxGPaY5N5ULtHiksRpw=",
+                  "SpvftS3S/S7z4qFk6b8I/OJYYds66x6LlRgdYcqdL9Y="
                 ],
-                "salt": "41f96d06f73d07a882a22efa4e916f1ad7b903b82f7d41ed9974beba4c13e6d0",
+                "salt": "2bb34c2ab1826652e2982d8726b69f86cd64916496a945be77edb28a4ab167a4",
                 "args": {
                   "command": "python3 -m pytest -q"
                 }
@@ -80,24 +81,24 @@
               {
                 "event": {
                   "schema_version": "tracekit.event.v2",
-                  "id": "71a31c7fa3c27cbe0a24da98f9a4073b",
-                  "seq": 149,
-                  "prev_hash": "sha256:37a146a38d8d585d6266a2c1b918d26ca40b3e957669471f671f70f54ad4e9d9",
-                  "ts": "2026-10-27T16:02:47.840414Z",
-                  "run_id": "8574566a494a572b26c3fd16584fdb38",
+                  "id": "802e6594b0002a97cadfba51e34af213",
+                  "seq": 166,
+                  "prev_hash": "sha256:a4f58b43ac892940c1f71191b69080e7f0828c711dbe30671d163f31cc4b82b9",
+                  "ts": "2026-10-27T18:03:31.486440Z",
+                  "run_id": "ca4ca057363ca9d4028c7dd8b6bc5084",
                   "agent_id": "main",
                   "parent_id": null,
                   "source": "gateway",
                   "type": "tool.result",
                   "data": {
-                    "tool_use_id": "call-168",
+                    "tool_use_id": "call-185",
                     "ok": true,
                     "output": {
-                      "hash": "hmac-sha256:7ab3132a78ff83eeaefea11212b0f994dfddc57ae670c9c9d3addc27ea6bb2d6",
+                      "hash": "hmac-sha256:ae1bd71c0f2ab97a57c82973d39fb1e0ea85757af5befb2279cb63cc4b065738",
                       "size": 2,
                       "redacted": false
                     },
-                    "decision_id": "dec-36e32be015f11bb50663d8510539ae23",
+                    "decision_id": "dec-0a8dd3baeee8bae8abe2c91be200cf93",
                     "redaction": {
                       "rules": [],
                       "count": 0,
@@ -106,22 +107,22 @@
                     "via": "mtls:spiffe://example/executor"
                   },
                   "tenant": "default",
-                  "log_id": "75f11c8ecdf568f4ea0d02ed5b7de869",
-                  "run_seq": 133,
-                  "run_prev_hash": "sha256:37a146a38d8d585d6266a2c1b918d26ca40b3e957669471f671f70f54ad4e9d9",
-                  "request_id": "r170",
+                  "log_id": "b92395338b39e901fa25715a224ab0eb",
+                  "run_seq": 141,
+                  "run_prev_hash": "sha256:a4f58b43ac892940c1f71191b69080e7f0828c711dbe30671d163f31cc4b82b9",
+                  "request_id": "r187",
                   "stream": "gw",
                   "client_seq": 41,
-                  "tool_call_id": "call-168",
+                  "tool_call_id": "call-185",
                   "attempt": 0,
                   "tier": "T2"
                 },
-                "hash": "sha256:41967599cc70960ebd11eb3d691ed848f69389a76816c2e57beb3216afdd04b0",
+                "hash": "sha256:9c3546db247e7b74ecd6510aa41901c258c4c9e16d9c155856bf628b2aba5c7f",
                 "proof": [
-                  "RyUOaWfvCxbjbHYuuwLMZZv39zl0JqlkxYoheuPZoJI=",
-                  "owTugSLj4Hg/7Iqz/R0QMpMisHhHqtLHfl5Bl9hJD9k=",
-                  "3th0SnI2DbT1mqya/vMbRT88BFQj08JkOtCh/Xm3mx4=",
-                  "1L9c1hvvfxA/C0gpK8Aa9hbLlhjOV4QRb0iRYJfDgxk="
+                  "aCeUO3m3DMVVwIZ9N7fWjs2cit8LWbCx9Ccz9xtzAPo=",
+                  "ujrfYOVq8qgdBvC6P0l8OhwBOJAohtwadgzm81y1nTM=",
+                  "FJ/mgY9oZTpsqOQRo1P2a5IKMxGPaY5N5ULtHiksRpw=",
+                  "SpvftS3S/S7z4qFk6b8I/OJYYds66x6LlRgdYcqdL9Y="
                 ]
               }
             ]
@@ -129,12 +130,12 @@
         }
       ],
       "pcm": 0,
-      "id": "62b0e56df95d36bb0eb6ed0d8b40f1d7",
-      "ts": "2026-10-27T16:02:47.845781Z",
-      "nonce": "e8bac51a721a4b1f8ae16f029b9af3ff",
+      "id": "e56506fb538ce100cb0aed5d064406f4",
+      "ts": "2026-10-27T18:03:31.491459Z",
+      "nonce": "a165782d1deb4509237ef718fe944843",
       "sig": {
         "key": "example.com/pcm-test-log+0bb91e66",
-        "sig": "4t4sZYe5ISVXxlQwvEL+lKMNgMfXjaFVkrJafkSsPJx3uln7EBshVK3b+D2K27pTGNjFAv6C/NLBLPfcVm7ZBg=="
+        "sig": "u5ieUnLw6/sYqezIDmXToyjgrdt6N9bPGwwukUvPGwN6bC/JH8qh7Bf68+K16ln/YsrpJNh5+MtFEtGK/ihfDA=="
       }
     },
     "schemas": [
@@ -164,64 +165,64 @@
     },
     "tools": {
       "Bash": "shell",
-      "run_shell_command": "shell",
-      "shell": "shell",
-      "local_shell": "shell",
-      "container.exec": "shell",
-      "run_terminal_cmd": "shell",
-      "terminal": "shell",
-      "Write": "fs",
       "Edit": "fs",
+      "Glob": "fs",
+      "Grep": "fs",
       "MultiEdit": "fs",
       "NotebookEdit": "fs",
       "Read": "fs",
-      "Grep": "fs",
-      "Glob": "fs",
       "WebFetch": "http",
       "WebSearch": "http",
-      "srt:request": "http",
-      "transfer_funds": "payment",
-      "send_payment": "payment",
+      "Write": "fs",
+      "bash": "shell",
+      "container.exec": "shell",
+      "create_charge": "payment",
       "create_payment": "payment",
       "create_payout": "payment",
-      "create_transfer": "payment",
       "create_refund": "payment",
-      "create_charge": "payment",
-      "pay_invoice": "payment",
-      "get_balance": "payment",
-      "list_transactions": "payment",
-      "get_transaction": "payment",
-      "list_payments": "payment",
-      "send_email": "email",
-      "send_gmail_message": "email",
-      "gmail_send_message": "email",
-      "run_sql": "sql",
-      "execute_sql": "sql",
+      "create_transfer": "payment",
       "execute_query": "sql",
-      "query_database": "sql",
-      "sql_db_query": "sql",
+      "execute_sql": "sql",
+      "fetch": "http",
+      "get_balance": "payment",
+      "get_transaction": "payment",
+      "gmail_send_message": "email",
+      "http_get": "http",
+      "http_post": "http",
+      "http_request": "http",
+      "list_payments": "payment",
+      "list_transactions": "payment",
+      "local_shell": "shell",
+      "mcp:fetch/fetch": "http",
+      "mcp:mysql/execute_sql": "sql",
       "mcp:postgres/query": "sql",
       "mcp:sqlite/read_query": "sql",
       "mcp:sqlite/write_query": "sql",
-      "mcp:mysql/execute_sql": "sql",
       "mcp:supabase/execute_sql": "sql",
-      "http_request": "http",
-      "http_get": "http",
-      "http_post": "http",
+      "pay_invoice": "payment",
+      "query_database": "sql",
+      "requests_delete": "http",
       "requests_get": "http",
+      "requests_patch": "http",
       "requests_post": "http",
       "requests_put": "http",
-      "requests_patch": "http",
-      "requests_delete": "http",
-      "fetch": "http",
-      "web_fetch": "http",
-      "mcp:fetch/fetch": "http",
-      "bash": "shell"
+      "run_shell_command": "shell",
+      "run_sql": "sql",
+      "run_terminal_cmd": "shell",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "send_payment": "payment",
+      "shell": "shell",
+      "sql_db_query": "sql",
+      "srt:request": "http",
+      "terminal": "shell",
+      "transfer_funds": "payment",
+      "web_fetch": "http"
     },
     "options": {
       "me": "uid:990102",
       "strict": false,
-      "now": "2026-10-27T16:02:48.845781Z",
+      "now": "2026-10-27T18:03:32.491459Z",
       "replay": null
     }
   },
@@ -249,10 +250,13 @@
       {
         "type": "tests_passed",
         "result": "proven",
-        "detail": "call call-168 ran 'python3 -m pytest -q', run by mtls:spiffe://example/executor (T2)"
+        "detail": "call call-185 ran 'python3 -m pytest -q', run by mtls:spiffe://example/executor (T2)"
       }
     ],
     "verdict": "accept",
-    "reasons": []
+    "reasons": [],
+    "skipped": [
+      "replay"
+    ]
   }
 }

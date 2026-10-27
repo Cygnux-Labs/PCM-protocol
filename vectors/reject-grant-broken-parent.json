@@ -5,7 +5,7 @@
     "message": {
       "from": {
         "agent": "uid:990102",
-        "run": "999dd722d7407017c155d63d34f2b384",
+        "run": "2144797ee9ed61dee00b5b36e7ebded5",
         "tenant": "default"
       },
       "to": {
@@ -21,13 +21,13 @@
       "grants": [
         {
           "pcm_grant": 0,
-          "ts": "2026-10-27T16:02:47.693939Z",
+          "ts": "2026-10-27T18:03:31.291513Z",
           "issuer": {
             "kind": "person",
             "id": "uid:990001",
-            "run": "8574566a494a572b26c3fd16584fdb38",
+            "run": "ca4ca057363ca9d4028c7dd8b6bc5084",
             "tenant": "default",
-            "approval_id": "apr-799bbd29496b0a3638a51e8e2d814e89",
+            "approval_id": "apr-972c73668aaaf395fcc0e4cd6f322c33",
             "person": "alice"
           },
           "subject": "uid:990101",
@@ -44,21 +44,21 @@
               "value": 81
             }
           ],
-          "expires_at": "2026-10-27T17:02:47.691310Z",
+          "expires_at": "2026-10-27T19:03:31.288762Z",
           "delegable": true,
           "parent": null,
           "sig": {
             "key": "example.com/pcm-test-log+0bb91e66",
-            "sig": "2fRi4uMWL/cULMuYoG5hMC5FKQYbJvgxt3kXKmMvMFxrExrh8FCLj5BzjDbgs7UX67JB9qtVEiP9YWxU91lKDA=="
+            "sig": "j0U7l0L6nd1ydk/TrEuaD9DxLpfuerV+LQZFdm4XTEetZwpGvj5uX4jR4QE25rRQmYC4ViMJTUFMARSOevXgCQ=="
           }
         },
         {
           "pcm_grant": 0,
-          "ts": "2026-10-27T16:02:47.683577Z",
+          "ts": "2026-10-27T18:03:31.281890Z",
           "issuer": {
             "kind": "agent",
             "id": "uid:990101",
-            "run": "8574566a494a572b26c3fd16584fdb38",
+            "run": "ca4ca057363ca9d4028c7dd8b6bc5084",
             "tenant": "default"
           },
           "subject": "uid:990102",
@@ -75,22 +75,22 @@
               "value": 81
             }
           ],
-          "expires_at": "2026-10-27T17:02:47.679453Z",
+          "expires_at": "2026-10-27T19:03:31.278344Z",
           "delegable": false,
-          "parent": "sha256:b10b3ea1064e9e67b51932511eab193a40e9e31b4bf084653cac2bd22f831f37",
+          "parent": "sha256:92ca28441e4afcf1f2d610e6b3d0ebcf2616fef4ef61264d85992b0cd47a8aaa",
           "sig": {
             "key": "example.com/pcm-test-log+0bb91e66",
-            "sig": "GG150ROaG6CpE1CmdsSCznUnfwXPHRHVF2vSRQ2CXLUPk67AZ8N8IEBucdiKjgtOUGq9NCP1YbDRqDjN4Ez4Bw=="
+            "sig": "RRKlTOixlU+tEW5+E+bXXwBqjaLUFhoklxqPNxBfouCQJT4aFDwlA/66BVa3Tr5fnlFXx5VaV1HgwDiHWFiJAQ=="
           }
         }
       ],
       "pcm": 0,
-      "id": "2039704bde7d56531e8b12573dd615f4",
-      "ts": "2026-10-27T16:02:47.694526Z",
-      "nonce": "72afad09096f843d57ec83d3898369f7",
+      "id": "12b57285c3df096b173a76d25d5c39dc",
+      "ts": "2026-10-27T18:03:31.292060Z",
+      "nonce": "3107a656eaeb45de0870fb719a93e81b",
       "sig": {
         "key": "example.com/pcm-test-log+0bb91e66",
-        "sig": "9ZOrtXDMvPUjuu2j3mgsGnHF/vyLHwzTmFOW8mHvX+iMDySkGYHtAaLtOK7QScg3GuqvpRvyonbUvANqpcbACQ=="
+        "sig": "U3PSify/PeLsTYdC7EVsVkNzV34z0P38uIBSF0Jd1ZyPOotGrxofxzq6r+bN2UG9yYUPX4VCFMz/N3LNkww3AQ=="
       }
     },
     "schemas": [
@@ -121,64 +121,64 @@
     },
     "tools": {
       "Bash": "shell",
-      "run_shell_command": "shell",
-      "shell": "shell",
-      "local_shell": "shell",
-      "container.exec": "shell",
-      "run_terminal_cmd": "shell",
-      "terminal": "shell",
-      "Write": "fs",
       "Edit": "fs",
+      "Glob": "fs",
+      "Grep": "fs",
       "MultiEdit": "fs",
       "NotebookEdit": "fs",
       "Read": "fs",
-      "Grep": "fs",
-      "Glob": "fs",
       "WebFetch": "http",
       "WebSearch": "http",
-      "srt:request": "http",
-      "transfer_funds": "payment",
-      "send_payment": "payment",
+      "Write": "fs",
+      "bash": "shell",
+      "container.exec": "shell",
+      "create_charge": "payment",
       "create_payment": "payment",
       "create_payout": "payment",
-      "create_transfer": "payment",
       "create_refund": "payment",
-      "create_charge": "payment",
-      "pay_invoice": "payment",
-      "get_balance": "payment",
-      "list_transactions": "payment",
-      "get_transaction": "payment",
-      "list_payments": "payment",
-      "send_email": "email",
-      "send_gmail_message": "email",
-      "gmail_send_message": "email",
-      "run_sql": "sql",
-      "execute_sql": "sql",
+      "create_transfer": "payment",
       "execute_query": "sql",
-      "query_database": "sql",
-      "sql_db_query": "sql",
+      "execute_sql": "sql",
+      "fetch": "http",
+      "get_balance": "payment",
+      "get_transaction": "payment",
+      "gmail_send_message": "email",
+      "http_get": "http",
+      "http_post": "http",
+      "http_request": "http",
+      "list_payments": "payment",
+      "list_transactions": "payment",
+      "local_shell": "shell",
+      "mcp:fetch/fetch": "http",
+      "mcp:mysql/execute_sql": "sql",
       "mcp:postgres/query": "sql",
       "mcp:sqlite/read_query": "sql",
       "mcp:sqlite/write_query": "sql",
-      "mcp:mysql/execute_sql": "sql",
       "mcp:supabase/execute_sql": "sql",
-      "http_request": "http",
-      "http_get": "http",
-      "http_post": "http",
+      "pay_invoice": "payment",
+      "query_database": "sql",
+      "requests_delete": "http",
       "requests_get": "http",
+      "requests_patch": "http",
       "requests_post": "http",
       "requests_put": "http",
-      "requests_patch": "http",
-      "requests_delete": "http",
-      "fetch": "http",
-      "web_fetch": "http",
-      "mcp:fetch/fetch": "http",
-      "bash": "shell"
+      "run_shell_command": "shell",
+      "run_sql": "sql",
+      "run_terminal_cmd": "shell",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "send_payment": "payment",
+      "shell": "shell",
+      "sql_db_query": "sql",
+      "srt:request": "http",
+      "terminal": "shell",
+      "transfer_funds": "payment",
+      "web_fetch": "http"
     },
     "options": {
       "me": "uid:990103",
       "strict": false,
-      "now": "2026-10-27T16:02:48.694526Z",
+      "now": "2026-10-27T18:03:32.292060Z",
       "replay": null
     }
   },
@@ -212,6 +212,9 @@
     "verdict": "reject",
     "reasons": [
       "grant: grant 1: its parent is not grant 0"
+    ],
+    "skipped": [
+      "replay"
     ]
   }
 }

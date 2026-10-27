@@ -2,7 +2,7 @@
   {
     "name": "accept-approved-by",
     "file": "accept-approved-by.json",
-    "description": "A refund request under alice's root grant, with an approved_by claim her approval record proves; replay checked.",
+    "description": "A refund request under alice's root grant, with an approved_by claim proven by her approval, the approval.request it answers and the pcm.grant decision that request names; replay checked.",
     "verdict": "accept"
   },
   {
@@ -200,13 +200,13 @@
   {
     "name": "reject-claim-changed-record-hash",
     "file": "reject-claim-changed-record-hash.json",
-    "description": "approved_by whose record hash has one hex digit changed.",
+    "description": "approved_by whose first record's hash has one hex digit changed.",
     "verdict": "reject"
   },
   {
     "name": "reject-claim-cut-proof",
     "file": "reject-claim-cut-proof.json",
-    "description": "approved_by whose inclusion proof lost its last hash.",
+    "description": "approved_by whose first record's inclusion proof lost its last hash.",
     "verdict": "reject"
   },
   {
@@ -236,7 +236,7 @@
   {
     "name": "reject-claim-proof-non-canonical-base64",
     "file": "reject-claim-proof-non-canonical-base64.json",
-    "description": "approved_by whose first proof entry has an unused bit of its last base64 character set: the same 32 bytes, but only canonical base64 is taken.",
+    "description": "approved_by whose first record's first proof entry has an unused bit of its last base64 character set: the same 32 bytes, but only canonical base64 is taken.",
     "verdict": "reject"
   },
   {
@@ -266,7 +266,37 @@
   {
     "name": "reject-claim-approved-by-unmapped-identity",
     "file": "reject-claim-approved-by-unmapped-identity.json",
-    "description": "approved_by naming uid:990009, an approver no person in the signer's approvals configuration maps to, with its approval record as evidence: only a person's name proves it.",
+    "description": "approved_by naming uid:990009, an approver no person in the signer's approvals configuration maps to, with its approval, request and decision as evidence: only a person's name proves it.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-approved-by-without-decision",
+    "file": "reject-claim-approved-by-without-decision.json",
+    "description": "approved_by whose evidence holds alice's approval and the approval.request it answers, but not the policy.decision the request names: the call id is the agent's own name for the call, so without its decision nothing says what was approved.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-approved-by-other-decision",
+    "file": "reject-claim-approved-by-other-decision.json",
+    "description": "approved_by of call pay-1, which the agent decided twice: a pay of 50000, then a read_file of /etc/motd. alice approved the read_file (the approval.request names its decision), and the evidence holds the pay decision with that request and approval: an approval is of the decision its request names, not of every decision of the call id.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-approved-by-self-approval",
+    "file": "reject-claim-approved-by-self-approval.json",
+    "description": "approved_by erin, sent by her own agent's run (uid:990011, which the approvals configuration maps to erin too), with her approval of its call, the request and the decision as evidence; the signer allows self-approval, so it recorded the answer with self_approved true: a person approving her own agent's call is no independent approval.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-evidence-from-another-run",
+    "file": "reject-claim-evidence-from-another-run.json",
+    "description": "approved_by with alice's approval records as evidence, sent by another run of the same agent: evidence must come from the sender's own run.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-evidence-from-another-tenant",
+    "file": "reject-claim-evidence-from-another-tenant.json",
+    "description": "approved_by with alice's approval records as evidence, sent by uid:990107 of tenant acme from a run it registered under the run id of A's run (a client picks its run id): the records are of tenant default, so they are not the sender's.",
     "verdict": "reject"
   },
   {
@@ -285,6 +315,18 @@
     "name": "reject-claim-record-not-an-event",
     "file": "reject-claim-record-not-an-event.json",
     "description": "approved_by whose approval record has the number 5 as its prev_hash, which no claim checker reads, under a checkpoint the test log key signs offline over the edited record: a record that is no valid tracekit.event.v2 event fails.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-approved-by-agent-approver",
+    "file": "reject-claim-approved-by-agent-approver.json",
+    "description": "approved_by whose evidence is alice's approval, its request and decision, with approver_kind agent added to the approval, under a checkpoint the test log key signs offline over the edited records (an honest signer writes no person on an agent approver's answer): an agent approver's answer proves no person's approval.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-witness-key-in-logs",
+    "file": "reject-claim-witness-key-in-logs.json",
+    "description": "approved_by with trust pinning the witness's cosignature key in logs, next to the test log key: a key in logs that is no Ed25519 or hybrid log key fails the note.",
     "verdict": "reject"
   },
   {
@@ -414,6 +456,12 @@
     "verdict": "reject"
   },
   {
+    "name": "reject-claim-tests-passed-denied-call",
+    "file": "reject-claim-tests-passed-denied-call.json",
+    "description": "tests_passed of `pytest -q tests/test_denied.py`, whose policy.decision is deny; the executor then reported the call ran and succeeded (T2): a denied decision matches no call.",
+    "verdict": "reject"
+  },
+  {
     "name": "reject-claim-salt-without-args",
     "file": "reject-claim-salt-without-args.json",
     "description": "tests_passed whose decision record carries its salt but not its args.",
@@ -462,10 +510,46 @@
     "verdict": "accept-unproven"
   },
   {
+    "name": "reject-claim-file-written-backslash",
+    "file": "reject-claim-file-written-backslash.json",
+    "description": "file_written of /work/report.txt by a Write of /work\\report.txt the executor ran (T2): a path that starts with / is read by POSIX rules, where `\\` is part of a name, so the call wrote the file `work\\report.txt` in /.",
+    "verdict": "reject"
+  },
+  {
+    "name": "accept-unproven-file-written-drive-separators",
+    "file": "accept-unproven-file-written-drive-separators.json",
+    "description": "file_written of C:\\work\\report.txt by a Write of C:/work/report.txt the executor ran (T2): the two are one file on Windows, but the record doesn't say which system ran the call, and on POSIX C:/work/report.txt is a relative path.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-file-written-drive-path",
+    "file": "accept-file-written-drive-path.json",
+    "description": "file_written of C:\\work\\report.txt by a Write of C:\\work\\report.txt the executor ran (T2): a drive path is proven by a call of the claim's own string.",
+    "verdict": "accept"
+  },
+  {
     "name": "accept-reached-host-observed",
     "file": "accept-reached-host-observed.json",
-    "description": "reached_host proven by the effect.observed record an egress observer reported to the signer.",
+    "description": "reached_host proven by the effect.observed record an egress observer reported to the signer: a minute with one connection to the host.",
     "verdict": "accept"
+  },
+  {
+    "name": "accept-unproven-reached-host-no-connection",
+    "file": "accept-unproven-reached-host-no-connection.json",
+    "description": "reached_host api.example.com by an egress observer's minute of the run's traffic to the host with connections 0 (its connect failed): the run tried the host, nothing says it reached it.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-sensor-connect",
+    "file": "accept-unproven-reached-host-sensor-connect.json",
+    "description": "reached_host api.example.com by a kernel sensor's (Tetragon's) record that a process of the run called connect to the host: the attempt, not an opened connection.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "reject-claim-reached-host-denied-connect",
+    "file": "reject-claim-reached-host-denied-connect.json",
+    "description": "reached_host api.example.com by a kernel sensor import's connect of the run to the host, marked denied (the sensor blocked it): a denied connect reaches nothing, and nothing else in the evidence says the run reached the host.",
+    "verdict": "reject"
   },
   {
     "name": "accept-unproven-reached-host-unreadable-claim",
@@ -594,6 +678,30 @@
     "verdict": "reject"
   },
   {
+    "name": "accept-replay-misaddressed-spends-no-nonce",
+    "file": "accept-replay-misaddressed-spends-no-nonce.json",
+    "description": "The receiver uid:990102 first got this message with the same sender, ts and nonce, re-signed with the test log key but addressed to uid:990103: a message for another receiver spends no nonce here, so this one is fresh.",
+    "verdict": "accept"
+  },
+  {
+    "name": "accept-replay-schema-rejected-spends-no-nonce",
+    "file": "accept-replay-schema-rejected-spends-no-nonce.json",
+    "description": "The receiver first got this message with the same sender, ts and nonce, re-signed with the test log key but with order as the string \"81\", which its schema refuses: a message rejected for its schema spends no nonce, so this one is fresh.",
+    "verdict": "accept"
+  },
+  {
+    "name": "reject-replay-grant-failure-spends-nonce",
+    "file": "reject-replay-grant-failure-spends-nonce.json",
+    "description": "The receiver first got a message of the same sender with this nonce whose grant check failed (amount 50000 over the cap of 20000); this valid one carries that nonce, re-signed with the test log key: a message rejected for its grants spends its nonce, so this one is a replay.",
+    "verdict": "reject"
+  },
+  {
+    "name": "accept-skipped-replay-and-recipient",
+    "file": "accept-skipped-replay-and-recipient.json",
+    "description": "A valid refund.quote checked with no replay state and no receiver identity (me null), as an audit: the result names both checks in skipped.",
+    "verdict": "accept"
+  },
+  {
     "name": "accept-schema-field-types",
     "file": "accept-schema-field-types.json",
     "description": "A string, id, enum, bool and time field, and an optional field left out.",
@@ -657,6 +765,60 @@
     "name": "reject-grant-child-wrong-issuer",
     "file": "reject-grant-child-wrong-issuer.json",
     "description": "A's child to B names uid:990107, not the parent's subject, as its issuer; the signer refuses it, so it is the real child edited and re-signed with the test log key.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-root-with-parent",
+    "file": "reject-grant-root-with-parent.json",
+    "description": "alice's root grant with its parent set to another grant's hash, re-signed with the test log key.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-root-without-person",
+    "file": "reject-grant-root-without-person.json",
+    "description": "alice's root grant with issuer.person removed (the signer names the person on every root grant), re-signed with the test log key.",
+    "verdict": "reject"
+  },
+  {
+    "name": "accept-grant-expires-at-ts",
+    "file": "accept-grant-expires-at-ts.json",
+    "description": "A message whose ts is its root grant's expires_at, re-signed with the test log key (the signer takes ts from its clock): a grant still holds at its expires_at.",
+    "verdict": "accept"
+  },
+  {
+    "name": "reject-grant-caveat-string-for-int",
+    "file": "reject-grant-caveat-string-for-int.json",
+    "description": "A root grant alice approved with order == \"81\", the string \"81\" for the int field order: nothing is converted, so a caveat's value of another JSON type than its field's is no valid caveat, and no args satisfy it.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-grant-caveat-bool-for-int",
+    "file": "reject-grant-caveat-bool-for-int.json",
+    "description": "A root grant alice approved with order == true, a bool for the int field order, and a message with order 1: nothing is converted, so a caveat's value of another JSON type than its field's is no valid caveat, and no args satisfy it.",
+    "verdict": "reject"
+  },
+  {
+    "name": "accept-delegation-in-set",
+    "file": "accept-delegation-in-set.json",
+    "description": "A's child to B narrows region in [eu, us] to region in [eu].",
+    "verdict": "accept"
+  },
+  {
+    "name": "reject-grant-in-set-widened-child",
+    "file": "reject-grant-in-set-widened-child.json",
+    "description": "A's child to B has region in [eu, us, apac], a superset instead; the signer refuses it, so it is the real child edited and re-signed with the test log key.",
+    "verdict": "reject"
+  },
+  {
+    "name": "accept-delegation-time-bound",
+    "file": "accept-delegation-time-bound.json",
+    "description": "A's child to B narrows due <= 2026-12-31 to due <= 2026-11-30.",
+    "verdict": "accept"
+  },
+  {
+    "name": "reject-grant-time-bound-widened-child",
+    "file": "reject-grant-time-bound-widened-child.json",
+    "description": "A's child to B has due <= 2027-01-31, a later bound instead; the signer refuses it, so it is the real child edited and re-signed with the test log key.",
     "verdict": "reject"
   }
 ]

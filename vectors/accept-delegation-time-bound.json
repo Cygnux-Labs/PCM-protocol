@@ -1,0 +1,255 @@
+{
+  "name": "accept-delegation-time-bound",
+  "description": "A's child to B narrows due <= 2026-12-31 to due <= 2026-11-30.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990102",
+        "run": "2144797ee9ed61dee00b5b36e7ebded5",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990103"
+      },
+      "intent": {
+        "type": "refund.scoped@sha256:1d683d4fcfb2fcded8cd621bb3fb3a8e48bed3eb3a27d65276743345ab7fae41",
+        "args": {
+          "amount": 12000,
+          "order": 81,
+          "region": "eu",
+          "due": "2026-11-01T09:00:00.000000Z"
+        }
+      },
+      "grants": [
+        {
+          "pcm_grant": 0,
+          "ts": "2026-10-27T18:03:31.689497Z",
+          "issuer": {
+            "kind": "person",
+            "id": "uid:990001",
+            "run": "ca4ca057363ca9d4028c7dd8b6bc5084",
+            "tenant": "default",
+            "approval_id": "apr-175c487bc90459ffb46a58467ba76c79",
+            "person": "alice"
+          },
+          "subject": "uid:990101",
+          "intent": "refund.scoped@sha256:1d683d4fcfb2fcded8cd621bb3fb3a8e48bed3eb3a27d65276743345ab7fae41",
+          "caveats": [
+            {
+              "field": "amount",
+              "op": "<=",
+              "value": 20000
+            },
+            {
+              "field": "order",
+              "op": "==",
+              "value": 81
+            },
+            {
+              "field": "region",
+              "op": "in",
+              "value": [
+                "eu",
+                "us"
+              ]
+            },
+            {
+              "field": "due",
+              "op": "<=",
+              "value": "2026-12-31T00:00:00.000000Z"
+            }
+          ],
+          "expires_at": "2026-10-27T19:03:31.685489Z",
+          "delegable": true,
+          "parent": null,
+          "sig": {
+            "key": "example.com/pcm-test-log+0bb91e66",
+            "sig": "TYvJQQ4Zau8VgP1vdARlyfvxwSL4Sy2WqCcJ0pU/c24HpgrTtx2v88jAOw4YyU/uNaPKQm8SxrdRYr1H4CA+BQ=="
+          }
+        },
+        {
+          "pcm_grant": 0,
+          "ts": "2026-10-27T18:03:31.691283Z",
+          "issuer": {
+            "kind": "agent",
+            "id": "uid:990101",
+            "run": "ca4ca057363ca9d4028c7dd8b6bc5084",
+            "tenant": "default"
+          },
+          "subject": "uid:990102",
+          "intent": "refund.scoped@sha256:1d683d4fcfb2fcded8cd621bb3fb3a8e48bed3eb3a27d65276743345ab7fae41",
+          "caveats": [
+            {
+              "field": "amount",
+              "op": "<=",
+              "value": 15000
+            },
+            {
+              "field": "order",
+              "op": "==",
+              "value": 81
+            },
+            {
+              "field": "region",
+              "op": "in",
+              "value": [
+                "eu",
+                "us"
+              ]
+            },
+            {
+              "field": "due",
+              "op": "<=",
+              "value": "2026-11-30T00:00:00.000000Z"
+            }
+          ],
+          "expires_at": "2026-10-27T19:03:31.685489Z",
+          "delegable": false,
+          "parent": "sha256:8452afe8444db942ca7679cd921d71d07b46cd771e59ea6384d72977219f6940",
+          "sig": {
+            "key": "example.com/pcm-test-log+0bb91e66",
+            "sig": "6IZ/x61PeLOmcB+TW+GqipVCPSmP62QR7fs/BqRjHtbVSNrp0iQDoZ7gFyRcJMsPKIcdkuROSUeZ+O2CfOXeBQ=="
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "0f19ad590ff9cab5ec6d21e9456c1592",
+      "ts": "2026-10-27T18:03:31.691926Z",
+      "nonce": "fb4ab2551c809fec275cc1cd0fa08468",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "M5yE1UtJ0xLb661F8ugNLMKmwcO8XdToUm+5QIxiosV6Bf4uKWQ2Vs3cfeeutJDuUT/yujxK4o6IHBmBNEwbAQ=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.scoped",
+        "grant": true,
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          },
+          "region": {
+            "type": "enum",
+            "values": [
+              "eu",
+              "us",
+              "apac"
+            ]
+          },
+          "due": {
+            "type": "time"
+          }
+        }
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "Edit": "fs",
+      "Glob": "fs",
+      "Grep": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "Write": "fs",
+      "bash": "shell",
+      "container.exec": "shell",
+      "create_charge": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_refund": "payment",
+      "create_transfer": "payment",
+      "execute_query": "sql",
+      "execute_sql": "sql",
+      "fetch": "http",
+      "get_balance": "payment",
+      "get_transaction": "payment",
+      "gmail_send_message": "email",
+      "http_get": "http",
+      "http_post": "http",
+      "http_request": "http",
+      "list_payments": "payment",
+      "list_transactions": "payment",
+      "local_shell": "shell",
+      "mcp:fetch/fetch": "http",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "pay_invoice": "payment",
+      "query_database": "sql",
+      "requests_delete": "http",
+      "requests_get": "http",
+      "requests_patch": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "run_shell_command": "shell",
+      "run_sql": "sql",
+      "run_terminal_cmd": "shell",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "send_payment": "payment",
+      "shell": "shell",
+      "sql_db_query": "sql",
+      "srt:request": "http",
+      "terminal": "shell",
+      "transfer_funds": "payment",
+      "web_fetch": "http"
+    },
+    "options": {
+      "me": "uid:990103",
+      "strict": false,
+      "now": "2026-10-27T18:03:32.691926Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.scoped@sha256:1d683d4fcfb2fcded8cd621bb3fb3a8e48bed3eb3a27d65276743345ab7fae41",
+      "errors": []
+    },
+    "grants": {
+      "result": "ok",
+      "steps": 2,
+      "root": {
+        "kind": "person",
+        "id": "uid:990001",
+        "person": "alice"
+      },
+      "problems": []
+    },
+    "claims": [],
+    "verdict": "accept",
+    "reasons": [],
+    "skipped": [
+      "replay"
+    ]
+  }
+}

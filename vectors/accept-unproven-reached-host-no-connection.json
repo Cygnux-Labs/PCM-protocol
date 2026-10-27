@@ -1,0 +1,205 @@
+{
+  "name": "accept-unproven-reached-host-no-connection",
+  "description": "reached_host api.example.com by an egress observer's minute of the run's traffic to the host with connections 0 (its connect failed): the run tried the host, nothing says it reached it.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "ca4ca057363ca9d4028c7dd8b6bc5084",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "claims": [
+        {
+          "type": "reached_host",
+          "args": {
+            "host": "api.example.com"
+          },
+          "evidence": {
+            "checkpoint": "example.com/pcm-test-log\n206\nwhXRcWlJF/NGChpcEIIjUhJurIoTd7I20Cea536gTuQ=\n\n— example.com/pcm-test-log C7keZlBIMhG6B8/2gWCOVT74ff2SIk5Z8pyC4dw3QMQBTiLnAgkXtvxbPzXF97XeCiZ09lFs6wWFrECV7agSxlV2tgA=\n",
+            "records": [
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "1071a03282efec4764d3ec75b4ab1bbe",
+                  "seq": 203,
+                  "prev_hash": "sha256:69181d0206bf4a6a5a3e02252c0e7bce0cc2f57aedab62848d6f0e07bcd88c3c",
+                  "ts": "2026-10-27T18:03:31.561815Z",
+                  "run_id": "ca4ca057363ca9d4028c7dd8b6bc5084",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "signer",
+                  "type": "effect.observed",
+                  "data": {
+                    "observer": "uid:990200",
+                    "kind": "net",
+                    "host": "api.example.com",
+                    "port": 443,
+                    "bytes_out": 0,
+                    "bytes_in": 0,
+                    "connections": 0,
+                    "first_ts": "2026-10-27T18:03:31.561649Z",
+                    "last_ts": "2026-10-27T18:03:31.561649Z",
+                    "attribution": "token"
+                  },
+                  "tenant": "default",
+                  "log_id": "b92395338b39e901fa25715a224ab0eb",
+                  "run_seq": 178,
+                  "run_prev_hash": "sha256:69181d0206bf4a6a5a3e02252c0e7bce0cc2f57aedab62848d6f0e07bcd88c3c"
+                },
+                "hash": "sha256:1071773ddeaae5e032e8fd3f4fc03e09759a72c6bd9d91a218d055dccb7b99dd",
+                "proof": [
+                  "Fi/u85QOjbW/6PPw3n4nCu2KDZl+IFR4PcN8s79QCyM=",
+                  "8yCKNgBlIdZhmAFofi4y1m0uVvfCtH+ZXUNSG2eRWoc=",
+                  "L8hY4H4pzT4Z4FkKPSsYW6uJSPBYfHZG85JnhGhSnl4=",
+                  "9s6n2zlEYLZFAa/drRnmzCXLap9FD62us6OrGq0Bf6Q=",
+                  "11iBH7oEy0k3QPy1Nb+ysEp9tYhPRIKasDf177Wz174=",
+                  "SpvftS3S/S7z4qFk6b8I/OJYYds66x6LlRgdYcqdL9Y="
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "47d2acc61b3016fa05bb37c818834b67",
+      "ts": "2026-10-27T18:03:31.575258Z",
+      "nonce": "4ab423a5b36ae1d55d6fbe0eb54306ed",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "4lKAyrpeGMCS7HnyvotbOWe0iQPiJGX0BwSyek1vPx0Kpexy4vMRZL+NxVCuQhig75xXo3uUSneyZNpY14kCAQ=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.quote",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        }
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "Edit": "fs",
+      "Glob": "fs",
+      "Grep": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "Write": "fs",
+      "bash": "shell",
+      "container.exec": "shell",
+      "create_charge": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_refund": "payment",
+      "create_transfer": "payment",
+      "execute_query": "sql",
+      "execute_sql": "sql",
+      "fetch": "http",
+      "get_balance": "payment",
+      "get_transaction": "payment",
+      "gmail_send_message": "email",
+      "http_get": "http",
+      "http_post": "http",
+      "http_request": "http",
+      "list_payments": "payment",
+      "list_transactions": "payment",
+      "local_shell": "shell",
+      "mcp:fetch/fetch": "http",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "pay_invoice": "payment",
+      "query_database": "sql",
+      "requests_delete": "http",
+      "requests_get": "http",
+      "requests_patch": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "run_shell_command": "shell",
+      "run_sql": "sql",
+      "run_terminal_cmd": "shell",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "send_payment": "payment",
+      "shell": "shell",
+      "sql_db_query": "sql",
+      "srt:request": "http",
+      "terminal": "shell",
+      "transfer_funds": "payment",
+      "web_fetch": "http"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-27T18:03:32.575258Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+      "errors": []
+    },
+    "grants": {
+      "result": "none",
+      "steps": 0,
+      "root": null,
+      "problems": []
+    },
+    "claims": [
+      {
+        "type": "reached_host",
+        "result": "unproven",
+        "detail": "effect.observed seq 203: uid:990200 saw no connection to api.example.com open"
+      }
+    ],
+    "verdict": "accept-unproven",
+    "reasons": [
+      "reached_host: unproven (effect.observed seq 203: uid:990200 saw no connection to api.example.com open)"
+    ],
+    "skipped": [
+      "replay"
+    ]
+  }
+}

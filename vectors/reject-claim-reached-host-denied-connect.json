@@ -1,0 +1,205 @@
+{
+  "name": "reject-claim-reached-host-denied-connect",
+  "description": "reached_host api.example.com by a kernel sensor import's connect of the run to the host, marked denied (the sensor blocked it): a denied connect reaches nothing, and nothing else in the evidence says the run reached the host.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "ca4ca057363ca9d4028c7dd8b6bc5084",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "claims": [
+        {
+          "type": "reached_host",
+          "args": {
+            "host": "api.example.com"
+          },
+          "evidence": {
+            "checkpoint": "example.com/pcm-test-log\n208\nsyJ0I8cArUGaNwlzF7wIduOr4W9MpvPRNw1CDx0y6oA=\n\n— example.com/pcm-test-log C7keZrOdowKl/8fb1G00nW0BS8sNCK7mBspOXl/dKgMrHcYOpLpabN9KL8OXqqbR9JKWQ4l++N86BOQAL3hL3SMhMwk=\n",
+            "records": [
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "43a848f7196e9086f9dd07817ef0f201",
+                  "seq": 205,
+                  "prev_hash": "sha256:6791c7441ea2a743fe2e6375e123448be9749b32a08b2114a65956283063da78",
+                  "ts": "2026-10-27T18:03:31.567738Z",
+                  "run_id": "ca4ca057363ca9d4028c7dd8b6bc5084",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "signer",
+                  "type": "effect.observed",
+                  "data": {
+                    "observer": "uid:990201",
+                    "sensor": "tetragon",
+                    "kind": "connect",
+                    "ts": "2026-10-27T18:03:31.567566Z",
+                    "pid": 7,
+                    "binary": "/usr/bin/curl",
+                    "host": "api.example.com",
+                    "port": 443,
+                    "denied": true,
+                    "attribution": "token"
+                  },
+                  "tenant": "default",
+                  "log_id": "b92395338b39e901fa25715a224ab0eb",
+                  "run_seq": 180,
+                  "run_prev_hash": "sha256:6791c7441ea2a743fe2e6375e123448be9749b32a08b2114a65956283063da78"
+                },
+                "hash": "sha256:f317c11eb57c692b7316584bc9d5261708b1b43d15968a4141140ac644fd0607",
+                "proof": [
+                  "LM+IStjDqjy5PP3r/CNZkD+UveIXZYKEbQicmW9fwqU=",
+                  "JNTYY6WDGoZelWGFF8kOffzfcZeU94fAleYRQSO7Ge8=",
+                  "IRsNdsaX4jRmbRUaN2LcVwBFddpALeu4YtCygam436I=",
+                  "9s6n2zlEYLZFAa/drRnmzCXLap9FD62us6OrGq0Bf6Q=",
+                  "11iBH7oEy0k3QPy1Nb+ysEp9tYhPRIKasDf177Wz174=",
+                  "SpvftS3S/S7z4qFk6b8I/OJYYds66x6LlRgdYcqdL9Y="
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "3e6e6c9fbf7ad5e40825bf6cf5feb754",
+      "ts": "2026-10-27T18:03:31.584465Z",
+      "nonce": "a411b3bc7878ea6c3fc1305576fda1ff",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "a9FKmPfBYLqC4LL9Mt/FXoNXgSD5hyrk6ODIiJsmHj+1VQyfULJRdFkEzEvsPPy7AciBD3a0btAkFr1Tk3IdCg=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.quote",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        }
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "Edit": "fs",
+      "Glob": "fs",
+      "Grep": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "Write": "fs",
+      "bash": "shell",
+      "container.exec": "shell",
+      "create_charge": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_refund": "payment",
+      "create_transfer": "payment",
+      "execute_query": "sql",
+      "execute_sql": "sql",
+      "fetch": "http",
+      "get_balance": "payment",
+      "get_transaction": "payment",
+      "gmail_send_message": "email",
+      "http_get": "http",
+      "http_post": "http",
+      "http_request": "http",
+      "list_payments": "payment",
+      "list_transactions": "payment",
+      "local_shell": "shell",
+      "mcp:fetch/fetch": "http",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "pay_invoice": "payment",
+      "query_database": "sql",
+      "requests_delete": "http",
+      "requests_get": "http",
+      "requests_patch": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "run_shell_command": "shell",
+      "run_sql": "sql",
+      "run_terminal_cmd": "shell",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "send_payment": "payment",
+      "shell": "shell",
+      "sql_db_query": "sql",
+      "srt:request": "http",
+      "terminal": "shell",
+      "transfer_funds": "payment",
+      "web_fetch": "http"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-27T18:03:32.584465Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+      "errors": []
+    },
+    "grants": {
+      "result": "none",
+      "steps": 0,
+      "root": null,
+      "problems": []
+    },
+    "claims": [
+      {
+        "type": "reached_host",
+        "result": "failed",
+        "detail": "no call in the evidence reached api.example.com"
+      }
+    ],
+    "verdict": "reject",
+    "reasons": [
+      "reached_host: failed (no call in the evidence reached api.example.com)"
+    ],
+    "skipped": [
+      "replay"
+    ]
+  }
+}

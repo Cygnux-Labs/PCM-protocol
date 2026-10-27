@@ -1,12 +1,16 @@
-"""Write schemas/*.schema.json (JSON Schema 2020-12), registry/tools.json and registry/tracekit.event.v2.json (the
-evidence profile's event schema, as Tracekit ships it) from Tracekit, the reference
-implementation of PCM. The shapes are Tracekit's own (tracekit/signer/rpc_schema.py and tracekit/pcm), translated
-as they are, so the two can't drift by hand. From the repo root, with Tracekit importable:
+"""Write schemas/*.schema.json (JSON Schema 2020-12) and registry/tracekit.event.v2.json (the evidence profile's event
+schema, as Tracekit ships it) from Tracekit, the reference implementation of PCM. The shapes are Tracekit's own
+(tracekit/signer/rpc_schema.py and tracekit/pcm), translated as they are, so the two can't drift by hand.
+registry/tools.json is PCM 0.1's frozen tool placement table (SPEC 10.2): it is checked against Tracekit's copy
+(tracekit/pcm/tools.json), never written from it, and copied into the standalone verifier. From the repo root, with
+Tracekit importable:
 
     PYTHONPATH=<tracekit checkout> python tools/gen_schemas.py
 """
 import json
 import os
+import shutil
+import sys
 
 from tracekit.pcm import SCHEMA_DOC
 from tracekit.pcm.claims import placed
@@ -65,9 +69,13 @@ def main():
                 if alt["properties"]["type"] == {"const": "enum"}:
                     alt["properties"]["values"]["uniqueItems"] = True
         write(os.path.join(ROOT, "schemas", f"{name}.schema.json"), out)
-    for path in (("registry",), ("verifier", "python", "pcm_verify")):   # the verifier ships both, the table as default
-        write(os.path.join(ROOT, *path, "tools.json"), dict(sorted(placed().items())))
+    for path in (("registry",), ("verifier", "python", "pcm_verify")):   # the verifier ships both
         write(os.path.join(ROOT, *path, f"{V2}.json"), schema(V2))   # the evidence profile's event schema (6.4)
+    tools = os.path.join(ROOT, "registry", "tools.json")
+    with open(tools, encoding="utf-8") as f:
+        if json.load(f) != placed():
+            sys.exit("registry/tools.json is not tracekit's PCM 0.1 tool table (tracekit/pcm/tools.json)")
+    shutil.copyfile(tools, os.path.join(ROOT, "verifier", "python", "pcm_verify", "tools.json"))
 
 
 if __name__ == "__main__":
