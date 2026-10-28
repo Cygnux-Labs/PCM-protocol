@@ -358,14 +358,15 @@ def mandates(world, msg, body, rec, state, model):
             if not _trusted(m, person, model, trust):
                 return "reject", "checkout signer"
             co = m["body"]["checkout"]
+            if co is not None and doc.get("tool", co["tool"]) != co["tool"]:
+                return "reject", "checkout"
             if co is None or co["args"] is None:
                 return "reject", "checkout not disclosed"
             if co["tool"] == "pcm.grant":
                 a = co["args"]
-                if not (isinstance(a, dict) and a.get("subject") == env["sender"]
-                        and _authorizes(a, msg, now)):
+                if not (isinstance(a, dict) and a.get("subject") == env["sender"] and _authorizes(a, msg, now)):
                     return "reject", "open mandate"
-            elif co["args"] != msg["intent"]["args"] or doc.get("tool", co["tool"]) != co["tool"]:
+            elif co["args"] != msg["intent"]["args"]:
                 return "reject", "checkout"
     state.add((env["sender"], kb["body"]["nonce"]))
     return "accept", None
