@@ -1,10 +1,11 @@
 {
+  "dataset": 2,
   "seed": 20261028,
-  "generated": "2026-10-28T00:03:57Z",
-  "seconds": 42.7,
-  "messages": 879,
-  "tracekit": "384a6042bd7dc9cc104dc364c817c1dd88ee0e6c",
-  "pcm": "1ba784a1abfcf5eb5c2f9e3e5fd370d8537f2bc9",
+  "generated": "2026-10-28T06:37:07Z",
+  "seconds": 37.3,
+  "messages": 926,
+  "tracekit": "7d843e637782832288d1add72f748ca96da06ba7",
+  "pcm": "73a287caad8980d5cdb85f68a24368c3a51cd2fb",
   "python": "3.11.15",
   "platform": "macOS-26.3-arm64-arm-64bit",
   "signer_refusals": [
@@ -24,7 +25,7 @@
       "attempt": "pcm_delegate outliving its parent",
       "refused": true,
       "code": "invalid_request",
-      "message": "expires_at is after the parent's, 2026-10-28T01:03:33.302977Z"
+      "message": "expires_at is after the parent's, 2026-10-28T07:36:46.916350Z"
     },
     {
       "attempt": "pcm_delegate below a non-delegable root",
@@ -42,7 +43,7 @@
       "attempt": "a root grant approved by an agent approver",
       "refused": true,
       "code": "unknown_approval",
-      "message": "apr-7162ac8e17f6642f98f5c6c2d80ff4d3"
+      "message": "apr-6601cad5d3b261e85127be8659fddaf8"
     },
     {
       "attempt": "a root grant approved by an identity no person maps to",
@@ -66,20 +67,20 @@
       "attempt": "pcm_sign as another agent",
       "refused": true,
       "code": "forbidden",
-      "message": "the signer signs only as the calling run's own agent (uid:990101, run e7b7af1066360a608c928d56951b0877, tenant default)"
+      "message": "the signer signs only as the calling run's own agent (uid:990101, run 6bf8550fc7e61f0581550e2db7800a39, tenant default)"
     },
     {
       "attempt": "pcm_sign as another run of the same agent",
       "refused": true,
       "code": "forbidden",
-      "message": "the signer signs only as the calling run's own agent (uid:990101, run e7b7af1066360a608c928d56951b0877, tenant default)"
+      "message": "the signer signs only as the calling run's own agent (uid:990101, run 6bf8550fc7e61f0581550e2db7800a39, tenant default)"
     }
   ],
   "by_class": {
     "honest.T": 12,
     "honest.H": 20,
     "honest.F": 12,
-    "honest.A": 12,
+    "honest.A": 22,
     "honest.G": 13,
     "honest.X": 4,
     "AB-strip.T": 12,
@@ -101,7 +102,7 @@
     "L3.T": 12,
     "L3.H": 12,
     "L3.F": 12,
-    "L3.A": 12,
+    "L3.A": 23,
     "L4.T": 12,
     "L4.H": 12,
     "L4.F": 12,
@@ -142,10 +143,10 @@
     "L14.G": 13,
     "L14.A": 10,
     "L15.G": 13,
-    "L16.T": 21,
-    "L16.H": 28,
-    "L16.F": 23,
-    "L16.A": 22,
-    "L16.G": 11
+    "L16.T": 23,
+    "L16.H": 46,
+    "L16.F": 25,
+    "L16.A": 24,
+    "L16.G": 13
   }
 }

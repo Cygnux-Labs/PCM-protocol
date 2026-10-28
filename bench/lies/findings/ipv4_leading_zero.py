@@ -3,7 +3,9 @@
 A URL host with a leading-zero octet is read two ways. PCM 0.1 (SPEC 6.7) reads it as inet_aton does, octal:
 0127.0.0.1 is 87.0.0.1. This machine's resolver, getaddrinfo, which Python's urllib (and so an executor) connects
 through, may read it as decimal: on macOS 0127.0.0.1 is 127.0.0.1. So a T2 fetch of http://0127.0.0.1:<port>/ really
-reaches 127.0.0.1, and a reached_host claim of 87.0.0.1 resting on it is proven by both verifiers.
+reaches 127.0.0.1, and a reached_host claim of 87.0.0.1 resting on it was proven by both verifiers (dataset 1). PCM's
+fix makes any IPv4 host other than a canonical dotted quad unproven; this script shows the readings and the current
+verdicts of L16.H.01 from data/ and results/.
 
     PYTHONPATH=<tracekit checkout> python bench/lies/findings/ipv4_leading_zero.py
 """
@@ -45,13 +47,14 @@ def main():
     with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(url, timeout=5) as r:
         print(f"  urllib GET {url} -> HTTP {r.status}; the server on 127.0.0.1 saw a connection from {SEEN}")
     srv.shutdown()
-    rec = json.loads((HERE / "L16.H.01.json").read_text())
-    claim = rec["record"]["message"]["claims"][0]
-    print(f"  the message claims reached_host {claim['args']['host']!r} with that call as evidence; verdicts:")
-    for name, out in rec["outputs"].items():
-        print(f"    {name:<10} {out['verdict']:<16} {out.get('reason_class', '(baseline)')}")
-    print("  re-run both verifiers on it: python bench/lies/findings/repro.py bench/lies/findings/L16.H.01.json")
-
+    def row(path):
+        return next(json.loads(x) for x in open(path, encoding="utf-8") if json.loads(x)["id"] == "L16.H.01")
+    claim = row(HERE.parent / "data" / "dataset.jsonl")["message"]["claims"][0]
+    print(f"  L16.H.01 claims reached_host {claim['args']['host']!r} with such a call as evidence; verdicts:")
+    for name in ("tracekit", "standalone"):
+        out = row(HERE.parent / "results" / f"{name}.jsonl")
+        print(f"    {name:<10} {out['verdict']:<16} {'; '.join(c['detail'] for c in out['claims'])[:110]}")
+    print("  before the fix (dataset 1, commit 9b430ab) both said accept: 87.0.0.1 proven")
 
 if __name__ == "__main__":
     main()

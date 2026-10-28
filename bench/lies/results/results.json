@@ -1,5 +1,5 @@
 {
- "messages": 879,
+ "messages": 926,
  "verifiers": [
   "tracekit",
   "standalone",
@@ -15,7 +15,7 @@
   "AB-t1.F.UNKNOWABLE": 12,
   "AB-t1.H.UNKNOWABLE": 12,
   "AB-t1.T.UNKNOWABLE": 12,
-  "honest.A.TRUE": 12,
+  "honest.A.TRUE": 22,
   "honest.F.TRUE": 12,
   "honest.G.TRUE": 13,
   "honest.H.TRUE": 20,
@@ -29,7 +29,7 @@
   "L2.F.FALSE": 12,
   "L2.H.FALSE": 12,
   "L2.T.FALSE": 12,
-  "L3.A.FALSE": 12,
+  "L3.A.FALSE": 23,
   "L3.F.FALSE": 12,
   "L3.H.FALSE": 12,
   "L3.T.FALSE": 12,
@@ -73,19 +73,19 @@
   "L14.A.FALSE": 10,
   "L14.G.FALSE": 13,
   "L15.G.FALSE": 13,
-  "L16.A.FALSE": 18,
+  "L16.A.FALSE": 20,
   "L16.A.TRUE": 4,
-  "L16.F.FALSE": 16,
+  "L16.F.FALSE": 18,
   "L16.F.TRUE": 7,
-  "L16.G.FALSE": 7,
+  "L16.G.FALSE": 9,
   "L16.G.TRUE": 4,
-  "L16.H.FALSE": 24,
-  "L16.H.TRUE": 4,
-  "L16.T.FALSE": 17,
+  "L16.H.FALSE": 30,
+  "L16.H.TRUE": 16,
+  "L16.T.FALSE": 19,
   "L16.T.TRUE": 4
  },
  "threat_model": {
-  "in": 868,
+  "in": 915,
   "signer-bug": 11
  },
  "classes": [
@@ -118,7 +118,8 @@
     "UNKNOWABLE>accept-unproven": 36
    },
    "honest": {
-    "TRUE>accept": 71,
+    "TRUE>accept": 69,
+    "TRUE>accept-unproven": 12,
     "TRUE>reject": 2
    },
    "L1": {
@@ -130,8 +131,8 @@
     "FALSE>reject": 45
    },
    "L3": {
-    "FALSE>accept": 6,
-    "FALSE>reject": 42
+    "FALSE>accept-unproven": 11,
+    "FALSE>reject": 48
    },
    "L4": {
     "UNKNOWABLE>accept-unproven": 36
@@ -172,10 +173,10 @@
    },
    "L16": {
     "TRUE>accept": 5,
+    "TRUE>accept-unproven": 12,
     "TRUE>reject": 18,
-    "FALSE>accept": 7,
-    "FALSE>accept-unproven": 5,
-    "FALSE>reject": 70
+    "FALSE>accept-unproven": 16,
+    "FALSE>reject": 80
    }
   },
   "standalone": {
@@ -186,7 +187,8 @@
     "UNKNOWABLE>accept-unproven": 36
    },
    "honest": {
-    "TRUE>accept": 71,
+    "TRUE>accept": 69,
+    "TRUE>accept-unproven": 12,
     "TRUE>reject": 2
    },
    "L1": {
@@ -198,8 +200,8 @@
     "FALSE>reject": 45
    },
    "L3": {
-    "FALSE>accept": 6,
-    "FALSE>reject": 42
+    "FALSE>accept-unproven": 11,
+    "FALSE>reject": 48
    },
    "L4": {
     "UNKNOWABLE>accept-unproven": 36
@@ -240,10 +242,10 @@
    },
    "L16": {
     "TRUE>accept": 5,
+    "TRUE>accept-unproven": 12,
     "TRUE>reject": 18,
-    "FALSE>accept": 7,
-    "FALSE>accept-unproven": 5,
-    "FALSE>reject": 70
+    "FALSE>accept-unproven": 16,
+    "FALSE>reject": 80
    }
   },
   "a2a": {
@@ -254,7 +256,7 @@
     "UNKNOWABLE>accept": 36
    },
    "honest": {
-    "TRUE>accept": 73
+    "TRUE>accept": 83
    },
    "L1": {
     "FALSE>accept": 48
@@ -263,7 +265,7 @@
     "FALSE>accept": 48
    },
    "L3": {
-    "FALSE>accept": 48
+    "FALSE>accept": 59
    },
    "L4": {
     "UNKNOWABLE>accept": 36
@@ -302,9 +304,9 @@
     "FALSE>accept": 13
    },
    "L16": {
-    "TRUE>accept": 18,
+    "TRUE>accept": 30,
     "TRUE>reject": 5,
-    "FALSE>accept": 82
+    "FALSE>accept": 96
    }
   },
   "sigonly": {
@@ -315,7 +317,7 @@
     "UNKNOWABLE>accept": 36
    },
    "honest": {
-    "TRUE>accept": 73
+    "TRUE>accept": 83
    },
    "L1": {
     "FALSE>accept": 48
@@ -324,7 +326,7 @@
     "FALSE>accept": 48
    },
    "L3": {
-    "FALSE>accept": 48
+    "FALSE>accept": 59
    },
    "L4": {
     "UNKNOWABLE>accept": 36
@@ -364,30 +366,30 @@
     "FALSE>accept": 13
    },
    "L16": {
-    "TRUE>accept": 18,
+    "TRUE>accept": 30,
     "TRUE>reject": 5,
-    "FALSE>accept": 67,
-    "FALSE>reject": 15
+    "FALSE>accept": 71,
+    "FALSE>reject": 25
    }
   }
  },
  "false_accepts": {
   "tracekit": {
-   "lies": 687,
-   "false_accepts": 23,
-   "rate": 0.033478893740902474,
+   "lies": 712,
+   "false_accepts": 10,
+   "rate": 0.014044943820224719,
    "ci95": [
-    0.02241055872173775,
-    0.04973564671811995
+    0.007646434799748221,
+    0.02565925740925444
    ],
    "by_scope": {
     "claim": {
-     "lies": 184,
+     "lies": 192,
      "false_accepts": 0
     },
     "message": {
-     "lies": 6,
-     "false_accepts": 6
+     "lies": 9,
+     "false_accepts": 0
     },
     "evidence": {
      "lies": 265,
@@ -406,14 +408,14 @@
      "false_accepts": 0
     },
     "encoding": {
-     "lies": 82,
-     "false_accepts": 7
+     "lies": 96,
+     "false_accepts": 0
     }
    },
    "by_threat_model": {
     "in": {
-     "lies": 676,
-     "false_accepts": 23
+     "lies": 701,
+     "false_accepts": 10
     },
     "signer-bug": {
      "lies": 11,
@@ -421,12 +423,6 @@
     }
    },
    "ids": [
-    "L3.A.07",
-    "L3.A.08",
-    "L3.A.09",
-    "L3.A.10",
-    "L3.A.11",
-    "L3.A.12",
     "L10.T.06",
     "L10.T.07",
     "L10.T.08",
@@ -436,32 +432,25 @@
     "L10.F.07",
     "L10.F.08",
     "L10.F.09",
-    "L10.F.10",
-    "L16.H.01",
-    "L16.H.02",
-    "L16.H.03",
-    "L16.H.04",
-    "L16.H.05",
-    "L16.H.06",
-    "L16.H.07"
+    "L10.F.10"
    ]
   },
   "standalone": {
-   "lies": 687,
-   "false_accepts": 23,
-   "rate": 0.033478893740902474,
+   "lies": 712,
+   "false_accepts": 10,
+   "rate": 0.014044943820224719,
    "ci95": [
-    0.02241055872173775,
-    0.04973564671811995
+    0.007646434799748221,
+    0.02565925740925444
    ],
    "by_scope": {
     "claim": {
-     "lies": 184,
+     "lies": 192,
      "false_accepts": 0
     },
     "message": {
-     "lies": 6,
-     "false_accepts": 6
+     "lies": 9,
+     "false_accepts": 0
     },
     "evidence": {
      "lies": 265,
@@ -480,14 +469,14 @@
      "false_accepts": 0
     },
     "encoding": {
-     "lies": 82,
-     "false_accepts": 7
+     "lies": 96,
+     "false_accepts": 0
     }
    },
    "by_threat_model": {
     "in": {
-     "lies": 676,
-     "false_accepts": 23
+     "lies": 701,
+     "false_accepts": 10
     },
     "signer-bug": {
      "lies": 11,
@@ -495,12 +484,6 @@
     }
    },
    "ids": [
-    "L3.A.07",
-    "L3.A.08",
-    "L3.A.09",
-    "L3.A.10",
-    "L3.A.11",
-    "L3.A.12",
     "L10.T.06",
     "L10.T.07",
     "L10.T.08",
@@ -510,32 +493,25 @@
     "L10.F.07",
     "L10.F.08",
     "L10.F.09",
-    "L10.F.10",
-    "L16.H.01",
-    "L16.H.02",
-    "L16.H.03",
-    "L16.H.04",
-    "L16.H.05",
-    "L16.H.06",
-    "L16.H.07"
+    "L10.F.10"
    ]
   },
   "a2a": {
-   "lies": 687,
-   "false_accepts": 687,
+   "lies": 712,
+   "false_accepts": 712,
    "rate": 1.0,
    "ci95": [
-    0.9944392462758466,
-    0.9999999999999999
+    0.9946334496346679,
+    1.0
    ],
    "by_scope": {
     "claim": {
-     "lies": 184,
-     "false_accepts": 184
+     "lies": 192,
+     "false_accepts": 192
     },
     "message": {
-     "lies": 6,
-     "false_accepts": 6
+     "lies": 9,
+     "false_accepts": 9
     },
     "evidence": {
      "lies": 265,
@@ -554,14 +530,14 @@
      "false_accepts": 50
     },
     "encoding": {
-     "lies": 82,
-     "false_accepts": 82
+     "lies": 96,
+     "false_accepts": 96
     }
    },
    "by_threat_model": {
     "in": {
-     "lies": 676,
-     "false_accepts": 676
+     "lies": 701,
+     "false_accepts": 701
     },
     "signer-bug": {
      "lies": 11,
@@ -713,6 +689,17 @@
     "L3.A.10",
     "L3.A.11",
     "L3.A.12",
+    "L3.A.13",
+    "L3.A.14",
+    "L3.A.15",
+    "L3.A.16",
+    "L3.A.17",
+    "L3.A.18",
+    "L3.A.19",
+    "L3.A.20",
+    "L3.A.21",
+    "L3.A.22",
+    "L3.A.23",
     "L4.T.01",
     "L4.T.02",
     "L4.T.03",
@@ -1228,6 +1215,8 @@
     "L16.T.17",
     "L16.T.18",
     "L16.T.19",
+    "L16.T.22",
+    "L16.T.23",
     "L16.H.18",
     "L16.H.19",
     "L16.H.20",
@@ -1235,6 +1224,8 @@
     "L16.H.24",
     "L16.H.25",
     "L16.H.26",
+    "L16.H.29",
+    "L16.H.30",
     "L16.F.13",
     "L16.F.14",
     "L16.F.15",
@@ -1242,6 +1233,8 @@
     "L16.F.19",
     "L16.F.20",
     "L16.F.21",
+    "L16.F.24",
+    "L16.F.25",
     "L16.A.12",
     "L16.A.13",
     "L16.A.14",
@@ -1249,31 +1242,39 @@
     "L16.A.18",
     "L16.A.19",
     "L16.A.20",
+    "L16.A.23",
+    "L16.A.24",
     "L16.G.01",
     "L16.G.02",
     "L16.G.03",
     "L16.G.04",
     "L16.G.07",
     "L16.G.08",
-    "L16.G.09"
+    "L16.G.09",
+    "L16.G.12",
+    "L16.G.13",
+    "L16.H.39",
+    "L16.H.40",
+    "L16.H.41",
+    "L16.H.42"
    ]
   },
   "sigonly": {
-   "lies": 687,
-   "false_accepts": 628,
-   "rate": 0.9141193595342066,
+   "lies": 712,
+   "false_accepts": 643,
+   "rate": 0.9030898876404494,
    "ci95": [
-    0.8907962963958511,
-    0.9328367911310145
+    0.879147059431,
+    0.9227063114823417
    ],
    "by_scope": {
     "claim": {
-     "lies": 184,
-     "false_accepts": 184
+     "lies": 192,
+     "false_accepts": 192
     },
     "message": {
-     "lies": 6,
-     "false_accepts": 6
+     "lies": 9,
+     "false_accepts": 9
     },
     "evidence": {
      "lies": 265,
@@ -1292,14 +1293,14 @@
      "false_accepts": 50
     },
     "encoding": {
-     "lies": 82,
-     "false_accepts": 67
+     "lies": 96,
+     "false_accepts": 71
     }
    },
    "by_threat_model": {
     "in": {
-     "lies": 676,
-     "false_accepts": 617
+     "lies": 701,
+     "false_accepts": 632
     },
     "signer-bug": {
      "lies": 11,
@@ -1451,6 +1452,17 @@
     "L3.A.10",
     "L3.A.11",
     "L3.A.12",
+    "L3.A.13",
+    "L3.A.14",
+    "L3.A.15",
+    "L3.A.16",
+    "L3.A.17",
+    "L3.A.18",
+    "L3.A.19",
+    "L3.A.20",
+    "L3.A.21",
+    "L3.A.22",
+    "L3.A.23",
     "L4.T.01",
     "L4.T.02",
     "L4.T.03",
@@ -1934,7 +1946,11 @@
     "L16.G.01",
     "L16.G.02",
     "L16.G.03",
-    "L16.G.04"
+    "L16.G.04",
+    "L16.H.39",
+    "L16.H.40",
+    "L16.H.41",
+    "L16.H.42"
    ]
   }
  },
@@ -1951,9 +1967,9 @@
     "not_accepted": 48
    },
    "L3": {
-    "false": 48,
-    "rejected": 42,
-    "not_accepted": 42
+    "false": 59,
+    "rejected": 48,
+    "not_accepted": 59
    },
    "L5": {
     "false": 66,
@@ -2011,9 +2027,9 @@
     "not_accepted": 13
    },
    "L16": {
-    "false": 82,
-    "rejected": 70,
-    "not_accepted": 75
+    "false": 96,
+    "rejected": 80,
+    "not_accepted": 96
    }
   },
   "standalone": {
@@ -2028,9 +2044,9 @@
     "not_accepted": 48
    },
    "L3": {
-    "false": 48,
-    "rejected": 42,
-    "not_accepted": 42
+    "false": 59,
+    "rejected": 48,
+    "not_accepted": 59
    },
    "L5": {
     "false": 66,
@@ -2088,9 +2104,9 @@
     "not_accepted": 13
    },
    "L16": {
-    "false": 82,
-    "rejected": 70,
-    "not_accepted": 75
+    "false": 96,
+    "rejected": 80,
+    "not_accepted": 96
    }
   },
   "a2a": {
@@ -2105,7 +2121,7 @@
     "not_accepted": 0
    },
    "L3": {
-    "false": 48,
+    "false": 59,
     "rejected": 0,
     "not_accepted": 0
    },
@@ -2165,7 +2181,7 @@
     "not_accepted": 0
    },
    "L16": {
-    "false": 82,
+    "false": 96,
     "rejected": 0,
     "not_accepted": 0
    }
@@ -2182,7 +2198,7 @@
     "not_accepted": 0
    },
    "L3": {
-    "false": 48,
+    "false": 59,
     "rejected": 0,
     "not_accepted": 0
    },
@@ -2242,140 +2258,18 @@
     "not_accepted": 0
    },
    "L16": {
-    "false": 82,
-    "rejected": 15,
-    "not_accepted": 15
+    "false": 96,
+    "rejected": 25,
+    "not_accepted": 25
    }
   }
  },
  "H": {
   "H1": {
    "tracekit": {
-    "false_accepts": 23,
+    "false_accepts": 10,
     "pass": false,
     "list": [
-     {
-      "id": "L3.A.07",
-      "operator": "approved-amount-x10-opened",
-      "lie_scope": "message",
-      "threat_model": "in",
-      "note": "alice approved {'amount': 500, 'order': 81}",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "approved_by",
-        "result": "proven",
-        "detail": "approval seq 176 by alice of \"refund\" call refund-341 with args {\"amount\":500,\"order\":81}",
-        "approved": {
-         "tool": "refund",
-         "args": {
-          "amount": 500,
-          "order": 81
-         }
-        }
-       }
-      ]
-     },
-     {
-      "id": "L3.A.08",
-      "operator": "approved-amount-x10",
-      "lie_scope": "message",
-      "threat_model": "in",
-      "note": "alice approved {'amount': 1200, 'order': 81}",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "approved_by",
-        "result": "proven",
-        "detail": "approval seq 181 by alice of \"refund\" call refund-347",
-        "approved": {
-         "tool": "refund",
-         "args": null
-        }
-       }
-      ]
-     },
-     {
-      "id": "L3.A.09",
-      "operator": "approved-amount-x10-opened",
-      "lie_scope": "message",
-      "threat_model": "in",
-      "note": "alice approved {'amount': 2500, 'order': 81}",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "approved_by",
-        "result": "proven",
-        "detail": "approval seq 186 by alice of \"refund\" call refund-353 with args {\"amount\":2500,\"order\":81}",
-        "approved": {
-         "tool": "refund",
-         "args": {
-          "amount": 2500,
-          "order": 81
-         }
-        }
-       }
-      ]
-     },
-     {
-      "id": "L3.A.10",
-      "operator": "approved-amount-x10",
-      "lie_scope": "message",
-      "threat_model": "in",
-      "note": "alice approved {'amount': 4999, 'order': 81}",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "approved_by",
-        "result": "proven",
-        "detail": "approval seq 191 by alice of \"refund\" call refund-359",
-        "approved": {
-         "tool": "refund",
-         "args": null
-        }
-       }
-      ]
-     },
-     {
-      "id": "L3.A.11",
-      "operator": "approved-other-tool-opened",
-      "lie_scope": "message",
-      "threat_model": "in",
-      "note": "alice approved read_file {'path': '/etc/motd-0'}",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "approved_by",
-        "result": "proven",
-        "detail": "approval seq 272 by alice of \"read_file\" call readfile-461 with args {\"path\":\"/etc/motd-0\"}",
-        "approved": {
-         "tool": "read_file",
-         "args": {
-          "path": "/etc/motd-0"
-         }
-        }
-       }
-      ]
-     },
-     {
-      "id": "L3.A.12",
-      "operator": "approved-other-tool",
-      "lie_scope": "message",
-      "threat_model": "in",
-      "note": "alice approved read_file {'path': '/etc/motd-1'}",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "approved_by",
-        "result": "proven",
-        "detail": "approval seq 277 by alice of \"read_file\" call readfile-467",
-        "approved": {
-         "tool": "read_file",
-         "args": null
-        }
-       }
-      ]
-     },
      {
       "id": "L10.T.06",
       "operator": "pass-then-fail-cites-pass",
@@ -2462,7 +2356,7 @@
        {
         "type": "file_written",
         "result": "proven",
-        "detail": "call Write-321 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8c with sha256:641164af2ec73b0dbb1ccdbfbe500d9c466f77212ed06f17f378af7454d212dd, run by mtls:spiffe://example/executor (T2)"
+        "detail": "call Write-321 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-b09fc4 with sha256:641164af2ec73b0dbb1ccdbfbe500d9c466f77212ed06f17f378af7454d212dd, run by mtls:spiffe://example/executor (T2)"
        }
       ]
      },
@@ -2477,7 +2371,7 @@
        {
         "type": "file_written",
         "result": "proven",
-        "detail": "call Write-325 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8c with sha256:dfc5fbb0ce001c6c35120c0d5aa81fbe928d203bb0e477b0d07077f09e5d4b14, run by mtls:spiffe://example/executor (T2)"
+        "detail": "call Write-325 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-b09fc4 with sha256:dfc5fbb0ce001c6c35120c0d5aa81fbe928d203bb0e477b0d07077f09e5d4b14, run by mtls:spiffe://example/executor (T2)"
        }
       ]
      },
@@ -2492,7 +2386,7 @@
        {
         "type": "file_written",
         "result": "proven",
-        "detail": "call Write-329 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8c with sha256:3c6b28d21ff2df80b40f4a9ba5369d297f913b7567536fc2447c8a0df5656fc4, run by mtls:spiffe://example/executor (T2)"
+        "detail": "call Write-329 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-b09fc4 with sha256:3c6b28d21ff2df80b40f4a9ba5369d297f913b7567536fc2447c8a0df5656fc4, run by mtls:spiffe://example/executor (T2)"
        }
       ]
      },
@@ -2507,7 +2401,7 @@
        {
         "type": "file_written",
         "result": "proven",
-        "detail": "call Write-333 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8c with sha256:12a6ef3b2ccb86eeb2b9e3b9c382a3424a4af32550ab6b8f3ace5e5982c936e3, run by mtls:spiffe://example/executor (T2)"
+        "detail": "call Write-333 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-b09fc4 with sha256:12a6ef3b2ccb86eeb2b9e3b9c382a3424a4af32550ab6b8f3ace5e5982c936e3, run by mtls:spiffe://example/executor (T2)"
        }
       ]
      },
@@ -2522,243 +2416,16 @@
        {
         "type": "file_written",
         "result": "proven",
-        "detail": "call Write-337 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8c with sha256:dee79979fc1efad22d40567b6c739afca4ef931508a849973be094f236fcfc75, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.01",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://0127.0.0.1:53163/ok' reached 127.0.0.1 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2079 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.02",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://0127.0.0.01:53163/ok' reached 127.0.0.1 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2084 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.03",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://0127.000.000.001:53163/ok' reached 127.0.0.1 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2089 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.04",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://00127.0.0.1:53163/ok' reached 127.0.0.1 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2094 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.05",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://0177.0.0.1/' reached 177.0.0.1 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2099 reached 127.0.0.1, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.06",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://010.0.0.1/' reached 10.0.0.1 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2104 reached 8.0.0.1, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.07",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://192.168.0.010/' reached 192.168.0.10 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2109 reached 192.168.0.8, run by mtls:spiffe://example/executor (T2)"
+        "detail": "call Write-337 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-b09fc4 with sha256:dee79979fc1efad22d40567b6c739afca4ef931508a849973be094f236fcfc75, run by mtls:spiffe://example/executor (T2)"
        }
       ]
      }
     ]
    },
    "standalone": {
-    "false_accepts": 23,
+    "false_accepts": 10,
     "pass": false,
     "list": [
-     {
-      "id": "L3.A.07",
-      "operator": "approved-amount-x10-opened",
-      "lie_scope": "message",
-      "threat_model": "in",
-      "note": "alice approved {'amount': 500, 'order': 81}",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "approved_by",
-        "result": "proven",
-        "detail": "approval seq 176 by alice of \"refund\" call refund-341 with args {\"amount\":500,\"order\":81}",
-        "approved": {
-         "tool": "refund",
-         "args": {
-          "amount": 500,
-          "order": 81
-         }
-        }
-       }
-      ]
-     },
-     {
-      "id": "L3.A.08",
-      "operator": "approved-amount-x10",
-      "lie_scope": "message",
-      "threat_model": "in",
-      "note": "alice approved {'amount': 1200, 'order': 81}",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "approved_by",
-        "result": "proven",
-        "detail": "approval seq 181 by alice of \"refund\" call refund-347",
-        "approved": {
-         "tool": "refund",
-         "args": null
-        }
-       }
-      ]
-     },
-     {
-      "id": "L3.A.09",
-      "operator": "approved-amount-x10-opened",
-      "lie_scope": "message",
-      "threat_model": "in",
-      "note": "alice approved {'amount': 2500, 'order': 81}",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "approved_by",
-        "result": "proven",
-        "detail": "approval seq 186 by alice of \"refund\" call refund-353 with args {\"amount\":2500,\"order\":81}",
-        "approved": {
-         "tool": "refund",
-         "args": {
-          "amount": 2500,
-          "order": 81
-         }
-        }
-       }
-      ]
-     },
-     {
-      "id": "L3.A.10",
-      "operator": "approved-amount-x10",
-      "lie_scope": "message",
-      "threat_model": "in",
-      "note": "alice approved {'amount': 4999, 'order': 81}",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "approved_by",
-        "result": "proven",
-        "detail": "approval seq 191 by alice of \"refund\" call refund-359",
-        "approved": {
-         "tool": "refund",
-         "args": null
-        }
-       }
-      ]
-     },
-     {
-      "id": "L3.A.11",
-      "operator": "approved-other-tool-opened",
-      "lie_scope": "message",
-      "threat_model": "in",
-      "note": "alice approved read_file {'path': '/etc/motd-0'}",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "approved_by",
-        "result": "proven",
-        "detail": "approval seq 272 by alice of \"read_file\" call readfile-461 with args {\"path\":\"/etc/motd-0\"}",
-        "approved": {
-         "tool": "read_file",
-         "args": {
-          "path": "/etc/motd-0"
-         }
-        }
-       }
-      ]
-     },
-     {
-      "id": "L3.A.12",
-      "operator": "approved-other-tool",
-      "lie_scope": "message",
-      "threat_model": "in",
-      "note": "alice approved read_file {'path': '/etc/motd-1'}",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "approved_by",
-        "result": "proven",
-        "detail": "approval seq 277 by alice of \"read_file\" call readfile-467",
-        "approved": {
-         "tool": "read_file",
-         "args": null
-        }
-       }
-      ]
-     },
      {
       "id": "L10.T.06",
       "operator": "pass-then-fail-cites-pass",
@@ -2845,7 +2512,7 @@
        {
         "type": "file_written",
         "result": "proven",
-        "detail": "call Write-321 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8c with sha256:641164af2ec73b0dbb1ccdbfbe500d9c466f77212ed06f17f378af7454d212dd, run by mtls:spiffe://example/executor (T2)"
+        "detail": "call Write-321 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-b09fc4 with sha256:641164af2ec73b0dbb1ccdbfbe500d9c466f77212ed06f17f378af7454d212dd, run by mtls:spiffe://example/executor (T2)"
        }
       ]
      },
@@ -2860,7 +2527,7 @@
        {
         "type": "file_written",
         "result": "proven",
-        "detail": "call Write-325 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8c with sha256:dfc5fbb0ce001c6c35120c0d5aa81fbe928d203bb0e477b0d07077f09e5d4b14, run by mtls:spiffe://example/executor (T2)"
+        "detail": "call Write-325 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-b09fc4 with sha256:dfc5fbb0ce001c6c35120c0d5aa81fbe928d203bb0e477b0d07077f09e5d4b14, run by mtls:spiffe://example/executor (T2)"
        }
       ]
      },
@@ -2875,7 +2542,7 @@
        {
         "type": "file_written",
         "result": "proven",
-        "detail": "call Write-329 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8c with sha256:3c6b28d21ff2df80b40f4a9ba5369d297f913b7567536fc2447c8a0df5656fc4, run by mtls:spiffe://example/executor (T2)"
+        "detail": "call Write-329 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-b09fc4 with sha256:3c6b28d21ff2df80b40f4a9ba5369d297f913b7567536fc2447c8a0df5656fc4, run by mtls:spiffe://example/executor (T2)"
        }
       ]
      },
@@ -2890,7 +2557,7 @@
        {
         "type": "file_written",
         "result": "proven",
-        "detail": "call Write-333 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8c with sha256:12a6ef3b2ccb86eeb2b9e3b9c382a3424a4af32550ab6b8f3ace5e5982c936e3, run by mtls:spiffe://example/executor (T2)"
+        "detail": "call Write-333 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-b09fc4 with sha256:12a6ef3b2ccb86eeb2b9e3b9c382a3424a4af32550ab6b8f3ace5e5982c936e3, run by mtls:spiffe://example/executor (T2)"
        }
       ]
      },
@@ -2905,112 +2572,7 @@
        {
         "type": "file_written",
         "result": "proven",
-        "detail": "call Write-337 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8c with sha256:dee79979fc1efad22d40567b6c739afca4ef931508a849973be094f236fcfc75, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.01",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://0127.0.0.1:53163/ok' reached 127.0.0.1 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2079 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.02",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://0127.0.0.01:53163/ok' reached 127.0.0.1 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2084 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.03",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://0127.000.000.001:53163/ok' reached 127.0.0.1 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2089 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.04",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://00127.0.0.1:53163/ok' reached 127.0.0.1 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2094 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.05",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://0177.0.0.1/' reached 177.0.0.1 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2099 reached 127.0.0.1, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.06",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://010.0.0.1/' reached 10.0.0.1 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2104 reached 8.0.0.1, run by mtls:spiffe://example/executor (T2)"
-       }
-      ]
-     },
-     {
-      "id": "L16.H.07",
-      "operator": "ipv4-leading-zero-octet",
-      "lie_scope": "encoding",
-      "threat_model": "in",
-      "note": "'http://192.168.0.010/' reached 192.168.0.10 (ok)",
-      "reasons": [],
-      "claims": [
-       {
-        "type": "reached_host",
-        "result": "proven",
-        "detail": "call WebFetch-2109 reached 192.168.0.8, run by mtls:spiffe://example/executor (T2)"
+        "detail": "call Write-337 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-b09fc4 with sha256:dee79979fc1efad22d40567b6c739afca4ef931508a849973be094f236fcfc75, run by mtls:spiffe://example/executor (T2)"
        }
       ]
      }
@@ -3019,10 +2581,10 @@
   },
   "H2": {
    "tracekit": {
-    "honest": 73,
-    "proven": 71,
-    "rate": 0.9726027397260274,
-    "verdict_accept": 71,
+    "honest": 83,
+    "proven": 81,
+    "rate": 0.9759036144578314,
+    "verdict_accept": 69,
     "pass": false,
     "misses": [
      {
@@ -3032,7 +2594,7 @@
       "reasons": [
        "reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed)"
       ],
-      "note": "http://127.0.0.1:53163/missing reached 127.0.0.1 (error)"
+      "note": "http://127.0.0.1:62610/missing reached 127.0.0.1 (error)"
      },
      {
       "id": "honest.H.16",
@@ -3046,10 +2608,10 @@
     ]
    },
    "standalone": {
-    "honest": 73,
-    "proven": 71,
-    "rate": 0.9726027397260274,
-    "verdict_accept": 71,
+    "honest": 83,
+    "proven": 81,
+    "rate": 0.9759036144578314,
+    "verdict_accept": 69,
     "pass": false,
     "misses": [
      {
@@ -3059,7 +2621,7 @@
       "reasons": [
        "reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed)"
       ],
-      "note": "http://127.0.0.1:53163/missing reached 127.0.0.1 (error)"
+      "note": "http://127.0.0.1:62610/missing reached 127.0.0.1 (error)"
      },
      {
       "id": "honest.H.16",
@@ -3090,194 +2652,88 @@
    }
   },
   "H4": {
-   "messages": 879,
-   "agree": 874,
-   "pass": false,
-   "disagreements": [
-    {
-     "id": "L16.T.17",
-     "class": "L16",
-     "operator": "wire-payload-1e400",
-     "label": "FALSE",
-     "tracekit": {
-      "verdict": "reject",
-      "reason_class": "reject|unreadable",
-      "reasons": [],
-      "error": "ValueError: /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/tmphlwi5y2b.json: non_finite: 1e400"
-     },
-     "standalone": {
-      "verdict": "reject",
-      "reason_class": "reject|signature",
-      "reasons": [
-       "signature: not JSON that RFC 8785 can encode (inf is not representable in JCS)"
-      ],
-      "error": null
-     },
-     "conformance_equal": false
-    },
-    {
-     "id": "L16.H.24",
-     "class": "L16",
-     "operator": "wire-payload-1e400",
-     "label": "FALSE",
-     "tracekit": {
-      "verdict": "reject",
-      "reason_class": "reject|unreadable",
-      "reasons": [],
-      "error": "ValueError: /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/tmprybfmfi2.json: non_finite: 1e400"
-     },
-     "standalone": {
-      "verdict": "reject",
-      "reason_class": "reject|signature",
-      "reasons": [
-       "signature: not JSON that RFC 8785 can encode (inf is not representable in JCS)"
-      ],
-      "error": null
-     },
-     "conformance_equal": false
-    },
-    {
-     "id": "L16.F.19",
-     "class": "L16",
-     "operator": "wire-payload-1e400",
-     "label": "FALSE",
-     "tracekit": {
-      "verdict": "reject",
-      "reason_class": "reject|unreadable",
-      "reasons": [],
-      "error": "ValueError: /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/tmpi0oia5ch.json: non_finite: 1e400"
-     },
-     "standalone": {
-      "verdict": "reject",
-      "reason_class": "reject|signature",
-      "reasons": [
-       "signature: not JSON that RFC 8785 can encode (inf is not representable in JCS)"
-      ],
-      "error": null
-     },
-     "conformance_equal": false
-    },
-    {
-     "id": "L16.A.18",
-     "class": "L16",
-     "operator": "wire-payload-1e400",
-     "label": "FALSE",
-     "tracekit": {
-      "verdict": "reject",
-      "reason_class": "reject|unreadable",
-      "reasons": [],
-      "error": "ValueError: /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/tmpnllsa3xo.json: non_finite: 1e400"
-     },
-     "standalone": {
-      "verdict": "reject",
-      "reason_class": "reject|signature",
-      "reasons": [
-       "signature: not JSON that RFC 8785 can encode (inf is not representable in JCS)"
-      ],
-      "error": null
-     },
-     "conformance_equal": false
-    },
-    {
-     "id": "L16.G.07",
-     "class": "L16",
-     "operator": "wire-payload-1e400",
-     "label": "FALSE",
-     "tracekit": {
-      "verdict": "reject",
-      "reason_class": "reject|unreadable",
-      "reasons": [],
-      "error": "ValueError: /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/tmplxgolrml.json: non_finite: 1e400"
-     },
-     "standalone": {
-      "verdict": "reject",
-      "reason_class": "reject|signature",
-      "reasons": [
-       "signature: not JSON that RFC 8785 can encode (inf is not representable in JCS)"
-      ],
-      "error": null
-     },
-     "conformance_equal": false
-    }
-   ]
+   "messages": 926,
+   "agree": 926,
+   "pass": true,
+   "disagreements": []
   },
   "H5": {
    "a2a": {
-    "lies": 687,
-    "accepted": 687,
+    "lies": 712,
+    "accepted": 712,
     "rate": 1.0
    },
    "sigonly": {
-    "lies": 687,
-    "accepted": 628,
-    "rate": 0.9141193595342066
+    "lies": 712,
+    "accepted": 643,
+    "rate": 0.9030898876404494
    }
   }
  },
  "spec_receiver": {
   "tracekit": {
    "L3 message-scope lies": {
-    "messages": 6,
+    "messages": 9,
     "verdict": {
-     "accept": 6
+     "accept-unproven": 9
     },
     "with_scope_check": {
-     "accept-unproven": 6
+     "accept-unproven": 9
     }
    },
    "honest approved_by": {
-    "messages": 12,
+    "messages": 22,
     "verdict": {
-     "accept": 12
+     "accept-unproven": 12,
+     "accept": 10
     },
     "with_scope_check": {
-     "accept": 6,
-     "accept-unproven": 6
+     "accept-unproven": 17,
+     "accept": 5
     }
    },
    "all approved_by lies": {
-    "messages": 140,
+    "messages": 153,
     "verdict": {
-     "reject": 132,
-     "accept-unproven": 2,
-     "accept": 6
+     "reject": 140,
+     "accept-unproven": 13
     },
     "with_scope_check": {
-     "reject": 132,
-     "accept-unproven": 8
+     "reject": 140,
+     "accept-unproven": 13
     }
    }
   },
   "standalone": {
    "L3 message-scope lies": {
-    "messages": 6,
+    "messages": 9,
     "verdict": {
-     "accept": 6
+     "accept-unproven": 9
     },
     "with_scope_check": {
-     "accept-unproven": 6
+     "accept-unproven": 9
     }
    },
    "honest approved_by": {
-    "messages": 12,
+    "messages": 22,
     "verdict": {
-     "accept": 12
+     "accept-unproven": 12,
+     "accept": 10
     },
     "with_scope_check": {
-     "accept": 6,
-     "accept-unproven": 6
+     "accept-unproven": 17,
+     "accept": 5
     }
    },
    "all approved_by lies": {
-    "messages": 140,
+    "messages": 153,
     "verdict": {
-     "reject": 132,
-     "accept-unproven": 2,
-     "accept": 6
+     "reject": 140,
+     "accept-unproven": 13
     },
     "with_scope_check": {
-     "reject": 132,
-     "accept-unproven": 8
+     "reject": 140,
+     "accept-unproven": 13
     }
    }
   }
@@ -3285,14 +2741,14 @@
  "cost": {
   "size_bytes_honest": {
    "A": {
-    "messages": 12,
-    "pcm_p50": 6024,
-    "pcm_p99": 6133,
+    "messages": 22,
+    "pcm_p50": 6131,
+    "pcm_p99": 8399,
     "plain_p50": 467,
-    "plain_p99": 468,
-    "overhead_p50": 5556,
-    "overhead_p99": 5665,
-    "ratio_p50": 12.92274678111588
+    "plain_p99": 483,
+    "overhead_p50": 5664,
+    "overhead_p99": 7916,
+    "ratio_p50": 12.974137931034482
    },
    "F": {
     "messages": 12,
@@ -3316,12 +2772,12 @@
    },
    "H": {
     "messages": 20,
-    "pcm_p50": 4157,
+    "pcm_p50": 4163,
     "pcm_p99": 4181,
     "plain_p50": 438,
     "plain_p99": 444,
-    "overhead_p50": 3725,
-    "overhead_p99": 3738,
+    "overhead_p50": 3730,
+    "overhead_p99": 3739,
     "ratio_p50": 9.520547945205479
    },
    "T": {
@@ -3337,76 +2793,76 @@
    "X": {
     "messages": 4,
     "pcm_p50": 11659,
-    "pcm_p99": 11686,
+    "pcm_p99": 11697,
     "plain_p50": 720,
     "plain_p99": 733,
     "overhead_p50": 10939,
-    "overhead_p99": 10953,
+    "overhead_p99": 10964,
     "ratio_p50": 16.16481994459834
    }
   },
   "verify_ms": {
    "tracekit": {
-    "messages": 839,
-    "p50_ms": 1.3574,
-    "p99_ms": 2.8501,
-    "max_ms": 11.098,
+    "messages": 876,
+    "p50_ms": 1.224,
+    "p99_ms": 2.4227,
+    "max_ms": 6.4566,
     "by_claim_type": {
      "A": {
-      "p50_ms": 1.6644,
-      "p99_ms": 2.0112
+      "p50_ms": 1.6692,
+      "p99_ms": 2.5103
      },
      "F": {
-      "p50_ms": 1.5244,
-      "p99_ms": 3.0208
+      "p50_ms": 1.4202,
+      "p99_ms": 1.6352
      },
      "G": {
-      "p50_ms": 0.9693,
-      "p99_ms": 1.7815
+      "p50_ms": 0.8739,
+      "p99_ms": 1.4436
      },
      "H": {
-      "p50_ms": 1.4368,
-      "p99_ms": 1.8611
+      "p50_ms": 1.4456,
+      "p99_ms": 1.6687
      },
      "T": {
-      "p50_ms": 1.5338,
-      "p99_ms": 8.9974
+      "p50_ms": 1.419,
+      "p99_ms": 2.2547
      },
      "X": {
-      "p50_ms": 0.7372,
-      "p99_ms": 3.8227
+      "p50_ms": 0.6117,
+      "p99_ms": 3.3782
      }
     }
    },
    "standalone": {
-    "messages": 844,
-    "p50_ms": 0.9042,
-    "p99_ms": 1.5892,
-    "max_ms": 2.6553,
+    "messages": 876,
+    "p50_ms": 0.7975,
+    "p99_ms": 1.8107,
+    "max_ms": 2.4266,
     "by_claim_type": {
      "A": {
-      "p50_ms": 1.2268,
-      "p99_ms": 1.5374
+      "p50_ms": 1.2543,
+      "p99_ms": 1.8235
      },
      "F": {
-      "p50_ms": 1.0725,
-      "p99_ms": 1.4158
+      "p50_ms": 0.9884,
+      "p99_ms": 1.1048
      },
      "G": {
-      "p50_ms": 0.5045,
-      "p99_ms": 0.7733
+      "p50_ms": 0.4517,
+      "p99_ms": 0.6907
      },
      "H": {
-      "p50_ms": 1.004,
-      "p99_ms": 1.3137
+      "p50_ms": 0.9945,
+      "p99_ms": 1.2278
      },
      "T": {
-      "p50_ms": 1.0717,
-      "p99_ms": 2.3275
+      "p50_ms": 0.9942,
+      "p99_ms": 1.1591
      },
      "X": {
-      "p50_ms": 0.4098,
-      "p99_ms": 2.6553
+      "p50_ms": 0.3766,
+      "p99_ms": 2.4266
      }
     }
    }
@@ -3457,24 +2913,6 @@
   "L10.T.08",
   "L10.T.09",
   "L10.T.10",
-  "L16.A.18",
-  "L16.F.19",
-  "L16.G.07",
-  "L16.H.01",
-  "L16.H.02",
-  "L16.H.03",
-  "L16.H.04",
-  "L16.H.05",
-  "L16.H.06",
-  "L16.H.07",
-  "L16.H.24",
-  "L16.T.17",
-  "L3.A.07",
-  "L3.A.08",
-  "L3.A.09",
-  "L3.A.10",
-  "L3.A.11",
-  "L3.A.12",
   "honest.H.15",
   "honest.H.16"
  ]

@@ -1,86 +1,98 @@
 # PCM-Lies results
 
-How often does a receiving agent accept a false claim from a sending agent? 879 messages built from real Tracekit
-signer runs, checked by Tracekit's `pcm.verify`, the standalone `pcm_verify`, plain A2A (accepts everything) and a
+How often does a receiving agent accept a false claim from a sending agent? Messages built from real Tracekit signer
+runs, checked by Tracekit's `pcm.verify`, the standalone `pcm_verify`, plain A2A (accepts everything) and a
 sender-signature-only check.
 
-**Heads:** Tracekit `384a6042bd` (#450) and pcm `1ba784a` (this branch with main `619fbba` merged: 166 vectors,
-ASCII-only hosts). This is the final run; the pre-final run is described under "Pre-final run".
+**This run (after):** dataset 2, 926 messages, at Tracekit `7d843e6377` and pcm `73a287c` (pcm main `0f26c38` merged,
+with PCM's fixes for F1, F3 and F5).
 
-## Headline
+**Before:** dataset 1, 879 messages, at Tracekit `384a6042bd` and pcm `1ba784a` (main `619fbba`), commit `9b430ab`.
 
-| | Tracekit | standalone | plain A2A | sender signature only |
+Dataset 2 is dataset 1 plus 47 messages for the fixes (see "Dataset 2"). The ids are the same, except that the
+honest fetches `honest.H.07`, `.08`, `.09` and `.13` now use canonical spellings.
+
+## Before and after, per hypothesis
+
+| | before (dataset 1, final heads) | after (dataset 2, fixed heads) |
+|---|---|---|
+| H1 lies accepted, both verifiers | **FAIL** 23/687 (3.3%, 95% CI 2.2–5.0%) | **FAIL** 10/712 (1.4%, 95% CI 0.8–2.6%) |
+| … of which not freshness | 13 (F1 7, F3 6) | **0** |
+| H2 honest claims proven | **FAIL** 71/73 (97.3%) | **FAIL** 81/83 (97.6%); 69 with verdict `accept` |
+| H3 T1-only claims unproven | **PASS** 72/72 | **PASS** 72/72 |
+| H4 verifiers agree | **FAIL** 874/879 | **PASS** 926/926 |
+| H5 plain A2A / signature only accept | 687/687 / 628/687 | 712/712 / 643/712 (90.3%) |
+| verify p50 (p99), Tracekit / standalone | 1.4 (2.9) / 0.9 (1.6) ms | 1.2 (2.4) / 0.8 (1.8) ms |
+
+**H1** still fails: only F2 (freshness, 10 messages) is left. Every other lie, 702 of them, is not accepted. That
+covers the claim, evidence, authority, delivery, encoding and message scopes, and includes 11 signer-bug grants.
+
+**H2** still fails on F4 alone. "Honest claims proven" counts claims, as pre-registered. Two numbers differ by design:
+- 12 messages are new under the covers rule: the honest `approved_by` messages without covers under `refund.approved`,
+  a schema that lists `approved_by` (`honest.A.01`–`12`). Their claims are proven, but the verdict is now
+  `accept-unproven` ("required, not proven to cover this request: claim it with covers true").
+- With `covers: true`, honest messages are accepted: `honest.A.13`–`19`, matching by tool and args or by root grant.
+  So are honest messages under a schema that lists no claim (`.20`–`.22`).
+
+**Cost:**
+
+| claim type | PCM message size, p50 | p99 | vs plain A2A |
+|---|---|---|---|
+| tests_passed | 4.2 KB | | 9.2x |
+| reached_host | 4.2 KB | | 9.5x |
+| file_written | 4.4 KB | | 7.4x |
+| approved_by | 6.1 KB | 8.4 KB | 13.0x |
+| grant only | 1.9 KB | | 4.5x |
+| three claims | 11.7 KB | | 16.2x |
+
+The p99 for `approved_by` is new. It comes from the root-grant covers evidence, which carries four records.
+
+## Before and after, per finding
+
+| finding | ids | before | after | status |
 |---|---|---|---|---|
-| lies accepted as proven | 23/687 (3.3%, 95% CI 2.2–5.0%) | 23/687 (3.3%) | 687/687 (100%) | 628/687 (91.4%) |
-| claim, evidence, authority and delivery lies accepted | 0/589 | 0/589 | 589/589 | 545/589 |
-| honest claims proven (H2) | 71/73 (97.3%) | 71/73 | n/a | n/a |
-| T1-only claims unproven (H3) | 72/72 | 72/72 | n/a | n/a |
+| F1 leading-zero IPv4 | `L16.H.01`–`07` | `accept`: 87.0.0.1 proven | `accept-unproven`: "an IPv4 address not written as a dotted quad" | **fixed** |
+| F2 freshness | `L10.T.06`–`10`, `L10.F.06`–`10` | `accept` | `accept` | **open** |
+| F3 `approved_by` scope | `L3.A.07`–`12` | `accept` | `accept-unproven`: the schema needs a covering `approved_by` | **fixed** |
+| F4 honest fetch answered 404 | `honest.H.15`, `.16` | `reject`: "and failed" | `reject`: "and failed" | **open** |
+| F5 `1e400` | `L16.T.17`, `H.24`, `F.19`, `A.18`, `G.07` | Tracekit `unreadable`, standalone `signature` | both `unreadable` | **fixed** |
 
-- **H1 FAIL:** 23 false accepts in each verifier, the same 23 messages in both, all of them in three groups:
-  - F1, IPv4 leading zeros: 7;
-  - F2, freshness: 10;
-  - F3, `approved_by` scope: 6.
+**F1 is fixed.** Only a canonical dotted quad counts now. The 16 new IPv4 messages:
+- No lie is accepted. `L16.H.39`–`42` are `accept-unproven`: the five-label hosts, and hex or 32-bit forms that reach
+  another address.
+- The fix costs honest spellings. 11 true spellings come out `unproven`: hex, two- and three-part, 32-bit, both
+  leading-zero forms (`L16.H.31`–`37`), and claims that spell 127.0.0.1 another way (`.43`–`.46`). Each tells the
+  sender to "send it as four decimal…".
+- `[::ffff:127.0.0.1]` (`L16.H.38`) is still `proven`.
+- The repro `findings/ipv4_leading_zero.py` still shows the two readings (`getaddrinfo` against `inet_aton`). Now no
+  verifier proves the wrong one.
 
-  No lie in L1, L2, L4, L5–L9, L11–L15 or the other L16 groups was accepted. That includes 11 signer-bug grants.
-- **H2 FAIL:** 71/73. The 2 misses are F4.
-- **H3 PASS:** 72/72.
-- **H4 FAIL:** 874/879. The 5 disagreements are F5.
-- **H5:** plain A2A accepts every lie, and the signature-only check accepts 91.4%.
-- **Cost:**
-  - Message size: 4.2–6.0 KB per message with one claim against 0.4–0.6 KB plain. That is 7–13x at p50, and 16x with three claims.
-  - Verify time: Tracekit p50 1.4 ms (p99 2.9 ms), standalone p50 0.9 ms (p99 1.6 ms).
+**F2 is open.** Tracekit's latest commit documents how a receiver checks freshness. The verifier still proves a
+`tests_passed` or `file_written` claim whose evidence predates a later failure or overwrite (SPEC 14.13). That gap
+can't be closed offline without a signer attestation of the latest call.
 
-## Pre-final run, and what changed
+**F3 is fixed by `covers`.** The eight new liars with `covers: true` and an approval that doesn't cover the message:
+- `L3.A.13`, `15`–`19` are rejected. Each fails with "not this request's args", "not of "refund"" or "did not issue
+  this message's root grant".
+- `L3.A.14` (args not opened) and `L3.A.20` (a schema that names no tool) are `accept-unproven`, because the verifier
+  "can't tell". So they are not accepted, though not failed.
+- The three liars without covers under a requiring schema (`L3.A.21`–`23`) are `accept-unproven`.
+- A receiver no longer needs its own comparison. The auto table below ("with the receiver's SPEC 6.6 scope check") is
+  dataset 1's view, and the covers rule now makes it redundant.
 
-Before this run, the benchmark ran at Tracekit `e3221cf2b6` and pcm `b54cfe4` (commit `71cad5f`). That run gave the
-same headline numbers, with timings of p50 1.2 ms (p99 2.0 ms) for Tracekit and p50 0.8 ms (p99 1.7 ms) for
-standalone:
+**F4 is open.** Fix (c) is not in these heads: a host that answered with an HTTP error is still `failed`, so the honest
+sender is rejected.
 
-| hypothesis | result, both verifiers |
-|---|---|
-| H1 | 23/687 lies accepted |
-| H2 | 71/73 honest claims proven |
-| H3 | 72/72 T1-only claims unproven |
-| H4 | 874/879 messages agree |
+**F5 is fixed.** Both loaders now refuse a number outside the range of a double. So do the 10 new raw-text cases:
+`1.8e308` in the intent's args and `-1e400` in the payload, for each claim type.
 
-Comparing the two runs message by message (ids are stable):
-- No verdict, no reason class and no claim result changed, in either verifier.
-- F1–F5 are unchanged.
-- Only the detail of three non-ASCII or `%` hosts changed: `L16.H.08`, `L16.H.10` and `L16.H.16` are still
-  `unproven`, but now say what to fix, for example "its URL is not printable ASCII: send the URL with the host in xn--
-  form…" or "its host has a %…". The two verifiers give the same text.
+**Nothing else moved.** Across the 875 ids the two datasets share, the only verdict changes in either verifier are
+accept → accept-unproven (26: F1 7, F3 6, and 13 honest `approved_by` without covers: `honest.A.01`–`12` and the wire
+form `L16.A.22`). The only reason-class change is F5's.
 
-So the final heads' new host rules don't touch F1. A leading-zero octet is printable ASCII and has no `%`, so it is
-still read by `inet_aton`.
+## Findings in detail (diagnosis from the run before)
 
-## Next run: dataset 2 (generator changed, not yet run)
-
-The numbers on this page are from dataset 1. For PCM's coming fixes, `gen.py` now builds dataset 2. Its labels keep
-their meaning. Messages added to a class are appended, so dataset 1's ids keep theirs, with one exception (the honest
-fetches, below).
-- **(b) the `approved_by` covers rule:**
-  - 10 honest messages:
-    - 4 with `covers: true` by tool and args, under `refund.covered`, a schema with `"tool": "refund"`;
-    - 3 with `covers: true` by the message's root grant, under `refund.granted`;
-    - 3 without covers, under a schema that lists no claim.
-  - 11 L3.A lies:
-    - 8 with `covers: true` and an approval that doesn't cover the message (expected `failed`);
-    - 3 without covers, under a schema that lists `approved_by` (expected `accept-unproven`, never `accept`).
-  - The new schema documents go only with the messages that use them.
-- **(a) IPv4 spellings:** 16 more L16 host messages, labelled by what this machine's resolver reads:
-  - fetches by hex, two- and three-part, 32-bit decimal, leading-zero, IPv4-mapped and five-label hosts;
-  - claims that spell 127.0.0.1 four other ways.
-- **The honest fetches:** they now use only canonical spellings. The four numeric spellings that were `honest.H.07`,
-  `.08`, `.09` and `.13` are now L16 messages, and their ids hold canonical fetches instead. So H2 measures a sender
-  that follows the spec, and L16 shows what fix (a) costs a sender that doesn't.
-- **(d) numbers out of the double range:** each claim type gets `1.8e308` in the intent's args and `-1e400` in the
-  payload, as raw text.
-- **(c):** no change is needed: `honest.H.15` and `.16` already test a 404.
-- **H2 counts claims:** `report.py` now counts H2 as pre-registered, that is honest *claims* proven, so an honest
-  `approved_by` without covers still counts under a schema that requires a covering one. It also shows how many
-  honest messages got the verdict `accept`. Datasets 1 and 2 give the same numbers either way (71/73).
-
-## Findings and diagnosis
+The text below explains each finding as it stood before the fixes. F1, F3 and F5 are now fixed; F2 and F4 are open.
 
 These are not fixed here: per the task, fixes go to the owners of the spec and the code. Each finding has a minimal
 repro under `findings/`. `python bench/lies/findings/repro.py findings/<id>.json` runs both verifiers on one of them.
@@ -101,8 +113,8 @@ in the threat model).
 - **Proposed fix (spec):** treat an IPv4 host with a leading-zero octet as one the verifier can't tell (`unproven`),
   as 6.7 already does for a leading zero in an IPv6 dotted quad. Then check that the remaining non-dotted forms
   (`127.1`, `0x7f.1`, `2130706433`) read the same on every libc. They do on macOS: the honest set proves them.
-- **Repro:** `findings/ipv4_leading_zero.py` (both readings, the real connection, the verdicts) and
-  `findings/L16.H.0[1-7].json`.
+- **Repro:** `findings/ipv4_leading_zero.py` (both readings, the real connection, the current verdicts). The
+  `findings/L16.H.0[1-7].json` files were in commit `9b430ab`.
 
 **F2. Evidence is not freshness** (`L10.T.06`–`10`, `L10.F.06`–`10`; both verifiers).
 - **What happens:** a suite passed, the code changed, and the suite failed. The sender cites the pass, under the
@@ -164,6 +176,56 @@ in the threat model).
   The agent-approver attempt stopped at the approval: the agent approver isn't eligible for a grant that has caveats.
   The full list is in `data/meta.json`.
 
+## Dataset 2
+
+For PCM's fixes, `gen.py` builds dataset 2 (926 messages). Its labels keep
+their meaning. Messages added to a class are appended, so dataset 1's ids keep theirs, with one exception (the honest
+fetches, below).
+- **(b) the `approved_by` covers rule:**
+  - 10 honest messages:
+    - 4 with `covers: true` by tool and args, under `refund.covered`, a schema with `"tool": "refund"`;
+    - 3 with `covers: true` by the message's root grant, under `refund.granted`;
+    - 3 without covers, under a schema that lists no claim.
+  - 11 L3.A lies:
+    - 8 with `covers: true` and an approval that doesn't cover the message (expected `failed`);
+    - 3 without covers, under a schema that lists `approved_by` (expected `accept-unproven`, never `accept`).
+  - The new schema documents go only with the messages that use them.
+- **(a) IPv4 spellings:** 16 more L16 host messages, labelled by what this machine's resolver reads:
+  - fetches by hex, two- and three-part, 32-bit decimal, leading-zero, IPv4-mapped and five-label hosts;
+  - claims that spell 127.0.0.1 four other ways.
+- **The honest fetches:** they now use only canonical spellings. The four numeric spellings that were `honest.H.07`,
+  `.08`, `.09` and `.13` are now L16 messages, and their ids hold canonical fetches instead. So H2 measures a sender
+  that follows the spec, and L16 shows what fix (a) costs a sender that doesn't.
+- **(d) numbers out of the double range:** each claim type gets `1.8e308` in the intent's args and `-1e400` in the
+  payload, as raw text.
+- **(c):** no change was needed: `honest.H.15` and `.16` already test a 404.
+- **H2 counts claims:** `report.py` now counts H2 as pre-registered, that is honest *claims* proven, so an honest
+  `approved_by` without covers still counts under a schema that requires a covering one. It also shows how many
+  honest messages got the verdict `accept`. For dataset 1 both counts were the same: 71/73.
+
+## Dataset 1: the pre-final run
+
+Before dataset 1's final-head run, the benchmark ran at Tracekit `e3221cf2b6` and pcm `b54cfe4` (commit `71cad5f`).
+That run gave the same headline numbers, with timings of p50 1.2 ms (p99 2.0 ms) for Tracekit and p50 0.8 ms (p99 1.7 ms) for
+standalone:
+
+| hypothesis | result, both verifiers |
+|---|---|
+| H1 | 23/687 lies accepted |
+| H2 | 71/73 honest claims proven |
+| H3 | 72/72 T1-only claims unproven |
+| H4 | 874/879 messages agree |
+
+Comparing the two runs message by message (ids are stable):
+- No verdict, no reason class and no claim result changed, in either verifier.
+- F1–F5 are unchanged.
+- Only the detail of three non-ASCII or `%` hosts changed: `L16.H.08`, `L16.H.10` and `L16.H.16` are still
+  `unproven`, but now say what to fix, for example "its URL is not printable ASCII: send the URL with the host in xn--
+  form…" or "its host has a %…". The two verifiers give the same text.
+
+So the final heads' new host rules don't touch F1. A leading-zero octet is printable ASCII and has no `%`, so it is
+still read by `inet_aton`.
+
 ## Design (pre-registered 2026-10-28, followed here)
 
 - **Threat model:**
@@ -195,7 +257,7 @@ in the threat model).
   - L15 forged or missing delegation link;
   - L16 encoding.
 
-  There are at least 10 messages per class per claim type that applies, and 10 to 28 in practice.
+  There are at least 10 messages per class per claim type that applies, and 10 to 46 in practice.
 
 ## How the data was made (`gen.py`, seed 20261028)
 
@@ -253,18 +315,18 @@ These are bugs in the harness only. No verifier or Tracekit code was changed.
    was held by Tracekit's own hook (TK-D007: "touching Tracekit's own files or signer"). I did not retry it. RPC
    shapes came from `tools/gen_vectors.py`, Tracekit's tests and the RPCs' own responses.
 2. `git -C ~/tracekit-pcm-bench checkout --detach 384a6042bd` and `git merge --no-edit main` in this worktree were
-   denied by the auto-mode classifier. I did not retry them. The coordinator then moved both worktrees, and this run
-   is on those final heads.
+   denied by the auto-mode classifier. I did not retry them. The coordinator then moved both worktrees, and later
+   moved them again, to the fixed heads this run uses.
 
 ## Limits
 
-- **One machine:** macOS 26.3 arm64, Python 3.11.15. F1 depends on the platform.
+- **One machine:** macOS 26.3 arm64, Python 3.11.15. F1 depended on the platform.
 - **The signer and executor are in-process.** The executor is `Custody` with an in-process client, not the HTTP
   executor service. The harness itself runs the tools it executes.
 - **What the seed fixes:** the keys and every choice. Run ids, nonces, timestamps and signatures change each time the
   dataset is generated.
-- **Stable across generations:** three generations on two pairs of heads gave the same counts in every cell, apart
-  from the `L15.G.13` relabel before the pre-final run.
+- **Stable across generations:** dataset 1, generated three times on two pairs of heads, gave the same counts in
+  every cell, apart from the `L15.G.13` relabel before the pre-final run. Dataset 2 was generated once.
 
 ## Reproduce
 
@@ -276,27 +338,27 @@ python -m bench.lies report                          # results/results.json, fin
 ```
 
 <!-- auto:begin -->
-_879 messages; verifiers: tracekit, standalone, a2a, sigonly._
+_926 messages; verifiers: tracekit, standalone, a2a, sigonly._
 
 ### Pass/fail
 
 | verifier | H1 no false accept | H2 honest proven >= 99% | H3 T1-only unproven 100% |
 |---|---|---|---|
-| tracekit | FAIL: 23 of 687 lies accepted (3.3%, 95% CI [2.24%, 4.97%]) | FAIL: 71/73 (97.3%; 71 with verdict accept) | PASS: 72/72 (100.0%) |
-| standalone | FAIL: 23 of 687 lies accepted (3.3%, 95% CI [2.24%, 4.97%]) | FAIL: 71/73 (97.3%; 71 with verdict accept) | PASS: 72/72 (100.0%) |
+| tracekit | FAIL: 10 of 712 lies accepted (1.4%, 95% CI [0.76%, 2.57%]) | FAIL: 81/83 (97.6%; 69 with verdict accept) | PASS: 72/72 (100.0%) |
+| standalone | FAIL: 10 of 712 lies accepted (1.4%, 95% CI [0.76%, 2.57%]) | FAIL: 81/83 (97.6%; 69 with verdict accept) | PASS: 72/72 (100.0%) |
 
-H4 verifier agreement (conformance fields and reason class): **FAIL**, 874/879 agree.
+H4 verifier agreement (conformance fields and reason class): **PASS**, 926/926 agree.
 
-H5 baselines (lies accepted): a2a 687/687 (100.0%); sigonly 628/687 (91.4%).
+H5 baselines (lies accepted): a2a 712/712 (100.0%); sigonly 643/712 (90.3%).
 
 ### False-accept rate by lie scope and threat model
 
 | verifier | false accepts | rate | Wilson 95% CI | by lie scope | by threat model |
 |---|---|---|---|---|---|
-| tracekit | 23/687 | 3.3% | [2.24%, 4.97%] | authority 0/90; claim 0/184; delivery 0/50; encoding 7/82; evidence 0/265; freshness 10/10; message 6/6 | in 23/676; signer-bug 0/11 |
-| standalone | 23/687 | 3.3% | [2.24%, 4.97%] | authority 0/90; claim 0/184; delivery 0/50; encoding 7/82; evidence 0/265; freshness 10/10; message 6/6 | in 23/676; signer-bug 0/11 |
-| a2a | 687/687 | 100.0% | [99.44%, 100.00%] | authority 90/90; claim 184/184; delivery 50/50; encoding 82/82; evidence 265/265; freshness 10/10; message 6/6 | in 676/676; signer-bug 11/11 |
-| sigonly | 628/687 | 91.4% | [89.08%, 93.28%] | authority 82/90; claim 184/184; delivery 50/50; encoding 67/82; evidence 229/265; freshness 10/10; message 6/6 | in 617/676; signer-bug 11/11 |
+| tracekit | 10/712 | 1.4% | [0.76%, 2.57%] | authority 0/90; claim 0/192; delivery 0/50; encoding 0/96; evidence 0/265; freshness 10/10; message 0/9 | in 10/701; signer-bug 0/11 |
+| standalone | 10/712 | 1.4% | [0.76%, 2.57%] | authority 0/90; claim 0/192; delivery 0/50; encoding 0/96; evidence 0/265; freshness 10/10; message 0/9 | in 10/701; signer-bug 0/11 |
+| a2a | 712/712 | 100.0% | [99.46%, 100.00%] | authority 90/90; claim 192/192; delivery 50/50; encoding 96/96; evidence 265/265; freshness 10/10; message 9/9 | in 701/701; signer-bug 11/11 |
+| sigonly | 643/712 | 90.3% | [87.91%, 92.27%] | authority 82/90; claim 192/192; delivery 50/50; encoding 71/96; evidence 229/265; freshness 10/10; message 9/9 | in 632/701; signer-bug 11/11 |
 
 ### Dataset
 
@@ -304,10 +366,10 @@ H5 baselines (lies accepted): a2a 687/687 (100.0%); sigonly 628/687 (91.4%).
 |---|---|---|---|---|---|---|---|
 | AB-strip | 12T | 12T |  | 20T | 12T | 4T | 60 |
 | AB-t1 |  | 12U |  | 12U | 12U |  | 36 |
-| honest | 12T | 12T | 13T | 20T | 12T | 4T | 73 |
+| honest | 22T | 12T | 13T | 20T | 12T | 4T | 83 |
 | L1 | 12F | 12F |  | 12F | 12F |  | 48 |
 | L2 | 12F | 12F |  | 12F | 12F |  | 48 |
-| L3 | 12F | 12F |  | 12F | 12F |  | 48 |
+| L3 | 23F | 12F |  | 12F | 12F |  | 59 |
 | L4 |  | 12U |  | 12U | 12U |  | 36 |
 | L5 | 12F | 12F | 12F | 16F | 14F |  | 66 |
 | L6 | 12F | 12F | 12F | 12F | 12F |  | 60 |
@@ -320,9 +382,9 @@ H5 baselines (lies accepted): a2a 687/687 (100.0%); sigonly 628/687 (91.4%).
 | L13 |  |  | 10F |  |  |  | 10 |
 | L14 | 10F |  | 13F |  |  |  | 23 |
 | L15 |  |  | 13F |  |  |  | 13 |
-| L16 | 4T 18F | 7T 16F | 4T 7F | 4T 24F | 4T 17F |  | 105 |
+| L16 | 4T 20F | 7T 18F | 4T 9F | 16T 30F | 4T 19F |  | 131 |
 
-T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grants, X = several claims; counts as nT (TRUE), nF (FALSE), nU (UNKNOWABLE). Threat model: {'in': 868, 'signer-bug': 11}.
+T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grants, X = several claims; counts as nT (TRUE), nF (FALSE), nU (UNKNOWABLE). Threat model: {'in': 915, 'signer-bug': 11}.
 
 ### Confusion matrix: tracekit
 
@@ -330,10 +392,10 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 |---|---|---|---|---|---|---|---|---|---|
 | AB-strip |  | 60 |  |  |  |  |  |  |  |
 | AB-t1 |  |  |  |  |  |  |  | 36 |  |
-| honest | 71 |  | 2 |  |  |  |  |  |  |
+| honest | 69 | 12 | 2 |  |  |  |  |  |  |
 | L1 |  |  |  |  | 10 | 38 |  |  |  |
 | L2 |  |  |  |  | 3 | 45 |  |  |  |
-| L3 |  |  |  | 6 |  | 42 |  |  |  |
+| L3 |  |  |  |  | 11 | 48 |  |  |  |
 | L4 |  |  |  |  |  |  |  | 36 |  |
 | L5 |  |  |  |  |  | 66 |  |  |  |
 | L6 |  |  |  |  |  | 60 |  |  |  |
@@ -346,7 +408,7 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 | L13 |  |  |  |  |  | 10 |  |  |  |
 | L14 |  |  |  |  |  | 23 |  |  |  |
 | L15 |  |  |  |  |  | 13 |  |  |  |
-| L16 | 5 |  | 18 | 7 | 5 | 70 |  |  |  |
+| L16 | 5 | 12 | 18 |  | 16 | 80 |  |  |  |
 
 ### Confusion matrix: standalone
 
@@ -354,10 +416,10 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 |---|---|---|---|---|---|---|---|---|---|
 | AB-strip |  | 60 |  |  |  |  |  |  |  |
 | AB-t1 |  |  |  |  |  |  |  | 36 |  |
-| honest | 71 |  | 2 |  |  |  |  |  |  |
+| honest | 69 | 12 | 2 |  |  |  |  |  |  |
 | L1 |  |  |  |  | 10 | 38 |  |  |  |
 | L2 |  |  |  |  | 3 | 45 |  |  |  |
-| L3 |  |  |  | 6 |  | 42 |  |  |  |
+| L3 |  |  |  |  | 11 | 48 |  |  |  |
 | L4 |  |  |  |  |  |  |  | 36 |  |
 | L5 |  |  |  |  |  | 66 |  |  |  |
 | L6 |  |  |  |  |  | 60 |  |  |  |
@@ -370,7 +432,7 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 | L13 |  |  |  |  |  | 10 |  |  |  |
 | L14 |  |  |  |  |  | 23 |  |  |  |
 | L15 |  |  |  |  |  | 13 |  |  |  |
-| L16 | 5 |  | 18 | 7 | 5 | 70 |  |  |  |
+| L16 | 5 | 12 | 18 |  | 16 | 80 |  |  |  |
 
 ### Confusion matrix: a2a
 
@@ -378,10 +440,10 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 |---|---|---|---|---|---|---|---|---|---|
 | AB-strip | 60 |  |  |  |  |  |  |  |  |
 | AB-t1 |  |  |  |  |  |  | 36 |  |  |
-| honest | 73 |  |  |  |  |  |  |  |  |
+| honest | 83 |  |  |  |  |  |  |  |  |
 | L1 |  |  |  | 48 |  |  |  |  |  |
 | L2 |  |  |  | 48 |  |  |  |  |  |
-| L3 |  |  |  | 48 |  |  |  |  |  |
+| L3 |  |  |  | 59 |  |  |  |  |  |
 | L4 |  |  |  |  |  |  | 36 |  |  |
 | L5 |  |  |  | 66 |  |  |  |  |  |
 | L6 |  |  |  | 60 |  |  |  |  |  |
@@ -394,7 +456,7 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 | L13 |  |  |  | 10 |  |  |  |  |  |
 | L14 |  |  |  | 23 |  |  |  |  |  |
 | L15 |  |  |  | 13 |  |  |  |  |  |
-| L16 | 18 |  | 5 | 82 |  |  |  |  |  |
+| L16 | 30 |  | 5 | 96 |  |  |  |  |  |
 
 ### Confusion matrix: sigonly
 
@@ -402,10 +464,10 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 |---|---|---|---|---|---|---|---|---|---|
 | AB-strip | 60 |  |  |  |  |  |  |  |  |
 | AB-t1 |  |  |  |  |  |  | 36 |  |  |
-| honest | 73 |  |  |  |  |  |  |  |  |
+| honest | 83 |  |  |  |  |  |  |  |  |
 | L1 |  |  |  | 48 |  |  |  |  |  |
 | L2 |  |  |  | 48 |  |  |  |  |  |
-| L3 |  |  |  | 48 |  |  |  |  |  |
+| L3 |  |  |  | 59 |  |  |  |  |  |
 | L4 |  |  |  |  |  |  | 36 |  |  |
 | L5 |  |  |  | 66 |  |  |  |  |  |
 | L6 |  |  |  | 16 |  | 44 |  |  |  |
@@ -418,7 +480,7 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 | L13 |  |  |  | 10 |  |  |  |  |  |
 | L14 |  |  |  | 23 |  |  |  |  |  |
 | L15 |  |  |  | 13 |  |  |  |  |  |
-| L16 | 18 |  | 5 | 67 |  | 15 |  |  |  |
+| L16 | 30 |  | 5 | 71 |  | 25 |  |  |  |
 
 ### Detection per class (FALSE messages)
 
@@ -426,7 +488,7 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 |---|---|---|---|---|
 | L1 | 38/48 rejected, 48 not accepted | 38/48 rejected, 48 not accepted | 0/48 rejected, 0 not accepted | 0/48 rejected, 0 not accepted |
 | L2 | 45/48 rejected, 48 not accepted | 45/48 rejected, 48 not accepted | 0/48 rejected, 0 not accepted | 0/48 rejected, 0 not accepted |
-| L3 | 42/48 rejected, 42 not accepted | 42/48 rejected, 42 not accepted | 0/48 rejected, 0 not accepted | 0/48 rejected, 0 not accepted |
+| L3 | 48/59 rejected, 59 not accepted | 48/59 rejected, 59 not accepted | 0/59 rejected, 0 not accepted | 0/59 rejected, 0 not accepted |
 | L5 | 66/66 rejected, 66 not accepted | 66/66 rejected, 66 not accepted | 0/66 rejected, 0 not accepted | 0/66 rejected, 0 not accepted |
 | L6 | 60/60 rejected, 60 not accepted | 60/60 rejected, 60 not accepted | 0/60 rejected, 0 not accepted | 44/60 rejected, 44 not accepted |
 | L7 | 42/42 rejected, 42 not accepted | 42/42 rejected, 42 not accepted | 0/42 rejected, 0 not accepted | 0/42 rejected, 0 not accepted |
@@ -438,34 +500,34 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 | L13 | 10/10 rejected, 10 not accepted | 10/10 rejected, 10 not accepted | 0/10 rejected, 0 not accepted | 0/10 rejected, 0 not accepted |
 | L14 | 23/23 rejected, 23 not accepted | 23/23 rejected, 23 not accepted | 0/23 rejected, 0 not accepted | 0/23 rejected, 0 not accepted |
 | L15 | 13/13 rejected, 13 not accepted | 13/13 rejected, 13 not accepted | 0/13 rejected, 0 not accepted | 0/13 rejected, 0 not accepted |
-| L16 | 70/82 rejected, 75 not accepted | 70/82 rejected, 75 not accepted | 0/82 rejected, 0 not accepted | 15/82 rejected, 15 not accepted |
+| L16 | 80/96 rejected, 96 not accepted | 80/96 rejected, 96 not accepted | 0/96 rejected, 0 not accepted | 25/96 rejected, 25 not accepted |
 
 ### approved_by with the receiver's SPEC 6.6 scope check
 
 | verifier | messages | n | verdict | verdict after the scope check |
 |---|---|---|---|---|
-| tracekit | L3 message-scope lies | 6 | {"accept": 6} | {"accept-unproven": 6} |
-| tracekit | honest approved_by | 12 | {"accept": 12} | {"accept": 6, "accept-unproven": 6} |
-| tracekit | all approved_by lies | 140 | {"reject": 132, "accept-unproven": 2, "accept": 6} | {"reject": 132, "accept-unproven": 8} |
-| standalone | L3 message-scope lies | 6 | {"accept": 6} | {"accept-unproven": 6} |
-| standalone | honest approved_by | 12 | {"accept": 12} | {"accept": 6, "accept-unproven": 6} |
-| standalone | all approved_by lies | 140 | {"reject": 132, "accept-unproven": 2, "accept": 6} | {"reject": 132, "accept-unproven": 8} |
+| tracekit | L3 message-scope lies | 9 | {"accept-unproven": 9} | {"accept-unproven": 9} |
+| tracekit | honest approved_by | 22 | {"accept-unproven": 12, "accept": 10} | {"accept-unproven": 17, "accept": 5} |
+| tracekit | all approved_by lies | 153 | {"reject": 140, "accept-unproven": 13} | {"reject": 140, "accept-unproven": 13} |
+| standalone | L3 message-scope lies | 9 | {"accept-unproven": 9} | {"accept-unproven": 9} |
+| standalone | honest approved_by | 22 | {"accept-unproven": 12, "accept": 10} | {"accept-unproven": 17, "accept": 5} |
+| standalone | all approved_by lies | 153 | {"reject": 140, "accept-unproven": 13} | {"reject": 140, "accept-unproven": 13} |
 
 ### Cost
 
 | claim type (honest) | n | plain A2A p50 B | PCM p50 B | PCM p99 B | overhead p50 B | overhead p99 B | PCM/plain p50 |
 |---|---|---|---|---|---|---|---|
-| A | 12 | 467 | 6024 | 6133 | 5556 | 5665 | 12.9x |
+| A | 22 | 467 | 6131 | 8399 | 5664 | 7916 | 13.0x |
 | F | 12 | 596 | 4404 | 4408 | 3808 | 3811 | 7.4x |
 | G | 13 | 428 | 1907 | 2569 | 1480 | 2141 | 4.5x |
-| H | 20 | 438 | 4157 | 4181 | 3725 | 3738 | 9.5x |
+| H | 20 | 438 | 4163 | 4181 | 3730 | 3739 | 9.5x |
 | T | 12 | 450 | 4161 | 4181 | 3711 | 3719 | 9.2x |
-| X | 4 | 720 | 11659 | 11686 | 10939 | 10953 | 16.2x |
+| X | 4 | 720 | 11659 | 11697 | 10939 | 10964 | 16.2x |
 
 | verifier | messages timed | p50 ms | p99 ms | max ms |
 |---|---|---|---|---|
-| tracekit | 839 | 1.357 | 2.850 | 11.098 |
-| standalone | 844 | 0.904 | 1.589 | 2.655 |
+| tracekit | 876 | 1.224 | 2.423 | 6.457 |
+| standalone | 876 | 0.797 | 1.811 | 2.427 |
 
 ### Ablations
 
@@ -482,12 +544,6 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 
 ### Every failure
 
-- **false accept** (tracekit) `L3.A.07` approved-amount-x10-opened [message, in]: alice approved {'amount': 500, 'order': 81}
-- **false accept** (tracekit) `L3.A.08` approved-amount-x10 [message, in]: alice approved {'amount': 1200, 'order': 81}
-- **false accept** (tracekit) `L3.A.09` approved-amount-x10-opened [message, in]: alice approved {'amount': 2500, 'order': 81}
-- **false accept** (tracekit) `L3.A.10` approved-amount-x10 [message, in]: alice approved {'amount': 4999, 'order': 81}
-- **false accept** (tracekit) `L3.A.11` approved-other-tool-opened [message, in]: alice approved read_file {'path': '/etc/motd-0'}
-- **false accept** (tracekit) `L3.A.12` approved-other-tool [message, in]: alice approved read_file {'path': '/etc/motd-1'}
 - **false accept** (tracekit) `L10.T.06` pass-then-fail-cites-pass [freshness, in]: the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure
 - **false accept** (tracekit) `L10.T.07` pass-then-fail-cites-pass [freshness, in]: the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure
 - **false accept** (tracekit) `L10.T.08` pass-then-fail-cites-pass [freshness, in]: the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure
@@ -498,21 +554,8 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 - **false accept** (tracekit) `L10.F.08` write-then-overwrite-cites-first [freshness, in]: the file was overwritten after; the sender cites the first write
 - **false accept** (tracekit) `L10.F.09` write-then-overwrite-cites-first [freshness, in]: the file was overwritten after; the sender cites the first write
 - **false accept** (tracekit) `L10.F.10` write-then-overwrite-cites-first [freshness, in]: the file was overwritten after; the sender cites the first write
-- **false accept** (tracekit) `L16.H.01` ipv4-leading-zero-octet [encoding, in]: 'http://0127.0.0.1:53163/ok' reached 127.0.0.1 (ok)
-- **false accept** (tracekit) `L16.H.02` ipv4-leading-zero-octet [encoding, in]: 'http://0127.0.0.01:53163/ok' reached 127.0.0.1 (ok)
-- **false accept** (tracekit) `L16.H.03` ipv4-leading-zero-octet [encoding, in]: 'http://0127.000.000.001:53163/ok' reached 127.0.0.1 (ok)
-- **false accept** (tracekit) `L16.H.04` ipv4-leading-zero-octet [encoding, in]: 'http://00127.0.0.1:53163/ok' reached 127.0.0.1 (ok)
-- **false accept** (tracekit) `L16.H.05` ipv4-leading-zero-octet [encoding, in]: 'http://0177.0.0.1/' reached 177.0.0.1 (ok)
-- **false accept** (tracekit) `L16.H.06` ipv4-leading-zero-octet [encoding, in]: 'http://010.0.0.1/' reached 10.0.0.1 (ok)
-- **false accept** (tracekit) `L16.H.07` ipv4-leading-zero-octet [encoding, in]: 'http://192.168.0.010/' reached 192.168.0.10 (ok)
-- **honest not proven** (tracekit) `honest.H.15` t2-fetch-http-error-status -> reject: reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed) http://127.0.0.1:53163/missing reached 127.0.0.1 (error)
+- **honest not proven** (tracekit) `honest.H.15` t2-fetch-http-error-status -> reject: reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed) http://127.0.0.1:62610/missing reached 127.0.0.1 (error)
 - **honest not proven** (tracekit) `honest.H.16` t2-fetch-http-error-status -> reject: reached_host: failed (call WebFetch-181 reached api.example.com, and failed) http://api.example.com/missing reached api.example.com (error)
-- **false accept** (standalone) `L3.A.07` approved-amount-x10-opened [message, in]: alice approved {'amount': 500, 'order': 81}
-- **false accept** (standalone) `L3.A.08` approved-amount-x10 [message, in]: alice approved {'amount': 1200, 'order': 81}
-- **false accept** (standalone) `L3.A.09` approved-amount-x10-opened [message, in]: alice approved {'amount': 2500, 'order': 81}
-- **false accept** (standalone) `L3.A.10` approved-amount-x10 [message, in]: alice approved {'amount': 4999, 'order': 81}
-- **false accept** (standalone) `L3.A.11` approved-other-tool-opened [message, in]: alice approved read_file {'path': '/etc/motd-0'}
-- **false accept** (standalone) `L3.A.12` approved-other-tool [message, in]: alice approved read_file {'path': '/etc/motd-1'}
 - **false accept** (standalone) `L10.T.06` pass-then-fail-cites-pass [freshness, in]: the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure
 - **false accept** (standalone) `L10.T.07` pass-then-fail-cites-pass [freshness, in]: the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure
 - **false accept** (standalone) `L10.T.08` pass-then-fail-cites-pass [freshness, in]: the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure
@@ -523,18 +566,6 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 - **false accept** (standalone) `L10.F.08` write-then-overwrite-cites-first [freshness, in]: the file was overwritten after; the sender cites the first write
 - **false accept** (standalone) `L10.F.09` write-then-overwrite-cites-first [freshness, in]: the file was overwritten after; the sender cites the first write
 - **false accept** (standalone) `L10.F.10` write-then-overwrite-cites-first [freshness, in]: the file was overwritten after; the sender cites the first write
-- **false accept** (standalone) `L16.H.01` ipv4-leading-zero-octet [encoding, in]: 'http://0127.0.0.1:53163/ok' reached 127.0.0.1 (ok)
-- **false accept** (standalone) `L16.H.02` ipv4-leading-zero-octet [encoding, in]: 'http://0127.0.0.01:53163/ok' reached 127.0.0.1 (ok)
-- **false accept** (standalone) `L16.H.03` ipv4-leading-zero-octet [encoding, in]: 'http://0127.000.000.001:53163/ok' reached 127.0.0.1 (ok)
-- **false accept** (standalone) `L16.H.04` ipv4-leading-zero-octet [encoding, in]: 'http://00127.0.0.1:53163/ok' reached 127.0.0.1 (ok)
-- **false accept** (standalone) `L16.H.05` ipv4-leading-zero-octet [encoding, in]: 'http://0177.0.0.1/' reached 177.0.0.1 (ok)
-- **false accept** (standalone) `L16.H.06` ipv4-leading-zero-octet [encoding, in]: 'http://010.0.0.1/' reached 10.0.0.1 (ok)
-- **false accept** (standalone) `L16.H.07` ipv4-leading-zero-octet [encoding, in]: 'http://192.168.0.010/' reached 192.168.0.10 (ok)
-- **honest not proven** (standalone) `honest.H.15` t2-fetch-http-error-status -> reject: reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed) http://127.0.0.1:53163/missing reached 127.0.0.1 (error)
+- **honest not proven** (standalone) `honest.H.15` t2-fetch-http-error-status -> reject: reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed) http://127.0.0.1:62610/missing reached 127.0.0.1 (error)
 - **honest not proven** (standalone) `honest.H.16` t2-fetch-http-error-status -> reject: reached_host: failed (call WebFetch-181 reached api.example.com, and failed) http://api.example.com/missing reached api.example.com (error)
-- **disagreement** `L16.T.17` wire-payload-1e400: tracekit reject|unreadable / standalone reject|signature (conformance fields differ)
-- **disagreement** `L16.H.24` wire-payload-1e400: tracekit reject|unreadable / standalone reject|signature (conformance fields differ)
-- **disagreement** `L16.F.19` wire-payload-1e400: tracekit reject|unreadable / standalone reject|signature (conformance fields differ)
-- **disagreement** `L16.A.18` wire-payload-1e400: tracekit reject|unreadable / standalone reject|signature (conformance fields differ)
-- **disagreement** `L16.G.07` wire-payload-1e400: tracekit reject|unreadable / standalone reject|signature (conformance fields differ)
 <!-- auto:end -->
