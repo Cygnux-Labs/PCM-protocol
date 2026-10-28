@@ -1,0 +1,264 @@
+{
+  "name": "accept-unproven-reached-host-hex-ipv4",
+  "description": "reached_host 127.0.0.1 by a WebFetch of http://0x7f.0.0.1/ the executor ran (T2): a hex label, which resolvers read apart, so it won't parse.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "ec130a625bc622738e7f2652097d9535",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "claims": [
+        {
+          "type": "reached_host",
+          "args": {
+            "host": "127.0.0.1"
+          },
+          "evidence": {
+            "checkpoint": "example.com/pcm-test-log\n281\nbcXjlfbElvxIeGZiS+O+VO+sriOEJRtn+ren2u+V6aE=\n\n— example.com/pcm-test-log C7keZlzefftxmVaRizETgsRNyOfGaV1HsufEHaBFuS05fdTGz0vsSF0inn/y8NIFM3mQJNBAOeEvLNAaxqUwyV5jjAo=\n",
+            "records": [
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "2ccf187f5a5867251429b5c985390436",
+                  "seq": 279,
+                  "prev_hash": "sha256:8fa723aeab24cd0e13ea62e4c8425483b21ad02c4cc58414b5a0e706db2bd813",
+                  "ts": "2026-10-28T02:24:39.148107Z",
+                  "run_id": "ec130a625bc622738e7f2652097d9535",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "gateway",
+                  "type": "policy.decision",
+                  "data": {
+                    "tool_use_id": "call-314",
+                    "tool": "WebFetch",
+                    "policy_hash": "sha256:3f3eddde6b59a08711e0fa1b50510e76102e81e7797b02ec8da424c82ff2bd47",
+                    "engine": "re2@1.1.20251105",
+                    "expires_at": "2026-10-28T02:29:39.148076Z",
+                    "via": "mtls:spiffe://example/executor",
+                    "caller": "uid:990101",
+                    "decision_id": "dec-6a54185ac4c14222e0093d343e018f89",
+                    "nonce": "dfaa17540976d8f7ab4dadbe39128297",
+                    "decision": "allow",
+                    "rule_ids": [],
+                    "args_commitment": "hmac-sha256:a41f68c923f4d1dfa31a1ef0aadbcf5c3614ae02fcd8a8ad4281849019186f19"
+                  },
+                  "tenant": "default",
+                  "log_id": "029c911a688edfba336b1f60b28dcc3c",
+                  "run_seq": 254,
+                  "run_prev_hash": "sha256:8fa723aeab24cd0e13ea62e4c8425483b21ad02c4cc58414b5a0e706db2bd813",
+                  "request_id": "r315",
+                  "stream": "gw",
+                  "client_seq": 74,
+                  "tool_call_id": "call-314",
+                  "attempt": 0,
+                  "args_source": "parsed",
+                  "tier": "T2"
+                },
+                "hash": "sha256:c30f04b52df4254ae8c7e35c13ad4a749946f4621b9963c617b4a6a66612b2ae",
+                "proof": [
+                  "Yi+iCmlIs4s4ln3+TS/Co9/Hd4vPqOP4OGNNiVk39Ak=",
+                  "wvgcMkRzjRtKJxWwY9znHMvzcXg9Pq+xy7kSthhAwSU=",
+                  "Cp9WLaSstXxdf3Pw+oLEu824B96b4oNIjImT22jgfbM=",
+                  "qRus2bZsLwLfe2jkShOKjTG3gGH603ZVSH0S0ls8pQE=",
+                  "fJxpyQjA+LK6oK8se+HoQmd8pGjb4/rwNLg7ZBm6ZOY=",
+                  "ncl4VVnNbTDKbq35mA7/lsJR15aNyqXVBbfQQbNp9g4="
+                ],
+                "salt": "7f18352dfbe760d371613398ad080f8fba379e04e3d23fa00d1c940c710558a3",
+                "args": {
+                  "url": "http://0x7f.0.0.1/"
+                }
+              },
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "49095c057e4dd70a75abce4e80bbe21d",
+                  "seq": 280,
+                  "prev_hash": "sha256:c30f04b52df4254ae8c7e35c13ad4a749946f4621b9963c617b4a6a66612b2ae",
+                  "ts": "2026-10-28T02:24:39.148272Z",
+                  "run_id": "ec130a625bc622738e7f2652097d9535",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "gateway",
+                  "type": "tool.result",
+                  "data": {
+                    "tool_use_id": "call-314",
+                    "ok": true,
+                    "output": {
+                      "hash": "hmac-sha256:aec9a9f122ba4355ef7cb9a7dc8c8fb687cee1b54c2fde3022080260313c7ed7",
+                      "size": 2,
+                      "redacted": false
+                    },
+                    "decision_id": "dec-6a54185ac4c14222e0093d343e018f89",
+                    "redaction": {
+                      "rules": [],
+                      "count": 0,
+                      "client_claimed": false
+                    },
+                    "via": "mtls:spiffe://example/executor"
+                  },
+                  "tenant": "default",
+                  "log_id": "029c911a688edfba336b1f60b28dcc3c",
+                  "run_seq": 255,
+                  "run_prev_hash": "sha256:c30f04b52df4254ae8c7e35c13ad4a749946f4621b9963c617b4a6a66612b2ae",
+                  "request_id": "r316",
+                  "stream": "gw",
+                  "client_seq": 75,
+                  "tool_call_id": "call-314",
+                  "attempt": 0,
+                  "tier": "T2"
+                },
+                "hash": "sha256:bae237cf17465ea7cdb5fd497a157737f4bc477b59d42f0512b5b7f9b7bdabde",
+                "proof": [
+                  "sXHiBExzfmeN/xP3hq3QxW/z9abYjf86pZ32NjV2R9o=",
+                  "fJxpyQjA+LK6oK8se+HoQmd8pGjb4/rwNLg7ZBm6ZOY=",
+                  "ncl4VVnNbTDKbq35mA7/lsJR15aNyqXVBbfQQbNp9g4="
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "782bfff99b139717ec4ae334c12a3777",
+      "ts": "2026-10-28T02:24:39.153640Z",
+      "nonce": "81d2192766463f4e9099b899ae30b860",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "9QrGHi0m7sWVw2GlMYMYjutcNMDj60SrVq0wxuBFruGDZ77kXcX99yUImx/uWop8TqBu5LsXBLwAJLexKqP/Cw=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.quote",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        }
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "Edit": "fs",
+      "Glob": "fs",
+      "Grep": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "Write": "fs",
+      "bash": "shell",
+      "container.exec": "shell",
+      "create_charge": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_refund": "payment",
+      "create_transfer": "payment",
+      "execute_query": "sql",
+      "execute_sql": "sql",
+      "fetch": "http",
+      "get_balance": "payment",
+      "get_transaction": "payment",
+      "gmail_send_message": "email",
+      "http_get": "http",
+      "http_post": "http",
+      "http_request": "http",
+      "list_payments": "payment",
+      "list_transactions": "payment",
+      "local_shell": "shell",
+      "mcp:fetch/fetch": "http",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "pay_invoice": "payment",
+      "query_database": "sql",
+      "requests_delete": "http",
+      "requests_get": "http",
+      "requests_patch": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "run_shell_command": "shell",
+      "run_sql": "sql",
+      "run_terminal_cmd": "shell",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "send_payment": "payment",
+      "shell": "shell",
+      "sql_db_query": "sql",
+      "srt:request": "http",
+      "terminal": "shell",
+      "transfer_funds": "payment",
+      "web_fetch": "http"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-28T02:24:40.153640Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+      "errors": []
+    },
+    "grants": {
+      "result": "none",
+      "steps": 0,
+      "root": null,
+      "problems": []
+    },
+    "claims": [
+      {
+        "type": "reached_host",
+        "result": "unproven",
+        "detail": "the verifier can't tell whether call call-314 reached 127.0.0.1: its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255 without leading zeros"
+      }
+    ],
+    "verdict": "accept-unproven",
+    "reasons": [
+      "reached_host: unproven (the verifier can't tell whether call call-314 reached 127.0.0.1: its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255 without leading zeros)"
+    ],
+    "skipped": [
+      "replay"
+    ]
+  }
+}

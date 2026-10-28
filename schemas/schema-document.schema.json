@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:pcm:0.1:schema:schema-document",
   "title": "PCM 0.1 schema document",
-  "description": "The typed fields of an intent, the claim types it needs and whether it needs a grant. Its name on the wire is name@sha256:<hex of SHA-256 of its JCS>. Beyond this schema a verifier also rejects an int field whose min is above its max, and an id field whose pattern does not compile. Every pattern matches the whole value, with ASCII classes.",
+  "description": "The typed fields of an intent, the claim types it needs, whether it needs a grant and the tool it stands for, which approved_by's covers reads. Its name on the wire is name@sha256:<hex of SHA-256 of its JCS>. Beyond this schema a verifier also rejects an int field whose min is above its max, and an id field whose pattern does not compile. Every pattern matches the whole value, with ASCII classes.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -197,6 +197,11 @@
     },
     "grant": {
       "type": "boolean"
+    },
+    "tool": {
+      "type": "string",
+      "maxLength": 256,
+      "minLength": 1
     }
   }
 }

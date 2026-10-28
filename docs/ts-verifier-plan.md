@@ -65,9 +65,10 @@ vector, so each is ported with its own tests:
 - **`reached_host`**: the compared form of SPEC 6.7, step by step. Hosts are compared in printable ASCII only, so
   there is no IDNA, Unicode table or Punycode to port: refuse a URL or host with any character outside U+0021 to
   U+007E, put `http://` in front where step 2 says, check the bracket rule on the authority before anything else,
-  take the browser and the generic readings (a few regular expressions each), refuse a `%` or a leading zero in an
-  IPv6 dotted quad, lower-case, and write addresses in canonical form: IPv4 by `inet_aton`'s rules (1 to 4 parts,
-  hex, octal) and IPv6 as RFC 5952 text, an IPv4-mapped or NAT64 address as its IPv4 address. Don't use `new URL()`
+  refuse a `view-source:` or `blob:` URL, take the browser and the generic readings (a few regular expressions
+  each), refuse a `%` or a leading zero in an IPv6 dotted quad, lower-case, refuse an IPv4 address that is no dotted
+  quad (one regular expression), and write IPv6 addresses as RFC 5952 text, an IPv4-mapped or NAT64 address as its
+  IPv4 address. Don't use `new URL()`
   or `URL.hostname` for it: they trim, drop tabs and line breaks, percent-decode the host and apply UTS 46, and know
   nothing of the bracket rule or the rule that the two readings must agree. The IPv6 parser and RFC 5952 printer are
   the one part to write with care (about 60 lines); the vectors and Tracekit's host cases are their tests.

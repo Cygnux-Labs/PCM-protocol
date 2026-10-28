@@ -1,0 +1,100 @@
+{
+  "name": "bad-input-number-past-double",
+  "description": "A valid refund.quote as JSON text with `\"payload\": {\"kind\": \"data\", \"data\": {\"n\": 1e400}}` added after signing: 1e400 rounds to no finite IEEE 754 double, so the text doesn't parse and the verifier refuses it before any check, where one that read it as infinity would fail the signature instead.",
+  "input": {
+    "message_text": "{\"from\": {\"agent\": \"uid:990101\", \"run\": \"ec130a625bc622738e7f2652097d9535\", \"tenant\": \"default\"}, \"to\": {\"agent\": \"uid:990102\"}, \"intent\": {\"type\": \"refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593\", \"args\": {\"amount\": 12000, \"order\": 81}}, \"pcm\": 0, \"id\": \"f138c7c74ec87561492f5acae5d68c16\", \"ts\": \"2026-10-28T02:24:35.521042Z\", \"nonce\": \"2fc19117df9b34e5dd2db0628a6f35a8\", \"sig\": {\"key\": \"example.com/pcm-test-log+0bb91e66\", \"sig\": \"Dy8ayIw9ut6LPJYtSdcXXXlXEtLqrXCyNcczgwaqdoqMvIXKI1FeSA171LCMiQ0Z1PxgINXfSNnBKEtlMy+MAQ==\"}, \"payload\": {\"kind\": \"data\", \"data\": {\"n\": 1e400}}}",
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.quote",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        }
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "Edit": "fs",
+      "Glob": "fs",
+      "Grep": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "Write": "fs",
+      "bash": "shell",
+      "container.exec": "shell",
+      "create_charge": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_refund": "payment",
+      "create_transfer": "payment",
+      "execute_query": "sql",
+      "execute_sql": "sql",
+      "fetch": "http",
+      "get_balance": "payment",
+      "get_transaction": "payment",
+      "gmail_send_message": "email",
+      "http_get": "http",
+      "http_post": "http",
+      "http_request": "http",
+      "list_payments": "payment",
+      "list_transactions": "payment",
+      "local_shell": "shell",
+      "mcp:fetch/fetch": "http",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "pay_invoice": "payment",
+      "query_database": "sql",
+      "requests_delete": "http",
+      "requests_get": "http",
+      "requests_patch": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "run_shell_command": "shell",
+      "run_sql": "sql",
+      "run_terminal_cmd": "shell",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "send_payment": "payment",
+      "shell": "shell",
+      "sql_db_query": "sql",
+      "srt:request": "http",
+      "terminal": "shell",
+      "transfer_funds": "payment",
+      "web_fetch": "http"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-28T02:24:36.521042Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "verdict": "bad-input",
+    "reasons": [
+      "input: non_finite: 1e400"
+    ]
+  }
+}

@@ -155,8 +155,14 @@ U+2029. That is why IDENTITY is written with `[^\n]`, and the published JSON Sch
 ### 3.3 Parsing
 
 A receiver MUST parse the message strictly: valid UTF-8, no duplicate member names, integers within
-±(2^53 − 1), no lone surrogates, nesting at most 128 deep. A message that does not parse this way MUST NOT be
-accepted. **[Implemented]**
+±(2^53 − 1), no lone surrogates, nesting at most 128 deep, no number past the double range (below). A message that
+does not parse this way MUST NOT be accepted. **[Implemented]**
+
+**Numbers past the double range (decided, 0.1).** A number whose value rounds to no finite IEEE 754 double (binary64),
+such as `1e400` or `-1e400`, is a parse error: the message is bad input, not a message that holds an infinite number.
+A number that rounds to zero, such as `1e-400`, parses. Rationale: one verifier read `1e400` as infinity and then
+failed the signature, since JCS encodes no infinity, while another refused the text, so the two gave one message
+different results (vector `bad-input-number-past-double`, 13.2).
 
 ### 3.4 Example
 
@@ -172,18 +178,18 @@ The message, with its claim and grant shown in sections 6.6 and 7.1:
 <!-- vector accept-approved-by input.message -->
 ```json
 {
- "from": {"agent": "uid:990101", "run": "8d0a3180da60ac56d555e03a6440a81e", "tenant": "default"},
+ "from": {"agent": "uid:990101", "run": "ec130a625bc622738e7f2652097d9535", "tenant": "default"},
  "to": {"agent": "uid:990102"},
  "intent": {"type": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
             "args": {"amount": 12000, "order": 81}},
  "claims": ["... one approved_by claim, section 6.6 ..."],
  "grants": ["... alice's root grant, section 7.1 ..."],
  "pcm": 0,
- "id": "8efe060740cdfd4ae030913d87a6cdd4",
- "ts": "2026-10-27T23:28:26.887875Z",
- "nonce": "88fe06457feb32542fb6470482a3a00f",
+ "id": "0ac65318a85ca571b5a29c348280f1d9",
+ "ts": "2026-10-28T02:24:35.496285Z",
+ "nonce": "705e9bb546e4876321bcbc748f982bd0",
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "+X/3WttTyGFafxdpe8JY5wxvWVcXZznoGKs4qkZ4emwESR3iKqHfpBr/vypisbSjCDOfaHtzJanBe7OsG92VBA=="}
+         "sig": "Xtv6U9fKIx3FG1t+OGuK5ifNbOHf6aOLDSUaoHWa/g8QGzazVirPtLR57furSUouYWn0eSYn037sTIkLEeAQBQ=="}
 }
 ```
 
@@ -216,14 +222,14 @@ The bytes signed for the message in 3.4 start:
 
 <!-- vector accept-approved-by input.message.@signed -->
 ```
-{"claims":[{"args":{"call":"grant-1","person":"alice"},"evidence":{"checkpoint":"example.com/pcm-test-log\n9\n...
+{"claims":[{"args":{"call":"grant-1","covers":true,"person":"alice"},"evidence":{"checkpoint":"example.com/pcm-test-log\n9\n...
 ```
 
 and further on, in JCS key order:
 
 <!-- vector accept-approved-by input.message.@signed -->
 ```
-..."nonce":"88fe06457feb32542fb6470482a3a00f","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
+..."nonce":"705e9bb546e4876321bcbc748f982bd0","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
 ```
 
 The note's line breaks appear as the two characters `\n`: JCS escapes them.
@@ -279,7 +285,7 @@ The agent never holds a signing key. It sends the message body to the signer, an
   credential was delegated to, such as a reader of the run's log or an observer).
 - The signer MUST set `pcm`, `id`, `ts` and `nonce` itself, from its own clock and randomness. A body that holds
   them, or `sig` or `t`, is refused.
-- The signer MUST refuse to sign while the run is held or quarantined (section 14.9).
+- The signer MUST refuse to sign while the run is held or quarantined (14.9).
 - The signer SHOULD record each message it signs as a record in the sender's run, holding the message hash, id,
   receiver and intent reference, never the args. An auditor of the run then sees every message the agent had signed,
   in order among its tool calls.
@@ -313,6 +319,7 @@ An intent's args are typed by a schema document. Both sides keep a copy. Example
 | `fields` | yes | an object; each name `^[a-z][a-z0-9_]{0,63}$`, each value a field spec |
 | `claims` | no | the claim types the intent needs, distinct, from the claim registry (section 17.2) |
 | `grant` | no | `true`: a message without a grant chain is rejected |
+| `tool` | no | the tool the intent stands for, a string of 1 to 256 characters: an `approved_by` claim with `covers` is checked against it (6.6) |
 
 The document is closed. The JSON Schema is `schemas/schema-document.schema.json`. **[Implemented]**
 
@@ -375,7 +382,7 @@ A claim is `{"type", "args", "evidence"?}`, closed. `type` is one of the registe
 | Claim type | Args |
 |---|---|
 | `tests_passed` | `suite`: string, at most 4096 |
-| `approved_by` | `person`: string, at most 256; `call`: id matching ID |
+| `approved_by` | `person`: string, at most 256; `call`: id matching ID; `covers`: bool, optional (6.6) |
 | `reached_host` | `host`: id, `^[a-z0-9._:-]+$`, at most 128 (the cap of every `id` value, 5.2; vector `reject-claim-reached-host-too-long`) |
 | `file_written` | `path`: string, at most 4096; `digest`: id matching DIGEST |
 
@@ -435,7 +442,7 @@ A verifier checks an evidence item in this order. The first failure makes the cl
    - The Ed25519 log key trust pins under the origin's name (one at most, 10.1) MUST have a valid line. When trust
      pins a hybrid key named after the origin, its line MUST be present and valid (10.1).
 2. **Same log.** The note's origin equals the key name in the message's `sig.key` (the part before the last `+`).
-   Evidence from another log fails, even if that log is pinned too (section 14.1).
+   Evidence from another log fails, even if that log is pinned too (14.1).
 3. **Witnesses.** The note carries at least `witnesses_required` valid cosignatures from pinned witness keys
    (vectors `accept-witnessed`, `reject-claim-witnesses-required-unmet`).
 4. For each record, numbered from 1:
@@ -512,7 +519,7 @@ The fields each checker reads:
 | Record type | Fields read |
 |---|---|
 | every record | `seq` (log index), `tenant`, `run_id`, `type`, `data` |
-| `policy.decision` | `data.tool`, `data.decision` (`allow`, `ask`, `deny`), `data.decision_id`, `data.tool_use_id`, `data.args_commitment` |
+| `policy.decision` | `data.tool`, `data.decision` (`allow`, `flag`, `ask`, `deny`; `flag` lets the call run as `allow` does and marks it), `data.decision_id`, `data.tool_use_id`, `data.args_commitment` |
 | `tool.result` | top-level `source` and `tier`; `data.decision_id`, `data.tool_use_id`, `data.ok`; `data.via` (detail text only) |
 | `approval` | `data.decision`, `data.tool_use_id`, `data.approval_id`, `data.person`, `data.approver_kind` (absent means `person`), `data.self_approved` |
 | `approval.request` | `data.approval_id`, `data.decision_id` |
@@ -522,15 +529,15 @@ A real `approval` record, as evidence carries it:
 
 <!-- vector accept-approved-by input.message.claims.0.evidence.records.2.event -->
 ```json
-{"schema_version": "tracekit.event.v2", "id": "eec7eb9187d3a0c34acbfb24c9d273bf", "seq": 5,
- "prev_hash": "sha256:1564e8d44e8ee3949eed187996febf15ad8a91d7706302ab65240fedad9f99a7",
- "ts": "2026-10-27T23:28:26.870740Z", "run_id": "8d0a3180da60ac56d555e03a6440a81e", "agent_id": "main",
+{"schema_version": "tracekit.event.v2", "id": "5227e7d73803852f982a60b91f149889", "seq": 5,
+ "prev_hash": "sha256:39c29ce4973ac0753b77f3ae1a7056a8d06d054fe6b7ea951c423f5b5491288a",
+ "ts": "2026-10-28T02:24:35.476647Z", "run_id": "ec130a625bc622738e7f2652097d9535", "agent_id": "main",
  "parent_id": null, "source": "sdk", "type": "approval",
- "data": {"tool_use_id": "grant-1", "approval_id": "apr-32a3f5bd8ea8787c464c217bdb3d3769", "decision": "approve",
+ "data": {"tool_use_id": "grant-1", "approval_id": "apr-afa8cc12fcd9032a7eb9c9479deedd68", "decision": "approve",
           "approver": "uid:990001", "approver_identity": {"scheme": "uid", "subject": "990001", "attested": true},
           "channel": "rpc", "self_approved": false, "person": "alice"},
- "tenant": "default", "log_id": "e1917370ece98dc3a3d986ffd93f940a", "run_seq": 3,
- "run_prev_hash": "sha256:1564e8d44e8ee3949eed187996febf15ad8a91d7706302ab65240fedad9f99a7",
+ "tenant": "default", "log_id": "029c911a688edfba336b1f60b28dcc3c", "run_seq": 3,
+ "run_prev_hash": "sha256:39c29ce4973ac0753b77f3ae1a7056a8d06d054fe6b7ea951c423f5b5491288a",
  "request_id": "r4", "tool_call_id": "grant-1"}
 ```
 
@@ -569,13 +576,13 @@ holds an opened decision and its result, both recorded through an attesting exec
 ```json
 [{"event": {"type": "policy.decision", "seq": 10, "source": "gateway", "tier": "T2", "...": "...",
             "data": {"tool_use_id": "call-9", "tool": "Bash", "decision": "allow",
-                     "decision_id": "dec-23b503a2a0588fcac364ba595d845e41", "via": "mtls:spiffe://example/executor",
-                     "args_commitment": "hmac-sha256:754270005d913d54c8b48a7d15880cf59c4f1cbb9845c9f7702f0049a26c2174",
+                     "decision_id": "dec-87905101824feb56b9c4573322afd74d", "via": "mtls:spiffe://example/executor",
+                     "args_commitment": "hmac-sha256:83514f662e8a21d1dd6a32fcf9b73aaed729f1a9cec8e4589afae3b9251bf734",
                      "...": "..."}},
-  "salt": "8cefd72ba99ae14eb6cd570204ceadbc42a984dbfdf7fd131edc8513ab041c5c",
+  "salt": "78273d8c87b7a0a5c7cc699c65530edca4722b854f18a550ef6e57daebf484e7",
   "args": {"command": "pytest -q tests/test_refund.py"}, "hash": "...", "proof": ["..."]},
  {"event": {"type": "tool.result", "seq": 11, "source": "gateway", "tier": "T2", "...": "...",
-            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-23b503a2a0588fcac364ba595d845e41",
+            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-87905101824feb56b9c4573322afd74d",
                      "via": "mtls:spiffe://example/executor", "...": "..."}},
   "hash": "...", "proof": ["..."]}]
 ```
@@ -620,10 +627,11 @@ real test run from another. Vectors: `accept-tests-passed-t2`, `accept-tests-pas
 `reject-claim-tests-passed-wrapper`, `reject-claim-tests-passed-malformed-no-evidence`, `reject-claim-tests-failed`
 (the T2 result is an error).
 
-**`approved_by {person, call}`** **[Implemented]**
+**`approved_by {person, call, covers?}`** **[Implemented]**
 
 `call` is the agent's own name for a call (a `tool_use_id`), so an approval alone says nothing of what was approved.
-The claim is `proven` when the records of one evidence item hold all three of:
+The claim is `proven` when the records of one evidence item hold all three of the following, and, with `covers`, when
+the approval covers the message's request (below):
 
 1. an `approval` record with `data.decision == "approve"`, `data.tool_use_id == call`, `data.person == person`,
    `data.approver_kind` absent or `"person"`, and `data.self_approved` not `true`;
@@ -664,14 +672,14 @@ took the first approval and decision in the order the sender listed them, so evi
 call id, or one decision once opened and once not, proved whichever the sender put first.
 
 **What was approved (decided, 0.1).** The result of a proven claim MUST carry the member `approved`:
-`{"tool": <the decision's data.tool>, "args": <its args as the evidence opens them (6.3), or null>}`. A receiver MUST
-read `approved`, not only `result`. Its `detail` names the same, with the tool as a JSON string and the args in full
-as JCS: <!-- vector accept-approved-by expected.claims.0.detail -->
-`approval seq 5 by alice of "pcm.grant" call grant-1`, or
+`{"tool": <the decision's data.tool>, "args": <its args as the evidence opens them (6.3), or null>}`. A receiver that
+acts on a proven claim without `covers` MUST read `approved`, not only `result`. Its `detail` names the same, with the
+tool as a JSON string and the args in full as JCS:
 <!-- vector accept-approved-by-opened-args expected.claims.0.detail -->
 `approval seq 99 by alice of "read_file" call pay-1 with args {"path":"/etc/motd"}` (vector
-`accept-approved-by-opened-args`: the agent decided two calls under the call id `pay-1`, a pay and then a `read_file`
-of `/etc/motd`; alice approved the `read_file`, and the evidence opens it). Only a proven
+`accept-approved-by-opened-args`, without `covers`: the agent decided two calls under the call id `pay-1`, a pay and
+then a `read_file` of `/etc/motd`; alice approved the `read_file`, and the evidence opens it). With `covers` the
+detail goes on to say how the approval covers the request. Only a proven
 `approved_by` result has `approved`. Rationale: the agent names its calls, so a claim that alice approved
 `refund-81-approved` can be proven by her approval of a `read_file` call the agent named so; only the decision says
 what she saw. `approved` is a conformance field (13.2), so every verifier gives a receiver the same answer;
@@ -686,40 +694,84 @@ Rationale: without an approvals configuration any identity of the tenant may ans
 human looked. **[Implemented]** (vector `reject-claim-approved-by-unmapped-identity`: `uid:990009` answers and no person
 maps to it.)
 
+**What the approval covers (decided, 0.1).** `covers` is the sender's word that the approval covers the message's
+request. Without it, or with `false`, the checks above are all, and `approved` says what call `call` was. With
+`"covers": true`, a claim that passes them is `proven` only by one of two paths:
+
+1. **Grant path.** The approval issued the message's root grant (7.4): the decision's `data.tool` is `pcm.grant`, and
+   the root grant's `issuer.approval_id`, `issuer.run` and `issuer.tenant` are the `data.approval_id`, `run_id` and
+   `tenant` of an approval that leads to the decision (vectors `accept-approved-by`, and
+   `accept-approved-by-covers-grant`, whose schema names another tool: the grant path does not read it).
+2. **Direct path.** The intent's schema document names a `tool` (5.1) equal to the decision's `data.tool`, the
+   evidence opens the decision (6.3), and its args are equal to `intent.args` in JCS (vector
+   `accept-approved-by-covers-direct`).
+
+Else, taking the first that applies:
+
+- a decision of `pcm.grant` that did not issue the message's root grant, or a message without grants: `failed`
+  (vector `reject-claim-approved-by-covers-grant-not-root`);
+- the schema names no `tool`: `unproven`, as the verifier can't tell what the request is
+  (<!-- vector accept-unproven-approved-by-covers-schema-without-tool expected.claims.0.detail -->
+  `approval seq 137 by alice of "pay" call pay-5 with args {"amount":12000,"order":81}: the intent's schema names no
+  tool, so the verifier can't tell whether it covers this request: name the tool in the schema document, or cite the
+  approval that issued the message's root grant`);
+- a decision of another tool than the schema names: `failed`, whether the evidence opens it or not, since its tool is
+  in the record (<!-- vector reject-claim-approved-by-covers-other-tool expected.claims.0.detail -->
+  `approval seq 143 by alice of "read_file" call read-1: not of "pay", the tool the intent's schema names, so it does
+  not cover this request`);
+- a decision the evidence does not open: `unproven` (vector `accept-unproven-approved-by-covers-not-opened`: "… its
+  args are not opened, so the verifier can't tell whether they are this request's: open the decision");
+- opened args that differ from `intent.args`: `failed`
+  (<!-- vector reject-claim-approved-by-covers-other-args expected.claims.0.detail -->
+  `approval seq 140 by alice of "pay" call pay-6 with args {"amount":500,"order":81}: not this request's args
+  {"amount":12000,"order":81}, so it does not cover this request`).
+
+A schema that lists `approved_by` in `claims` is met only by a `proven` `approved_by` with `"covers": true` (8 step
+7). A proven claim without it meets no need, so the verdict is `accept-unproven`, or `reject` under `strict`, with the
+reason <!-- vector accept-unproven-approved-by-required-without-covers expected.reasons.0 -->
+`approved_by: required, not proven to cover this request: claim it with covers true` (vector
+`accept-unproven-approved-by-required-without-covers`: alice's approval of a pay of 500, cited for a pay of 12000).
+Rationale: the call id is the agent's own name, so a sender could cite a person's approval of a smaller refund, or of
+a `read_file`, for a larger refund, and a receiver that acted on the verdict alone was fooled; the sender says which
+approval stands for the request, and the verifier checks it.
+
 What `proven` means: the person the signer's approvals configuration names `person` answered "approve" when the
-signer asked about the decision `approved` names: a call `call` of that tool, with those args when opened.
+signer asked about the decision `approved` names: a call `call` of that tool, with those args when opened. With
+`covers`, also that this approval covers the message's request: it issued the message's root grant, or it is of the
+tool the intent's schema names, with the intent's args. Without `covers`, nothing ties the approval to the request.
 
 The claim of `accept-approved-by`, with its evidence (the decision, the request and the approval of 6.4; events
 shortened to the fields the checker reads):
 
 <!-- vector accept-approved-by input.message.claims.0 -->
 ```json
-{"type": "approved_by", "args": {"person": "alice", "call": "grant-1"},
+{"type": "approved_by", "args": {"person": "alice", "call": "grant-1", "covers": true},
  "evidence": {
-  "checkpoint": "example.com/pcm-test-log\n9\noZGXC7BGncnzjGU+QMPESJqz7rX+fM6hz+irPdaGJz4=\n\n— example.com/pcm-test-log C7keZmuK7FDOcAXOXXWQ6bLykiqilRDqyPG63evZyV+6RrU/Y3OepADlEYNy4F0o2im63ofIDUStc2BI9Cvulxwe8AM=\n",
+  "checkpoint": "example.com/pcm-test-log\n9\nQhInJS9+Rjyar8mhP1wGwzx1O2DYcMy8af/XYRCqSb8=\n\n— example.com/pcm-test-log C7keZoQnlibbpH9yOCeEzKJs6Hzc97YYaP1hsfTBxyO0QzEKJRpaXpxBKoLJEIi9d0FMYRNNmWOSl0cOBOf2whMhowQ=\n",
   "records": [
    {"event": {"type": "policy.decision", "seq": 3, "...": "...",
               "data": {"tool_use_id": "grant-1", "tool": "pcm.grant", "decision": "ask",
-                       "decision_id": "dec-c510b59a441653d9d46817fda8ee59af", "...": "..."}},
-    "hash": "sha256:d1b4ae27c3efc41560236d86c0a67a328e53e011374cdc7122b6dab2e44d7841",
-    "proof": ["N61i1Ly7Hi7f/mPDfvLPouCSgpjBad5ApkyB1e+E6IE=", "GER0Sg3UjxPke0zRAaHnGvQtbF3ksmk0u0VYqM9x1S0=",
-              "alDoFKVG5hXzpAPmu4kQitezIa9+2uNxT6t7fUsjkqI=", "brCm/Er+TskRLSwr1boi3+LG1v1d9By3mvVjJ55pzWg="]},
+                       "decision_id": "dec-76e1373f66cddad74ba54eb2ffcf97af", "...": "..."}},
+    "hash": "sha256:444ea34333ed7e77be0fe1ca8f57b108b93d79258dd27ec3f2ffe0f5d89409f5",
+    "proof": ["GHc2iRz78zZ9UrFNQfRdYDhZyd9ere1mVrgDE2zN4w8=", "a1WP4EFPP5lJvKXGna0/aMjExMY6buoajX2ZZWWR87w=",
+              "XV3DvLmIxeoAAS29RasT6tRFgGOFhLjjSzUyQPdNyZs=", "oGluwXsyMyIJMoCTujrGPPsyxEcnsqfn+A06KUVWSuc="]},
    {"event": {"type": "approval.request", "seq": 4, "...": "...",
-              "data": {"approval_id": "apr-32a3f5bd8ea8787c464c217bdb3d3769",
-                       "decision_id": "dec-c510b59a441653d9d46817fda8ee59af", "...": "..."}},
-    "hash": "sha256:1564e8d44e8ee3949eed187996febf15ad8a91d7706302ab65240fedad9f99a7",
-    "proof": ["CCtnBriIclbk/rMBc8VdYUT4TOmFXPypQxg+QRKeUNo=", "9NhD5Ji9eR4lsuH1rV5J4PfDDvuGU1o+YrnCnGDDu+8=",
-              "o5C/NAi3g1iwF8XuBoxwzcIXGk2z3PlJslI6WP1EGnE=", "brCm/Er+TskRLSwr1boi3+LG1v1d9By3mvVjJ55pzWg="]},
+              "data": {"approval_id": "apr-afa8cc12fcd9032a7eb9c9479deedd68",
+                       "decision_id": "dec-76e1373f66cddad74ba54eb2ffcf97af", "...": "..."}},
+    "hash": "sha256:39c29ce4973ac0753b77f3ae1a7056a8d06d054fe6b7ea951c423f5b5491288a",
+    "proof": ["fc2FAMAMEmTGeNOEggj5AuC4lnCiG6ZqObEWzUcNHsU=", "8j9RAMAAem3ddLt8BiZLIR4p1Hel7+3/XhWay/9A3Gg=",
+              "EbdsQQodmPPv9Jd89YbsSA1vYYjly5d/Q+Y6uHghTdc=", "oGluwXsyMyIJMoCTujrGPPsyxEcnsqfn+A06KUVWSuc="]},
    {"event": {"...": "the approval record of 6.4"},
-    "hash": "sha256:a1d73c2d401726bd05dc92296936b434c347aeecc44669ee61b35564ac8eb6b5",
-    "proof": ["S1ZSwgAT4oTUmsuKspLjuPgC7m3Fv7QX8f3dIgVEdmo=", "9NhD5Ji9eR4lsuH1rV5J4PfDDvuGU1o+YrnCnGDDu+8=",
-              "o5C/NAi3g1iwF8XuBoxwzcIXGk2z3PlJslI6WP1EGnE=", "brCm/Er+TskRLSwr1boi3+LG1v1d9By3mvVjJ55pzWg="]}]}}
+    "hash": "sha256:3483c8f824e7072e479f93de2a5d9ce2f4e32ed6fc5472e8621a353da9371e1b",
+    "proof": ["ePM3fNgfQR2STyNfBlxMZY4mugWmhJwjaNTjT420NBM=", "8j9RAMAAem3ddLt8BiZLIR4p1Hel7+3/XhWay/9A3Gg=",
+              "EbdsQQodmPPv9Jd89YbsSA1vYYjly5d/Q+Y6uHghTdc=", "oGluwXsyMyIJMoCTujrGPPsyxEcnsqfn+A06KUVWSuc="]}]}}
 ```
 
 Result: <!-- vector accept-approved-by expected.claims.0 -->
-`{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of \"pcm.grant\" call grant-1",
-"approved": {"tool": "pcm.grant", "args": null}}`: alice approved the `pcm.grant` call that asked for the grant of 7.1
-(the evidence does not open its args). The vectors
+`{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of \"pcm.grant\" call grant-1, which
+issued this message's root grant", "approved": {"tool": "pcm.grant", "args": null}}`: alice approved the `pcm.grant`
+call that asked for the grant of 7.1 (the evidence does not open its args), and that grant is the message's root
+grant. The vectors
 show the other outcomes: one hex digit of `hash` changed (`reject-claim-changed-record-hash`:
 <!-- vector reject-claim-changed-record-hash expected.claims.0.detail -->
 `record 1: hash does not match the event`), the proof's last hash cut (`reject-claim-cut-proof`), another person named
@@ -731,7 +783,9 @@ that is not canonical base64 (`reject-claim-proof-non-canonical-base64`).
 Hosts are compared in the form of 6.7.
 
 1. If the claim's `host` won't parse (6.7): `unproven` ("… is no host the verifier can read"). Vector
-   `accept-unproven-reached-host-unreadable-claim` (`a..example`, an empty label).
+   `accept-unproven-reached-host-unreadable-claim` (`a..example`, an empty label). The sender wrote the claim, so
+   when its host is an IPv4 address not written as a dotted quad (6.7 step 5), the detail SHOULD end with `: ` and
+   that cause's sentence below (vector `accept-unproven-reached-host-claim-not-quad`, `0127.0.0.1`).
 2. **A connection, not an attempt (decided, 0.1).** `proven` when a record has `type == "effect.observed"`,
    `data.kind == "net"`, `data.connections` above 0, and a `data.host` that has the claim's compared form: an egress
    observer saw the run open a connection to the host (vector `accept-reached-host-observed`). Candidates `unproven`:
@@ -747,26 +801,45 @@ Hosts are compared in the form of 6.7.
    `mailto:` or `gopher:`, or no host at all): no; a URL whose host won't parse: can't tell; else yes when the URL's
    host has the claim's compared form.
 
-   **What the sender can do (decided, 0.1).** When a URL's host won't parse for one of two causes the sender can fix,
-   the can't-tell detail SHOULD end with `: ` and that cause's sentence, exactly:
-   - the URL is not printable ASCII (6.7 step 1): `its URL is not printable ASCII: send the URL with the host in xn--
-     form and the path and query percent-encoded`;
-   - else, the URL passes the bracket rule (6.7 step 3) and a reading of its host holds a `%` (6.7 steps 4 and 5):
-     `its host has a %: send the URL with the host as plain ASCII, not percent-encoded`.
+   **What the sender can do (decided, 0.1).** When a URL's host won't parse for one of three causes the sender can
+   fix, the can't-tell detail SHOULD end with `: ` and that cause's sentence, exactly:
+   - the URL is not printable ASCII (6.7 step 1): `its URL is not printable ASCII: send it without spaces or control
+     characters, with the host in xn-- form and anything else percent-encoded`;
+   - else, the URL passes the bracket rule (6.7 step 3) and a reading of its host holds a `%` (6.7 steps 4 and 5;
+     step 4 makes no reading of a `view-source:` or `blob:` URL):
+     `its host has a %: send the URL with the host as plain ASCII, not percent-encoded`;
+   - else, the URL passes the bracket rule and a reading of its host is an IPv4 address not written as a dotted quad
+     (6.7 step 5): `its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255
+     without leading zeros`.
 
-   Any other cause adds nothing. So vector `accept-unproven-reached-host-idn` (`http://bücher.example/`) gives
+   Any other cause adds nothing: `http://[::1]@[::1%25x]/`, which fails the bracket rule, gets no sentence, whatever
+   a URL library reads from it. So vector `accept-unproven-reached-host-idn` (`http://bücher.example/`) gives
    <!-- vector accept-unproven-reached-host-idn expected.claims.0.detail -->
-   `the verifier can't tell whether call call-305 reached xn--bcher-kva.example: its URL is not printable ASCII: send
-   the URL with the host in xn-- form and the path and query percent-encoded`, and
+   `the verifier can't tell whether call call-354 reached xn--bcher-kva.example: its URL is not printable ASCII: send
+   it without spaces or control characters, with the host in xn-- form and anything else percent-encoded`,
    `accept-unproven-reached-host-percent` (`http://%61pi.example.com/`)
    <!-- vector accept-unproven-reached-host-percent expected.claims.0.detail -->
-   `the verifier can't tell whether call call-377 reached api.example.com: its host has a %: send the URL with the
-   host as plain ASCII, not percent-encoded`. The detail is for people (13.2); an effect's host that won't parse gets
-   no sentence, since the sender did not write it.
+   `the verifier can't tell whether call call-438 reached api.example.com: its host has a %: send the URL with the
+   host as plain ASCII, not percent-encoded`, and `accept-unproven-reached-host-ipv4-leading-zero`
+   (`http://0127.0.0.1/ok`, for a claim of `87.0.0.1`)
+   <!-- vector accept-unproven-reached-host-ipv4-leading-zero expected.claims.0.detail -->
+   `the verifier can't tell whether call ... reached 87.0.0.1: its host is an IPv4 address not written as a dotted
+   quad: send it as four decimal numbers 0-255 without leading zeros`. The detail is for people (13.2); an effect's
+   host that won't parse gets no sentence, since the sender did not write it.
+
+   **A response is not a failure, but the record doesn't say so.** A call that got any answer from the host reached
+   it, but `Ran` needs a result with `data.ok == true`, and the evidence profile (6.4) records no protocol status
+   that tells an error answer from a failure to connect. So a call the host answered with an error, which an attesting
+   party may record as not ok, gives `failed` (Appendix C.3; Appendix B question 6). An `effect.observed` of the
+   connection (step 2) proves the claim whatever the answer.
 
 Vectors: `accept-reached-host-http` (`https://API.Example.COM:8443/v1` is `api.example.com`),
-`accept-reached-host-claim-port`, `accept-reached-host-trailing-dot`, `accept-reached-host-short-ipv4`,
+`accept-reached-host-claim-port`, `accept-reached-host-trailing-dot`, `accept-reached-host-dotted-quad`,
 `accept-reached-host-a-label`, `accept-reached-host-ipv4-mapped`, `accept-reached-host-nat64`,
+`accept-unproven-reached-host-ipv4-leading-zero`, `accept-unproven-reached-host-short-ipv4`,
+`accept-unproven-reached-host-hex-ipv4`, `accept-unproven-reached-host-ipv4-number`,
+`accept-unproven-reached-host-claim-not-quad`, `accept-unproven-reached-host-claim-no-host`,
+`accept-unproven-reached-host-blob`, `accept-unproven-reached-host-ipv6-leading-zero-later-octet`,
 `reject-claim-reached-host-other-host`, `reject-claim-reached-host-file-url`,
 `accept-unproven-reached-host-bracket`, `accept-unproven-reached-host-bracket-ipv6-userinfo`,
 `accept-unproven-reached-host-bracket-other-host`, `accept-unproven-reached-host-two-brackets`,
@@ -844,10 +917,10 @@ Vectors: `accept-file-written`, `reject-claim-file-written-wrong-digest`, `rejec
 `reached_host` compares hosts in one canonical form: the claim's `host`, an effect's `data.host` and a call's URL
 host alike. Two hosts match when their compared forms are equal. Ports are ignored. A host that won't parse has no
 compared form, and gives `unproven`, never `proven` or `failed`. Rationale: a host has many spellings
-(`API.Example.COM:8443`, `api.example.com.`, `127.1`, `[2001:DB8:0:0::1]`); comparing one canonical form makes every
-spelling of the same host match. Where two readers this section names disagree on a host (the browser and generic
-readings of step 4), the host won't parse rather than match a host the call may not have reached, and a host the
-verifier can't read proves nothing either way. **[Implemented]**
+(`API.Example.COM:8443`, `api.example.com.`, `[::ffff:7f00:1]`, `[2001:DB8:0:0::1]`); comparing one canonical form
+makes every spelling of the same host match. Where two readers this section names disagree on a host (the browser
+and generic readings of step 4), the host won't parse rather than match a host the call may not have reached, and a
+host the verifier can't read proves nothing either way. **[Implemented]**
 
 **ASCII only (decided, 0.1).** Hosts are compared in printable ASCII only. The host of a URL that holds a character
 outside U+0021 to U+007E anywhere, its path included, won't parse, and neither does a claim's or an effect's host that
@@ -895,8 +968,9 @@ reading.
    An authority with no `[` and no `]` passes. Any other passes only when all of these hold: it holds exactly one `[`
    and one `]`; the `[` is the first character after the authority's last `@` (its first character when it has no
    `@`); the `]` comes after the `[` and is followed by nothing or by `:`; and the text between them is an IPv6
-   address, optionally followed by `%` and a zone id of one or more characters other than `%`, or an IPvFuture
-   address [RFC3986] written as a lowercase `v`, one or more hex digits, `.` and one or more characters. So
+   address, optionally followed by `%` and a zone id of one or more characters other than `%` (a zone id is no
+   address, so `http://[::1%25a.01]/` passes, and step 5 then finds a `%`), or an IPvFuture address [RFC3986] written
+   as a lowercase `v`, one or more hex digits, `.` and one or more characters. So
    `http://[::1]:8080/` and `http://u@[::1]/x` pass, and these are refused: `http://[x]@good.com/` (vector
    `accept-unproven-reached-host-bracket`), `http://[::1]@api.example.com/`
    (`accept-unproven-reached-host-bracket-ipv6-userinfo`), `http://[::1]@evil.example/`
@@ -916,9 +990,12 @@ reading.
 
    Note: no CPython release's `urlsplit` refuses a URL of printable ASCII that passes the bracket rule, so a Python
    verifier checks the rule first and then calls `urlsplit`.
-4. **The scheme, then the host read two ways.** Read the URL as a browser does: peel any number of leading
-   `view-source:` and `blob:` (in any case). Its scheme is the leading `[A-Za-z][A-Za-z0-9+.-]*` before a `:`, in
-   lower case, or none. A URL whose scheme is not `http`, `https`, `ws`, `wss` or `ftp`, and not none, has no host,
+4. **The scheme, then the host read two ways.** **`view-source:` and `blob:` (decided, 0.1).** If the URL starts
+   with `view-source:` or `blob:` (in any case), its host won't parse (`blob:https://api.example.com/x`; vector
+   `accept-unproven-reached-host-blob`). Rationale: a browser's address bar reads the URL inside such a URL, while
+   the WHATWG URL parser reads no host from it, so a verifier can't tell what host, if any, the call reached.
+   Otherwise the URL's scheme is the leading `[A-Za-z][A-Za-z0-9+.-]*` before a `:`, in lower case, or none. A URL
+   whose scheme is not `http`, `https`, `ws`, `wss` or `ftp`, and not none, has no host,
    whatever the generic reading finds (`file://api.example.com/x`, `gopher://g.example/`; vector
    `reject-claim-reached-host-file-url`); neither has a URL with no scheme that does not start with two slashes (`/`
    or `\`). Otherwise read the host two ways:
@@ -941,36 +1018,47 @@ reading.
    First put it in ASCII lower case. Then, if a reading holds a `:`, the host won't parse unless, with every `[` and
    `]` at the reading's ends removed, the reading is an IPv6 address; such a reading is never left out as an empty
    one is (`http:\\[::g]/` is `unproven`, not `failed`; vector `accept-unproven-reached-host-not-ipv6`). Otherwise
-   split the reading at `.`, leaving out one empty last part. When the last part is a number (`0x` and zero or more hex
-   digits, or one or more decimal digits), the host won't parse unless it is an IPv4 address as `inet_aton` reads
-   one: 1 to 4 parts, each `0x` and zero or more hex digits (hexadecimal; `0x` alone is 0), `0` and one or more
-   octal digits (octal), or `0` or 1 to 10 decimal digits not starting with `0` (decimal); every part but the last
-   at most 255, and the last below 256 to the power of (5 minus the number of parts). So `127.1` and `0x7f.1` are
-   `127.0.0.1` (vector `accept-reached-host-short-ipv4`). An address is written in canonical form: IPv4 in dotted
-   decimal; IPv6 as `[`, its text form of [RFC5952] section 4 (never mixed notation), `]`; an IPv4-mapped
+   split the reading at `.`, leaving out one empty last part.
+
+   **IPv4 addresses as dotted quads only (decided, 0.1).** When the last part is a number (one or more ASCII
+   digits, or `0x` or `0X` and zero or more hex digits), the reading is an IPv4 address, and the host won't parse
+   ("its host is an IPv4 address not written as a dotted quad: …", 6.6) unless the reading is a **dotted quad**:
+   exactly 4 parts, each a decimal number from 0 to 255 written without a leading zero (`0` itself is one). So
+   `10.0.0.1` is one (vector `accept-reached-host-dotted-quad`), while `0127.0.0.1`, `127.1`, `0x7f.0.0.1`,
+   `2130706433`, `1.2.3.256` and `1.2.3.4.5` won't parse (vectors `accept-unproven-reached-host-ipv4-leading-zero`,
+   `accept-unproven-reached-host-short-ipv4`, `accept-unproven-reached-host-hex-ipv4`,
+   `accept-unproven-reached-host-ipv4-number`), and `1a.example` and `example.0x1g` are names. Rationale: resolvers
+   read the other forms apart: `inet_aton` reads `0127.0.0.1` as octal, `87.0.0.1`, where the macOS resolver reads
+   it as decimal and connects to `127.0.0.1`, so a verifier that took either reading could prove a host the call
+   never reached.
+
+   An address is written in canonical form: IPv4 as its dotted quad; IPv6 as `[`, its text form of [RFC5952] section 4 (never mixed notation), `]`; an IPv4-mapped
    (`::ffff:0:0/96`) or NAT64 (`64:ff9b::/96`) IPv6 address as the IPv4 address inside (vectors
    `accept-reached-host-ipv4-mapped`, `accept-reached-host-nat64`). Any other reading is a name and stays as it is.
    Two readings whose canonical forms differ: the host won't parse, since the call may have reached either
    (`http://a.example\@b.example/` is `a.example` to the browser reading and `b.example` to the generic one; vector
    `accept-unproven-reached-host-ambiguous`). Else the host is that canonical form.
 
-   Note: in Python this step is `str.lower` and `ipaddress`; the IPv4 rule is C's `inet_aton`.
+   Note: in Python this step is `str.lower` and `ipaddress`, with the dotted quad checked before `ipaddress` reads
+   it: `ipaddress` takes a leading zero before Python 3.9.5.
 6. **Compared form.** A host that starts with `[` stays as it is if it is `[`, an IPv6 address and `]`; else it
    won't parse (`http:\\[h.com]/` is `[h.com]` to the browser reading; vector
    `accept-unproven-reached-host-browser-brackets`). Otherwise drop one trailing dot, and only one (vectors
    `accept-reached-host-trailing-dot`, `accept-unproven-reached-host-two-trailing-dots`). The rest MUST be labels of
    1 to 63 characters, each of `a`-`z`, `0`-`9`, `_` and `-`, joined by single dots; else it won't parse
-   (`a..example`; `a*b.example`, which a browser reads, vector `accept-unproven-reached-host-label-character`). An
-   IPv4 address in dotted decimal is such labels. `https://XN--BCHER-KVA.Example/` is `xn--bcher-kva.example`
-   (vector `accept-reached-host-a-label`).
+   (`a..example`; `a*b.example`, which a browser reads, vector `accept-unproven-reached-host-label-character`). A
+   dotted quad is such labels. `https://XN--BCHER-KVA.Example/` is `xn--bcher-kva.example` (vector
+   `accept-reached-host-a-label`).
 
 **A claim's or an effect's host** is a name or address, maybe with a port. It won't parse if it is not a string, if
 it holds `/`, `\`, `?`, `#`, `@`, `[` or `]`, or if it has exactly one `:` and what follows it is not 1 to 5 ASCII
 digits (`api.example.com:abc`, `api.example.com:`; vector `accept-unproven-reached-host-claim-bad-port`). Otherwise it
 is read as the host of the URL `http://[<host>]/` when it has more than one `:` (a bare IPv6 address), else
-`http://<host>/`, by steps 1 to 6, and won't parse when that URL has no host. So the claim `api.example.com:443` is
-`api.example.com` (vector `accept-reached-host-claim-port`); an effect's `bücher.example` (step 1) or
-`%61pi.example.com` (step 5) won't parse, and neither does the claim `::ffff:01.2.3.4` (step 3).
+`http://<host>/`, by steps 1 to 6, and won't parse when that URL has no host (the claim `:80`, which would
+otherwise match the no host of a `file:` URL; vector `accept-unproven-reached-host-claim-no-host`). So the claim
+`api.example.com:443` is `api.example.com` (vector `accept-reached-host-claim-port`); an effect's `bücher.example`
+(step 1) or `%61pi.example.com` (step 5) won't parse, and neither do the claims `::ffff:01.2.3.4` (step 3) and
+`0127.0.0.1` (step 5; vector `accept-unproven-reached-host-claim-not-quad`).
 
 ### 6.8 Test commands (decided, 0.1)
 
@@ -1038,15 +1126,15 @@ The root grant of `accept-approved-by`, signed after alice approved it:
 
 <!-- vector accept-approved-by input.message.grants.0 -->
 ```json
-{"pcm_grant": 0, "ts": "2026-10-27T23:28:26.871463Z",
- "issuer": {"kind": "person", "id": "uid:990001", "run": "8d0a3180da60ac56d555e03a6440a81e", "tenant": "default",
-            "approval_id": "apr-32a3f5bd8ea8787c464c217bdb3d3769", "person": "alice"},
+{"pcm_grant": 0, "ts": "2026-10-28T02:24:35.477412Z",
+ "issuer": {"kind": "person", "id": "uid:990001", "run": "ec130a625bc622738e7f2652097d9535", "tenant": "default",
+            "approval_id": "apr-afa8cc12fcd9032a7eb9c9479deedd68", "person": "alice"},
  "subject": "uid:990101",
  "intent": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
  "caveats": [{"field": "amount", "op": "<=", "value": 20000}, {"field": "order", "op": "==", "value": 81}],
- "expires_at": "2026-10-28T00:28:26.869425Z", "delegable": false, "parent": null,
+ "expires_at": "2026-10-28T03:24:35.475470Z", "delegable": false, "parent": null,
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "Tl6IZLqoKTsJ12b7Oz2LZ04F5VQt27d8Xi9xjepiRAKAggi7+AT654DnMvrvf1GYaGnzVCHBxwSuLxfyf697AA=="}}
+         "sig": "Jm0YbtyvSJL4GaRkk8BnjWyq1LfF6o6WPlPry8vKCE7Erh3F8nmi1LW94nr2Zu8WWOEN4Y9bqmbSn00cx6L8AA=="}}
 ```
 
 ### 7.2 Caveats
@@ -1125,7 +1213,7 @@ signer MUST refuse to issue a root grant unless all of these hold **[Implemented
 - the approvals configuration maps the approving identity to a person's name: an identity it lets answer but names
   no person for (an OIDC subject included) can't approve a root grant;
 - `expires_at` is after now and at most 24 hours from now;
-- the `pcm.grant` call has no result yet (one grant per approval: section 14.8);
+- the `pcm.grant` call has no result yet (one grant per approval: 14.8);
 - the run is not held or quarantined.
 
 The grant's `issuer` is `{"kind": "person", "id": <approver identity>, "person": <the name the approvals configuration
@@ -1226,6 +1314,8 @@ Steps, in this order:
    - Else **`accept-unproven`** when a claim is `unproven`, or a claim type the document lists has no `proven` claim.
    - Else **`accept`**.
 
+   For `approved_by`, only a `proven` claim with `"covers": true` counts here (6.6).
+
    `reasons` holds one line per cause, in this order: replay, schema errors, grant problems, failed claims, then (for
    `strict`) missing required claims; for `accept-unproven`, the unproven claims, then missing required claims.
 
@@ -1240,7 +1330,8 @@ The expected result of `accept-approved-by` (receiver `uid:990102`, a fresh repl
  "replay": {"ok": true, "detail": "fresh"},
  "schema": {"ok": true, "ref": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c", "errors": []},
  "grants": {"result": "ok", "steps": 1, "root": {"kind": "person", "id": "uid:990001", "person": "alice"}, "problems": []},
- "claims": [{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of \"pcm.grant\" call grant-1",
+ "claims": [{"type": "approved_by", "result": "proven",
+             "detail": "approval seq 5 by alice of \"pcm.grant\" call grant-1, which issued this message's root grant",
              "approved": {"tool": "pcm.grant", "args": null}}],
  "verdict": "accept", "reasons": [], "skipped": []}
 ```
@@ -1357,6 +1448,10 @@ the Ed25519 line's). Messages and grants stay Ed25519 only (4.3). **[Implemented
 implement SLH-DSA MUST fail evidence whose origin has a pinned hybrid key, and evidence whose note carries a line of
 any pinned hybrid key.
 
+Note: `tracekit/slh-dsa-sha2-128s` is a fixed byte string of this protocol, compared as bytes. Its `tracekit/` comes
+from the reference implementation, whose hybrid keys carried it first (Appendix C); it names no product a verifier
+needs.
+
 ### 10.2 The tool placement table
 
 The verifier places tools with a fixed table, `{tool name: class}`.
@@ -1434,8 +1529,9 @@ payload bytes. The signer records a `policy.decision` whose committed args are:
 
 1. The evidence verifies as in 6.2, against the sender's run.
 2. Exactly one record has an opening, and it is a `policy.decision` with `data.tool == "a2a:transfer"`.
-3. The decision is `allow`, or `ask` with an `approval` record in the same evidence that approves its
-   `data.tool_use_id` (`data.decision == "approve"`).
+3. The decision is `allow` or `flag`, or `ask` with an `approval` record in the same evidence that approves its
+   `data.tool_use_id` (`data.decision == "approve"`). A `flag` is a decision to proceed: the call runs as under
+   `allow`, and the record marks it (6.4).
 4. The opened args have `sender`, `receiver`, `modality`, `size` (integer) and `digest` (DIGEST).
 
 If any check fails, the verdict is `reject`. The verifier reports the opened `sender`, `receiver`, `projector`,
@@ -1486,6 +1582,9 @@ list of `{"name", "file", "description", "verdict"}`. Each `vectors/<name>.json`
   recorded or not as section 9 says: not when its signature, recipient or schema check fails), then verifies
   `message`. `now` is the receiver's clock for all of them.
 - `expected` is the full result the reference implementation returned for that input.
+- A **bad-input vector** (`verdict` `bad-input`) holds `message_text`, the message as JSON text, in place of
+  `message`. The text does not parse (3.3), so there is no result: `expected` is `{"verdict": "bad-input",
+  "reasons": [...]}`, and the reasons are for people (vector `bad-input-number-past-double`).
 
 A trust document or schema document the verifier must refuse as a configuration error (5.2, 10.1) is no vector: it
 has no result to compare. Those rules are covered by the standalone verifier's tests.
@@ -1493,10 +1592,14 @@ has no result to compare. Those rules are covered by the standalone verifier's t
 **Conformance rule.** A verifier conforms on a vector when its `verdict`, `signature.ok`, `replay.ok`, `schema.ok`,
 `grants.result`, every `claims[i].result`, every `claims[i].approved` (present exactly when `expected` has it: a proven
 `approved_by`, 6.6) and `skipped` equal the expected ones (a part that is `null` in `expected` must be absent or
-`null`). The `detail`, `reasons` and `problems` strings are for people, not compared.
+`null`). The `detail`, `reasons` and `problems` strings are for people, not compared. A verifier conforms on a
+bad-input vector when it refuses its `message_text` as a parse error, before any check.
 
 A vector is a Level 2 vector when any claim of its message carries `evidence`; otherwise it is a Level 1 vector. A
-verifier conforms to a level when it conforms on every vector of that level.
+verifier conforms to a level when it conforms on every vector of that level. Level 1 vectors pin `accept-unproven` with
+a claim that has no evidence (`accept-unproven-claim-without-evidence`) and with a claim type the schema lists and no
+claim proves (`accept-unproven-required-claim-missing`). No vector pins a Level 1 verifier's `unproven` for a claim
+with evidence (13.1): a vector whose claim carries evidence is a Level 2 vector.
 
 ## 14. Security considerations
 
@@ -1582,9 +1685,39 @@ assumption PCM rests on, with the rule that closes or bounds it.
     `reject-claim-decision-without-id`, `reject-replay-no-real-time`. Non-object args, non-object events and deep values
     are covered by the standalone verifier's tests, not by vectors: a signer never makes them, and a value past the
     recursion limit is no portable JSON.
-13. **Evidence is not freshness.** Evidence proves a call happened in the sender's run, not that it is the latest
-    state. Tests that passed at 10:00 prove nothing about code changed at 10:05. **Rule:** a receiver that needs
-    freshness SHOULD read the record's `ts` and ask for a fresh claim; a sender SHOULD claim right after the call.
+13. **Evidence is not freshness.** Evidence proves that a call happened in the sender's run, not that nothing
+    happened after it: the sender chooses which records to send, and none of the run's later records need be among
+    them. A suite passed, the code changed and the suite failed: the record of the pass still proves `tests_passed`.
+    A file was written, then written again: the record of the first write still proves `file_written`. Both claims
+    are `proven`, since every claim type says that something happened, not that it still holds. PCM 0.1 has no
+    evidence that shows what came later; Appendix B question 5 designs one. **Rule:** a sender SHOULD get its
+    evidence and send its message right after the call. A receiver MUST NOT read `proven` as saying that what the
+    claim describes still holds, and a receiver that acts on the current state SHOULD apply the checks below. Only
+    the digest check rules a later change out, and only for the file the receiver holds; the others shorten the time
+    in which a later change can hide.
+    - **Age.** Take the oldest `ts` among a claim's evidence records and refuse to act when the message's `ts` is more
+      than a maximum age after it. The oldest, because the sender chooses the records: one it adds can't make the
+      evidence look newer, and for `tests_passed` it is no later than the decision's, made before the runner ran. The
+      verifier's result carries no time; the receiver reads `event.ts` of each record in the message. Set the age per
+      intent, in seconds or minutes, not hours: an honest sender waits only for a checkpoint that covers the call's
+      records, and a suite can pass, the code change and the suite fail within a minute. Both times are the signing
+      log's, so the receiver's clock plays no part, but only where the log sets a record's `ts` from its own clock
+      when it appends the record. The evidence profile's event schema describes `ts` as client-reported and does not
+      require that; the reference implementation's signer does it (Appendix C.3).
+    - **After the last change the receiver knows of.** A receiver that knows when what it acts on last changed (the
+      commit it will merge was pushed, it sent the request that asked for the check) SHOULD refuse evidence whose
+      oldest `ts` is earlier, allowing for the clock difference section 9 allows. The call then ran after that change.
+    - **`tests_passed`.** The receiver names the suite it needs (and compares `suite` with it, 6.6) and has the sender
+      run it after the request, which the check above then binds. The claim still says nothing of the code the suite
+      ran on: the agent can change the code after the run, run the suite again in another run, or run it until it
+      passes, and claim the pass. Where that matters, the receiver runs the suite itself on the code it acts on.
+    - **`file_written`.** `digest` is SHA-256 of the UTF-8 content the call wrote (6.6). The receiver computes
+      `"sha256:" + hex(SHA-256(bytes))` over the file as it receives or reads it, once, and uses those same bytes.
+      When the two differ, the file it holds is not the one the claim proves was written: it was written again since,
+      or it is another file. When they are equal, the claim proves a call wrote the very bytes the receiver holds,
+      whatever happened to the path later.
+    - **`approved_by`, `reached_host`.** The age check is what PCM 0.1 offers. For authority that must lapse, a
+      receiver requires a grant, whose expiry the verifier checks (7.6).
 14. **Replay.** **Rule:** replay state is per receiver: nonce, plus the time window, plus a per-sender floor raised by
     eviction (section 9). Messages signed before the receiver started are refused. A message replayed to another
     replica of the same receiver must not pass there: each (sender, nonce) is accepted at most once per receiver
@@ -1630,11 +1763,14 @@ assumption PCM rests on, with the rule that closes or bounds it.
     that left the bracket check to Python's `urlsplit`, or let it find no host before the bracket check, gave one
     message different verdicts on different CPython releases, which check brackets three ways and strip leading
     spaces, tabs and control characters differently, and so did Python's `ipaddress`, which reads `::ffff:01.2.3.4`
-    as `::ffff:1.2.3.4` before 3.9.5 and refuses it since. **Rule:** hosts are compared in one canonical form, in
-    printable ASCII only and never percent-decoded; a URL or host with any other character, a host that won't parse
-    and one that two readers read apart give `unproven`, never `proven`; a verifier checks one bracket rule itself,
-    before any other reading of the URL, and refuses a leading zero in an IPv6 address's dotted quad; a URL of a
-    scheme without a host reaches none (6.7). Vectors: the `reached-host` vectors of 6.6.
+    as `::ffff:1.2.3.4` before 3.9.5 and refuses it since. Drafts that read an IPv4 address in every form
+    `inet_aton` takes proved `87.0.0.1` from `http://0127.0.0.1/`, which the macOS resolver connects to as
+    `127.0.0.1`. **Rule:** hosts are compared in one canonical form, in printable ASCII only and never
+    percent-decoded; a URL or host with any other character, a host that won't parse and one that two readers read
+    apart give `unproven`, never `proven`; a verifier checks one bracket rule itself, before any other reading of the
+    URL, and refuses a leading zero in an IPv6 address's dotted quad; it reads an IPv4 address only as a dotted quad,
+    and the host of a `view-source:` or `blob:` URL won't parse; a URL of a scheme without a host reaches none (6.7).
+    Vectors: the `reached-host` vectors of 6.6.
 21. **Signature malleability.** With lenient base64, one signature had several texts that verified, so a grant's
     text, and its hash in a child's `parent`, could change without a new signature. **Rule:** canonical base64 only
     (4.3). Vectors: `reject-sig-non-canonical-base64`, `reject-claim-proof-non-canonical-base64`.
@@ -1698,7 +1834,12 @@ assumption PCM rests on, with the rule that closes or bounds it.
     `reject-claim-approved-by-without-decision`, `reject-claim-approved-by-other-decision`,
     `accept-approved-by-opened-args`, `reject-claim-approved-by-request-names-two-decisions`,
     `reject-claim-approved-by-two-decisions`, `reject-claim-approved-by-args-true-and-1`,
-    `reject-claim-record-listed-twice`.
+    `reject-claim-record-listed-twice`. A receiver that acted on the verdict alone still took a person's approval of
+    a smaller refund, or of another tool, as authority for the request. **Rule:** a claim meets a schema's need for
+    `approved_by` only with `covers`, which the verifier checks against the root grant, or against the schema's
+    `tool` and the intent's args (6.6). Vectors: `reject-claim-approved-by-covers-other-args`,
+    `reject-claim-approved-by-covers-other-tool`, `reject-claim-approved-by-covers-grant-not-root`,
+    `accept-unproven-approved-by-required-without-covers`.
 28. **An attempt is not a connection.** A kernel sensor reports a process's call to connect, and an egress observer
     records a minute with no connection when its connect upstream failed; an earlier draft took either as proof that
     the run reached the host. **Rule:** only an egress observer's `net` record with `data.connections` above 0
@@ -1770,7 +1911,7 @@ Change controller: Cygnux Labs
 | Name | Args | Defined in | Status |
 |---|---|---|---|
 | `tests_passed` | `suite` | 6.6 | [Implemented] |
-| `approved_by` | `person`, `call` | 6.6 | [Implemented] |
+| `approved_by` | `person`, `call`, `covers` | 6.6 | [Implemented] |
 | `reached_host` | `host` | 6.6 | [Implemented] |
 | `file_written` | `path`, `digest` | 6.6 | [Implemented] |
 
@@ -1873,6 +2014,8 @@ built from an earlier design changes to match.
   exceptions where IDNA versions disagree.
 - **`approved_by` records.** Records that disagree on what was approved fail the claim (6.6), not the first in the
   order the sender listed them.
+- **What an approval covers.** The sender says with `covers` which approval stands for the request, and the verifier
+  checks it against the root grant or the schema's `tool` (6.6), not a receiver comparing `approved` with the intent.
 - **`reached_host`.** Only by a connection an egress observer saw opened (6.6, 14.28), not by an attempt.
 - **`file_written` paths.** By POSIX or Windows rules, picked by the claim's path (6.6), not with every `\` read as
   `/`.
@@ -1893,13 +2036,15 @@ A review of the previous draft found an attack on its verifier rules: a `tests_p
 `&` or a file named like a runner was proven though its exit status was not the tests' (14.10, 14.19, 14.23). This
 draft closes those; it has no other known open attack on its verifier rules. What `tests_passed` proves still rests
 on the receiver reading `suite` (6.6), and what a T2 result proves rests on how the deployment names its tools (6.4,
-14.26). Questions earlier drafts left open are now decided rules, each marked "(decided, 0.1)": canonical base64
-(4.3), the signing key (4.5), only a configured person for `approved_by` and what it names (6.6), connections, not
-attempts, for `reached_host` (6.6), records that disagree on what was approved (6.6), absolute paths and path rules
-for `file_written` (6.6), host comparison in ASCII only and the bracket rule (6.7), test commands and plain words
-(6.8), skipped checks (8), the sender pair, one acceptance per receiver and which messages spend their nonce (9), one
-key per log (10.1) and the frozen tool table (10.2). Where the reference implementation does less than this document asks,
-Appendix C.4 says so. What remains are questions for a later draft:
+14.26). Questions earlier drafts left open are now decided rules, each marked "(decided, 0.1)": numbers past the
+double range (3.3), canonical base64 (4.3), the signing key (4.5), only a configured person for `approved_by`, what
+it names and covers (6.6), connections, not attempts, for `reached_host` (6.6), what the sender can do for a URL whose
+host won't parse (6.6), records that disagree on what was approved (6.6), absolute paths and path rules for
+`file_written` (6.6), host comparison in ASCII only, the bracket rule, `view-source:` and `blob:` URLs and IPv4
+addresses as dotted quads (6.7), test commands and plain words (6.8), skipped checks (8), the sender pair, one
+acceptance per receiver and which messages spend their nonce (9), one key per log (10.1) and the frozen tool table
+(10.2). Where the reference implementation does less than this document asks, Appendix C.4 says so. What remains
+are questions for a later draft:
 
 1. **Unicode hosts** (6.7). PCM 0.1 compares hosts in printable ASCII only: a URL or host with any other character
    gives `unproven`, so a sender fetches and claims a name in another script in its A-label form, and a URL with a
@@ -1919,6 +2064,76 @@ Appendix C.4 says so. What remains are questions for a later draft:
    executor of a pinned log to record a tool only under a name of its class. A trust member that pins which
    attesting parties (`data.via`) may attest each class would let a receiver trust one executor's `shell` calls
    without trusting every action of another.
+5. **Fresh evidence** (14.13). A PCM 0.1 claim says that a call happened, and its evidence can't show that nothing
+   later undid it. A later draft could add two things, which work alone and better together.
+
+   **The run since the call.** The evidence profile already chains each run: beside `seq` and `prev_hash`, which
+   chain the whole log, every record carries `run_seq`, its place in its run, and `run_prev_hash`, the `hash` of the
+   run's record before it (`sha256:` and 64 zeros at `run_seq` 0), both set by the log (a trust assumption 6.4 would
+   then state). The design adds:
+   - a signer-set envelope member `head`, `{"run_seq": n, "hash": DIGEST}`: the last record the log had appended to
+     the sender's run when the signer took the message to sign, set like `ts` and `nonce`, so the agent can't choose
+     it. The message's own record (4.4) holds the message's hash, so it comes after `head`;
+   - an evidence item marked `"since": true`, whose `records` are the claim's records and every record of the run
+     after the first of them, up to the one `head` names, in `run_seq` order.
+
+   The verifier checks, besides 6.2: each record after the first has a `run_seq` one more than the record before it
+   and a `run_prev_hash` equal to that record's `hash`; the last record's `run_seq` and `hash` are `head`'s. The run
+   chain binds each record to the next and the message's signature binds `head`, so every record of the item rests
+   on that signature, and no record of the run from the call to `head` is missing; what the log appends after `head`
+   is after the message. The records that prove the claim still carry inclusion proofs as in 6.2, so they stay under
+   a checkpoint and its witnesses; the others need none. The checkers then read the later records; a denied decision
+   counts for nothing (6.5):
+   - `tests_passed`: a later call of a `shell` tool whose opened command is `suite` fails the claim when its result's
+     `ok` is not `true` ("the suite failed after it passed"), and makes it `unproven` when it has no result yet. A
+     later `shell` call whose decision is not opened, and that has no result or one that is not `ok`, makes the claim
+     `unproven` ("a later shell call failed: open it to show it ran another command"). A sender clears an unrelated
+     failure by opening it; a later call that succeeded needs no opening. A later result the agent reported itself
+     (T1) is its word, so it shows a failure only when the agent reports one: only calls an attesting executor ran
+     show a later failure the agent would hide.
+   - `file_written`: a later call of a tool that writes files, to the claim's path with other content, fails the
+     claim; one whose path the evidence does not show makes it `unproven`. This needs the placement table to tell
+     writing tools from reading ones: its `fs` class holds both `Read` and `Write` (10.2).
+
+   Costs: the message carries every later record, about 1 KB each, so a cap in place of 6.2's 16 bounds how long
+   after the call a sender can claim; the receiver sees each later record's type, tool name, time and observed hosts,
+   though no unopened args (15); the verifier hashes each record once. Limits: the later records rest on the
+   message's signature, not on a cosigned checkpoint, unless the sender waits for a checkpoint that covers `head`
+   (14.24). The run is the sender's own, so a run of the suite in another run of the same agent does not show, nor
+   does a write by a shell command or another process (the receiver's digest check of 14.13 does), nor the runs
+   before the claimed one (a flaky suite run until it passed) unless the sender sends its run from `run_seq` 0.
+   Without a bound claim, the form shows that no later recorded run of the suite failed, not that the code is
+   unchanged: a later call that succeeded, of a shell or of a tool that writes files, may have changed it, though the
+   receiver sees its tool name.
+
+   **Bound claims.** The attesting executor records what a call ran on, in a new member of its `tool.result` record's
+   `data` (the profile's event schema closes `data` today, so the profile changes), and the claim names it:
+   - `tests_passed {suite, tree}`: the agent names a git commit, and the executor checks its tree out into a fresh
+     directory the agent can't write, runs the suite there and records the tree's id (in the repository's object
+     format: SHA-1 with collision detection, or SHA-256) as the result's `data.tree`. The claim is proven only by a
+     result whose `data.tree` is `tree`, and a receiver that merges commit C compares `tree` with
+     `git rev-parse C^{tree}`: a later run on other code no longer matters, and with the run since the call, a later
+     failure on the same tree shows. Hashing the agent's own working directory instead would not do: a file git
+     ignores (a `conftest.py` that marks every test passed, listed in `.git/info/exclude`) changes the result and not
+     the id, and the agent can change files while the runner runs. Installed dependencies, `PATH` and the environment
+     stay outside the tree. Cost: a checkout per run (seconds on a large tree), dependencies the executor provides
+     outside it, and the agent commits its changes before it asks for a run.
+   - `file_written {path, digest}`: the executor reads the file back after it writes it and records `data.file`,
+     `{"path", "digest"}`: the absolute path it wrote and SHA-256 of the bytes on disk. That record alone proves the
+     claim, so the decision need not be opened and the content stays with the sender; a relative path is resolved
+     where the call ran; and in the run since the call, later writes show their paths without openings. Cost: a
+     read-back and a hash per write, and the path is in clear in the log, where PCM 0.1 keeps every arg behind a
+     commitment (6.3).
+
+   A signer statement, "the last run of this suite in the run is seq N", was considered instead. It is smaller, but
+   a signer that commits to args (6.3) has none in clear to match commands with, and the receiver would take its
+   matching on trust instead of checking it.
+6. **A response with an error status** (6.6, `reached_host`). A call the host answered with an HTTP error, such as
+   a 404, reached the host, but the evidence profile records only whether the result was ok, and an attesting party
+   may record such a call as not ok (Appendix C.3), so it proves nothing. For PCM 0.2: the evidence profile could
+   record whether a call got a response, such as its protocol status, so that `reached_host` rests on any response
+   rather than on success. That changes the evidence format, so 0.1 keeps it; an egress observer's
+   `effect.observed` (6.6, `reached_host` step 2) proves the connection whatever the answer.
 
 ## Appendix C. Reference implementation
 
@@ -1958,15 +2173,16 @@ with the normative text, that is a bug in one of them: open an issue.
 | 4.3 signatures | `tracekit.pcm.check_sig`; canonical base64 in `tracekit.format.checkpoint._unb64`; Ed25519 in `tracekit.crypto.verify_v2`, the rules of Tracekit's v2 evidence format |
 | 5 schema documents | `tracekit.pcm.SCHEMA_DOC`, `check_schema`; a bad document makes `verify` raise `ValueError` |
 | 6.2 evidence | `tracekit.pcm.claims.evidence`; notes in `tracekit.format.checkpoint.open_note` |
-| 6.6 `approved_by`, `reached_host` | `tracekit.pcm.claims.approved_by`, `reached_host`; what the sender can do in `NOT_ASCII`, `PERCENT` and `_why` |
+| 6.6 `approved_by`, `reached_host` | `tracekit.pcm.claims.approved_by`, `reached_host`; what the sender can do in `NOT_ASCII`, `PERCENT`, `NOT_QUAD` and `_why` |
 | 6.6 paths | `tracekit.pcm.claims._path`, `malformed`, `file_written`; Tracekit's policy rules read paths with `tracekit.policy2.classes.fs_path`, which reads every `\` as `/`, so policy verdicts don't follow 6.6 |
-| 6.7 hosts | `tracekit.pcm.claims._url_host` (steps 1 to 6) and `_host`, on `tracekit.policy2.classes.url_info` (the scheme of step 2 in `with_scheme`, the browser reading in `_whatwg_host`); the bracket rule in `_brackets_ok`; the leading-zero check in `_ZERO_QUAD` |
+| 6.7 hosts | `tracekit.pcm.claims._url_host` (steps 1 to 6) and `_host`, on `tracekit.policy2.classes.url_info` (the scheme of step 2 in `with_scheme`, the browser reading in `_whatwg_host`); the bracket rule in `_brackets_ok`; the leading-zero check in `_ZERO_QUAD`; the dotted-quad check in `_not_quad`; `view-source:` and `blob:` in `_PEELED` |
 | 6.8 test commands | `tracekit.pcm.claims.test_command`, `TEST_RUNNERS`, `NO_TESTS` |
 | 7.3 narrowing | `tracekit.pcm.narrows` |
 | 7.6 grant chains | `tracekit.pcm.verify_grants` |
 | 8 verification | `tracekit.pcm.verify` (an invalid envelope lists up to 8 reasons) |
 | 9 replay | `tracekit.pcm.Replay`; `Replay.check(record=False)` checks without recording |
 | 10.1 one key per log | `tracekit.pcm.verify`, which raises `ValueError` |
+| 10.1 hybrid keys | `tracekit.format.checkpoint.SLH_DSA`, the prefix of a hybrid key's bytes |
 | 10.2 tool placement | `tracekit.pcm.claims.placed()`, reading `tracekit/pcm/tools.json` |
 
 ### C.3 Behaviour beyond the protocol
@@ -1975,6 +2191,11 @@ with the normative text, that is a bug in one of them: open an issue.
   the calling run's own agent (uid:990101, run …, tenant default)`, and refuses a caller that holds the run token but
   is not the run's owner, such as a tailer or an observer (4.4). It writes an `ext` record with `name: pcm.sent` for
   each message it signs (4.4) and one with `name: pcm.grant` for each grant (7.4).
+- **Record times.** The signer sets every record's `ts` from its own clock when it appends the record, and a message's
+  `ts` from the same clock when it signs it; nothing a client sends sets either, though the event schema's description
+  of `ts` still says client-reported (14.13). `pcm_evidence` returns records with proofs under the latest checkpoint.
+  The SDK asks for a new checkpoint until one covers them, and the signer writes at most one a second on request (one
+  every 10 s while the log grows), so an honest sender has its evidence about a second after the call.
 - **Root grants.** The signer refuses a root grant whose approver `approvals.persons` in `signer.yaml` maps to no
   person, with `forbidden: a root grant needs the approval of a person signer.yaml's approvals.persons names: <id>
   maps to none`; an OIDC approver that `approvals.persons` does not map is one (7.4). It refuses a child whose
@@ -2009,14 +2230,16 @@ with the normative text, that is a bug in one of them: open an issue.
   is built. Tracekit's A2A gateway (`tracekit/a2a_gateway.py`) forwards a PCM part like any other part, without
   verifying it. The SDK call `RunHandle.transfer` records the transfer of 12.2: it takes the payload bytes, the model
   ids, the modality, an optional projector and the options `measured` and `keep`, and decides the tool
-  `a2a:transfer`. Nothing in Tracekit makes or checks the transfer payload of 12.3.
+  `a2a:transfer`. It goes ahead on an `allow` or a `flag` decision, or on an `ask` approved within 5 minutes; for a
+  flagged transfer the `decide` answer says `allow`, and only the signed `policy.decision` says `flag` (12.3 step 3).
+  Nothing in Tracekit makes or checks the transfer payload of 12.3.
 - **The demo.** `tracekit pcm demo` runs the refund example of section 1 with a real signer (a separate run from the
   vectors):
 
   ```text
   alice approves agent A's grant: refund.request, amount <= $200.00, order == 81, until 18:00Z, can be passed on: no
   A -> B  refund.request {amount $120.00, order 81} + approved_by(alice)
-      B: ACCEPT           signature ok · replay ok · schema ok · grant ok (alice, 1 step) · approved_by proven (approval seq 4 by alice of "pcm.grant" call grant-1)
+      B: ACCEPT           signature ok · replay ok · schema ok · grant ok (alice, 1 step) · approved_by proven (approval seq 4 by alice of "pcm.grant" call grant-1, which issued this message's root grant)
   A -> B  same request + tests_passed(pytest tests/test_refund.py), no evidence
       B: ACCEPT-UNPROVEN  tests_passed: unproven (no evidence)
   A -> B  approved_by with one record hash changed

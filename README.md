@@ -21,9 +21,9 @@ claim that rests only on the agent's word is `unproven`, never `proven`.
 
 This is what `tracekit pcm demo` does, with a real signer:
 
-1. Agent A asks for a grant: "A may send `refund.request` with `amount <= 20000` (cents) and `order == 81`, for one
-   hour". The signer won't sign that on A's say-so. It holds the request until alice, a person, approves it. Then it
-   signs the grant.
+1. Agent A asks for a grant: "A may send `refund.request` with `amount <= 20000` (cents) and `order == 81`, until
+   18:00Z" (for an hour when it runs after 17:50Z). The signer won't sign that on A's say-so. It holds the request
+   until alice, a person, approves it. Then it signs the grant.
 2. A asks B for a $120.00 refund. It attaches alice's grant and a claim, `approved_by alice`, with records from A's
    signed log as evidence: alice's approval, the request it answers and the `pcm.grant` decision she approved. The
    signer signs the message as A, and only as A.
@@ -38,7 +38,7 @@ This is what `tracekit pcm demo` does, with a real signer:
 $ tracekit pcm demo
   alice approves agent A's grant: refund.request, amount <= $200.00, order == 81, until 18:00Z, can be passed on: no
   A -> B  refund.request {amount $120.00, order 81} + approved_by(alice)
-      B: ACCEPT           signature ok · replay ok · schema ok · grant ok (alice, 1 step) · approved_by proven (approval seq 4 by alice of "pcm.grant" call grant-1)
+      B: ACCEPT           signature ok · replay ok · schema ok · grant ok (alice, 1 step) · approved_by proven (approval seq 4 by alice of "pcm.grant" call grant-1, which issued this message's root grant)
   A -> B  same request + tests_passed(pytest tests/test_refund.py), no evidence
       B: ACCEPT-UNPROVEN  tests_passed: unproven (no evidence)
   A -> B  approved_by with one record hash changed
@@ -46,7 +46,7 @@ $ tracekit pcm demo
   A -> B  refund.request {amount $500.00, order 81} + approved_by(alice)
       B: REJECT           grant: grant 0: amount 50000 breaks amount <= 20000
   A asks the signer to sign as B
-      signer: forbidden: the signer signs only as the calling run's own agent (uid:990101, run 682b33a74fb7e277f59f38d40404dcae, tenant default)
+      signer: forbidden: the signer signs only as the calling run's own agent (uid:990101, run …, tenant default)
 ```
 
 ## Verify a message

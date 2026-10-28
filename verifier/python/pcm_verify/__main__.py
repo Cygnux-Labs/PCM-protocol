@@ -2,6 +2,7 @@
 accept, 3 accept-unproven, 1 reject, 2 a usage error or an input it can't read."""
 import argparse
 import json
+import math
 import sys
 
 from pcm_verify import MAX_SAFE_INT, verify
@@ -35,10 +36,21 @@ def _strict(value):
     return value
 
 
-def load(path):
+def _finite(s):
+    """SPEC 3.3: a number that rounds to no finite IEEE 754 double (1e400) does not parse."""
+    if not math.isfinite(f := float(s)):
+        raise ValueError(f"{s[:64]} is past the IEEE 754 double range")
+    return f
+
+
+def loads(text):
     """Strict JSON: no NaN or Infinity, no repeated keys (each JSON reader would pick a different one), and SPEC 3.3."""
+    return _strict(json.loads(text, parse_constant=_refuse, parse_float=_finite, object_pairs_hook=_dup))
+
+
+def load(path):
     with open(path, encoding="utf-8") as f:
-        return _strict(json.load(f, parse_constant=_refuse, object_pairs_hook=_dup))
+        return loads(f.read())
 
 
 def main(argv=None):

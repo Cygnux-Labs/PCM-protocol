@@ -107,7 +107,8 @@ FIELD = {"oneOf": [
 SCHEMA_DOC = _obj(["pcm_schema", "name", "fields"], pcm_schema=ZERO, name=_str(64, pattern=r"[a-z][a-z0-9_.-]*"),
                   fields={"type": "object", "additionalProperties": FIELD,
                           "propertyNames": {"type": "string", "pattern": r"[a-z][a-z0-9_]{0,63}"}},
-                  claims={"type": "array", "maxItems": len(CLAIM_TYPES), "items": {"enum": CLAIM_TYPES}}, grant=BOOL)
+                  claims={"type": "array", "maxItems": len(CLAIM_TYPES), "items": {"enum": CLAIM_TYPES}}, grant=BOOL,
+                  tool=_str(256, minLength=1))   # SPEC 5.1: the tool the intent stands for, read by covers (6.6)
 
 _TYPES = {"object": dict, "array": list, "string": str, "boolean": bool, "null": type(None)}
 
@@ -191,7 +192,8 @@ OPS = {"int": "== <= >= < >", "money": "== <= >= < >", "time": "== <= >=", "stri
        "enum": "== in", "bool": "=="}
 CLAIM_ARGS = {"tests_passed": {"suite": {"type": "string", "max": 4096}},
               "approved_by": {"person": {"type": "string", "max": 256},
-                              "call": {"type": "id", "pattern": ID["pattern"]}},
+                              "call": {"type": "id", "pattern": ID["pattern"]},
+                              "covers": {"type": "bool", "optional": True}},
               "reached_host": {"host": {"type": "id", "pattern": r"[a-z0-9._:-]+"}},
               "file_written": {"path": {"type": "string", "max": 4096},
                                "digest": {"type": "id", "pattern": DIGEST["pattern"]}}}
@@ -630,12 +632,15 @@ def tests_passed(a, recs):
                 f"ran {a['suite'][:64]!r}", "shell")
 
 
-def approved_by(a, recs):
+def approved_by(a, recs, msg, doc):
     """SPEC 6.6: the person's approval of call `call`, with the approval.request it answers and the policy.decision
     that request names. The call id is the agent's own name for the call, so only the decision says what was approved:
     a proven claim adds its {tool, args} (args None unless the evidence opens them), and the detail names them too,
     the agent's tool name as JSON so it can't spell args. Records that disagree on what was approved fail it, whatever
-    their order: requests of one approval that name two decisions, or approvals of the call that name two."""
+    their order: requests of one approval that name two decisions, or approvals of the call that name two.
+
+    With `covers` the sender also says the approval covers message `msg`'s request: it issued the message's root
+    grant, or it is of the tool the intent's schema document `doc` names, with the intent's args."""
     mine = []
     for e, _ in recs:
         d = _data(e)
@@ -645,7 +650,7 @@ def approved_by(a, recs):
             mine.append(e)
     if not mine:
         return "failed", f"no approval of {a['call']} by the person {a['person']}"
-    found = {}   # {JCS of [tool, args]: (the first approval of it, tool, args)}
+    found, aids = {}, set()   # {JCS of [tool, args]: (the first approval of it, tool, args)}, the approvals' ids
     for e in sorted(mine, key=lambda e: e["seq"]):
         asked = {_data(x).get("decision_id") for x, _ in recs
                  if x.get("type") == "approval.request" and _data(x).get("approval_id") == _data(e).get("approval_id")}
@@ -656,6 +661,7 @@ def approved_by(a, recs):
             if x.get("type") == "policy.decision" and c.get("decision_id") in asked \
                     and c.get("tool_use_id") == a["call"] and c.get("tool"):
                 found.setdefault(jcs([c["tool"], args]), (e, c["tool"], args))
+                aids.add(_data(e).get("approval_id"))
     if len(found) > 1:
         return "failed", (f"the evidence holds {len(found)} different decisions approved as call {a['call']} by "
                           f"{a['person']}: send the records of one approval")
@@ -664,64 +670,77 @@ def approved_by(a, recs):
                           "evidence holds no decision of the call it approved: add the approval.request it answers "
                           "and the policy.decision that request names")
     [(e, tool, args)] = found.values()
-    return "proven", (f"approval seq {e['seq']} by {a['person']} of {jcs(tool).decode()} call {a['call']}"
-                      + ("" if args is None else f" with args {jcs(args).decode()}")), {"tool": tool, "args": args}
+    said = (f"approval seq {e['seq']} by {a['person']} of {jcs(tool).decode()} call {a['call']}"
+            + ("" if args is None else f" with args {jcs(args).decode()}"))
+    approved = {"tool": tool, "args": args}
+    if a.get("covers") is not True:
+        return "proven", said, approved
+    # SPEC 6.6, covers: the approval that issued the root grant, else one of the schema's tool with the intent's args
+    root, want = (msg.get("grants") or [{}])[0].get("issuer", {}), (doc or {}).get("tool")
+    if tool == "pcm.grant":
+        if root.get("approval_id") in aids and (root["run"], root["tenant"]) == (msg["from"]["run"],
+                                                                                  msg["from"]["tenant"]):
+            return "proven", f"{said}, which issued this message's root grant", approved
+        return "failed", (f"{said}: a pcm.grant approval covers only the requests under the grant it issued, and it "
+                          "did not issue this message's root grant")
+    if want is None:
+        return "unproven", (f"{said}: the intent's schema names no tool, so the verifier can't tell whether it covers "
+                            "this request: name the tool in the schema document, or cite the approval that issued the "
+                            "message's root grant")
+    if tool != want:
+        return "failed", (f"{said}: not of {jcs(want).decode()}, the tool the intent's schema names, so it does not "
+                          "cover this request")
+    if args is None:
+        return "unproven", (f"{said}: its args are not opened, so the verifier can't tell whether they are this "
+                            "request's: open the decision")
+    if jcs(args) != jcs(msg["intent"]["args"]):
+        return "failed", (f"{said}: not this request's args {jcs(msg['intent']['args']).decode()}, so it does not "
+                          "cover this request")
+    return "proven", f"{said}: this request's tool and args", approved
 
 
 # SPEC 6.7: hosts, read in printable ASCII only (U+0021 to U+007E)
 SPECIAL = ("http", "https", "ws", "wss", "ftp")
 PRINTABLE = re.compile(r"[!-~]*")
 ZERO_QUAD = re.compile(r"\.0[0-9]|:0[0-9]+\.")   # a leading zero in an IPv6 address's dotted quad: ::ffff:01.2.3.4
+NUMBER = re.compile(r"[0-9]+|0[xX][0-9A-Fa-f]*")   # a last label that makes a host an IPv4 address (WHATWG URL)
+_OCTET = r"(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])"
+QUAD = re.compile(rf"{_OCTET}(\.{_OCTET}){{3}}")   # the one form of an IPv4 address every resolver reads alike
+PEELED = re.compile(r"(?i)(view-source|blob):")   # SPEC 6.7 step 4: a browser reads the URL inside, WHATWG URL no host
 _BAD = object()   # looks like an address and is none
 # SPEC 6.6: what a call's detail tells the sender when its URL's host won't parse for a cause the sender can fix
-NOT_ASCII = ("its URL is not printable ASCII: send the URL with the host in xn-- form and the path and query "
-             "percent-encoded")
+NOT_ASCII = ("its URL is not printable ASCII: send it without spaces or control characters, with the host in xn-- "
+             "form and anything else percent-encoded")
 PERCENT = "its host has a %: send the URL with the host as plain ASCII, not percent-encoded"
+NOT_QUAD = ("its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255 without "
+            "leading zeros")
 
 
 def _whatwg_host(url):
-    """(scheme, host) as a browser reads them (SPEC 6.7 step 4): view-source: and blob: peeled, `\\` a `/`, any number
-    of slashes after a special scheme, the host after the last `@`, without its port. The host is None for a scheme
-    that has none; the scheme is None for //host."""
-    u = url[re.match(r"(?i)(?:view-source:|blob:)*", url).end():]
-    m = re.match(r"([A-Za-z][A-Za-z0-9+.-]*):", u)
+    """(scheme, host) as a browser reads them (SPEC 6.7 step 4): `\\` a `/`, any number of slashes after a special
+    scheme, the host after the last `@`, without its port. The host is None for a scheme that has none; the scheme is
+    None for //host."""
+    m = re.match(r"([A-Za-z][A-Za-z0-9+.-]*):", url)
     scheme = m.group(1).lower() if m else None
-    if scheme not in SPECIAL and (scheme or not re.match(r"[/\\]{2}", u)):
+    if scheme not in SPECIAL and (scheme or not re.match(r"[/\\]{2}", url)):
         return scheme, None
-    host = re.split(r"[/?#]", (u[m.end():] if m else u).replace("\\", "/").lstrip("/"), maxsplit=1)[0]
+    host = re.split(r"[/?#]", (url[m.end():] if m else url).replace("\\", "/").lstrip("/"), maxsplit=1)[0]
     host = host.rpartition("@")[2]
     return scheme, host[:host.find("]") + 1] if host.startswith("[") and "]" in host else host.split(":")[0]
 
 
-def _number(part):
-    """An IPv4 part in decimal, 0x hex or 0 octal; None for a name; -1 for 08 or more than 10 decimal digits."""
-    if re.fullmatch(r"0[xX][0-9A-Fa-f]*", part):
-        return int(part[2:] or "0", 16)
-    if re.fullmatch(r"0[0-7]+", part):
-        return int(part, 8)
-    if re.fullmatch(r"[0-9]+", part):
-        return -1 if len(part) > 1 and part[0] == "0" or len(part) > 10 else int(part)
-    return None
-
-
 def _address(host):
-    """The address a host names (IPv4 in inet_aton's 1 to 4 parts), None for a name, _BAD for neither."""
+    """The address a host names, None for a name, _BAD for neither. A host whose last label (one trailing dot dropped)
+    is a NUMBER is IPv4, and an address only as a dotted QUAD (SPEC 6.7 step 5)."""
     if ":" in host:
         try:
             return ipaddress.IPv6Address(host.strip("[]"))
         except ValueError:
             return _BAD
-    parts = host.split(".")
-    if len(parts) > 1 and parts[-1] == "":
-        parts.pop()
-    if _number(parts[-1]) is None:
+    name = host[:-1] if host.endswith(".") else host
+    if not NUMBER.fullmatch(name.rpartition(".")[2]):
         return None
-    if len(parts) > 4:
-        return _BAD
-    nums = [_number(p) for p in parts]
-    if None in nums or -1 in nums or any(n > 255 for n in nums[:-1]) or nums[-1] >= 256 ** (5 - len(nums)):
-        return _BAD
-    return ipaddress.IPv4Address(nums[-1] + sum(n << 8 * (3 - i) for i, n in enumerate(nums[:-1])))
+    return ipaddress.IPv4Address(name) if QUAD.fullmatch(name) else _BAD
 
 
 def _canonical_host(host):
@@ -753,7 +772,8 @@ def _brackets_ok(url):
         ipaddress.IPv6Address(inside)
     except ValueError:
         return re.fullmatch(r"v[0-9A-Fa-f]+\..+", inside) is not None
-    return not ZERO_QUAD.search(inside)   # Python before 3.9.5 takes a leading zero, later releases refuse it
+    # Python before 3.9.5 takes a leading zero, later releases refuse it; the zone id after a % is no address
+    return not ZERO_QUAD.search(inside.partition("%")[0])
 
 
 def _with_scheme(url):
@@ -764,11 +784,12 @@ def _with_scheme(url):
 
 def _url_host(url):
     """The host `url` reaches, in the form SPEC 6.7 compares: "" when it has none (no host, or a scheme without one:
-    file:, mailto:), None when it won't parse. The bracket rule comes before any other reading of the URL."""
+    file:, mailto:), None when it won't parse. The bracket rule comes before any other reading of the URL, and a URL
+    that starts with view-source: or blob: won't parse."""
     if not PRINTABLE.fullmatch(url):
         return None
     url = _with_scheme(url)
-    if not _brackets_ok(url):
+    if not _brackets_ok(url) or PEELED.match(url):
         return None
     scheme, wh = _whatwg_host(url)
     if scheme not in (*SPECIAL, None):
@@ -796,16 +817,20 @@ def _url_host(url):
 
 
 def _why(url):
-    """SPEC 6.6: NOT_ASCII (6.7 step 1) or PERCENT (step 5) when that is why the host of `url`, which won't parse,
-    won't; else None."""
+    """SPEC 6.6: NOT_ASCII (6.7 step 1), PERCENT or NOT_QUAD (step 5) when that is why the host of `url`, which won't
+    parse, won't; else None."""
     if not PRINTABLE.fullmatch(url):
         return NOT_ASCII
     url = _with_scheme(url)
+    if not _brackets_ok(url) or PEELED.match(url):
+        return None
     try:
-        hosts = (_whatwg_host(url)[1], urlsplit(url).hostname) if _brackets_ok(url) else ()
+        hosts = [h for h in (_whatwg_host(url)[1], urlsplit(url).hostname) if h]
     except ValueError:   # as in _url_host
         return None
-    return PERCENT if any("%" in h for h in hosts if h) else None
+    if any("%" in h for h in hosts):
+        return PERCENT
+    return NOT_QUAD if any(":" not in h and _address(h) is _BAD for h in hosts) else None
 
 
 def _host(host):
@@ -819,8 +844,9 @@ def _host(host):
 
 def reached_host(a, recs):
     want = _host(a["host"])
-    if want is None:
-        return "unproven", f"{a['host'][:64]} is no host the verifier can read"
+    if want is None:   # SPEC 6.6 step 1: the claim's host is the sender's own; NOT_QUAD is the cause its pattern passes
+        why = _why(f"http://{a['host']}/")
+        return "unproven", f"{a['host'][:64]} is no host the verifier can read" + (f": {why}" if why else "")
     seen = ("failed", "")
     for e, _ in recs:
         d = _data(e)
@@ -881,12 +907,12 @@ def file_written(a, recs):
     return _ran(recs, match, f"wrote {a['path'][:64]} with {a['digest']}")
 
 
-CHECKERS = {"tests_passed": tests_passed, "approved_by": approved_by, "reached_host": reached_host,
-            "file_written": file_written}
+CHECKERS = {"tests_passed": tests_passed, "reached_host": reached_host, "file_written": file_written}
 
 
-def check_claim(c, msg, trust):
-    """{type, result, detail} of a claim, and for a proven approved_by `approved`: {tool, args} (SPEC 6.6)."""
+def check_claim(c, msg, trust, doc):
+    """{type, result, detail} of a claim of a message whose intent's schema document is `doc` (None when the receiver
+    has none), and for a proven approved_by `approved`: {tool, args} (SPEC 6.6)."""
     errs = check_args(CLAIM_ARGS[c["type"]], c["args"])
     bad = "; ".join(errs) if errs else malformed(c["type"], c["args"])   # with or without evidence (SPEC 6.1)
     approved = []
@@ -896,7 +922,9 @@ def check_claim(c, msg, trust):
         result, detail = "unproven", "no evidence"
     else:
         try:
-            result, detail, *approved = CHECKERS[c["type"]](c["args"], evidence(c["evidence"], msg, trust))
+            recs = evidence(c["evidence"], msg, trust)
+            result, detail, *approved = approved_by(c["args"], recs, msg, doc) if c["type"] == "approved_by" \
+                else CHECKERS[c["type"]](c["args"], recs)
         except EvidenceError as e:
             result, detail = "failed", str(e)
     return {"type": c["type"], "result": result, "detail": detail, **({"approved": approved[0]} if approved else {})}
@@ -1003,14 +1031,19 @@ class Replay:
 
 
 # ---------------------------------------------------------------------------------------------------- verify
-def _verdict(out, doc, strict):
+def _verdict(out, doc, strict, sent):
+    """The verdict and its reasons from the parts of `out`, for a message whose claims are `sent`."""
     claims = out["claims"] or []
     bad = [f"replay: {out['replay']['detail']}"] if out["replay"]["ok"] is False else []
     bad += [f"schema: {e}" for e in out["schema"]["errors"]]
     bad += [f"grant: {p}" for p in (out["grants"] or {}).get("problems", [])]
     bad += [f"{c['type']}: failed ({c['detail']})" for c in claims if c["result"] == "failed"]
     proven = {c["type"] for c in claims if c["result"] == "proven"}
-    missing = [f"{t}: required, not proven" for t in (doc or {}).get("claims", []) if t not in proven]
+    # SPEC 8 step 7: an approved_by meets the schema's need only when it says it covers this request (6.6)
+    met = {c["type"] for c, s in zip(claims, sent) if c["result"] == "proven"
+           and (c["type"] != "approved_by" or s["args"].get("covers") is True)}
+    missing = [f"{t}: required, not proven" + " to cover this request: claim it with covers true" * (t in proven)
+               for t in (doc or {}).get("claims", []) if t not in met]
     if bad or strict and missing:
         return "reject", bad + (missing if strict else [])
     soft = [f"{c['type']}: unproven ({c['detail']})" for c in claims if c["result"] == "unproven"] + missing
@@ -1062,6 +1095,6 @@ def verify(message, trust, schemas, me=None, strict=False, now=None, replay=None
     out["schema"] = {"ok": not errs, "ref": ref, "errors": errs}
     if doc is not None:
         out["grants"] = verify_grants(message, doc, trust)
-    out["claims"] = [check_claim(c, message, trust) for c in message.get("claims", [])]
-    out["verdict"], out["reasons"] = _verdict(out, doc, strict)
+    out["claims"] = [check_claim(c, message, trust, doc) for c in message.get("claims", [])]
+    out["verdict"], out["reasons"] = _verdict(out, doc, strict, message.get("claims", []))
     return out

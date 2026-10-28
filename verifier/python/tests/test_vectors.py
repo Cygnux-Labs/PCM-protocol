@@ -18,6 +18,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 import pcm_verify
+from pcm_verify.__main__ import loads
 
 HERE = pathlib.Path(__file__).resolve().parent
 VECTORS = HERE.parents[2] / "vectors"
@@ -32,17 +33,20 @@ def conformance(out):
     part = lambda name, key: None if out[name] is None else out[name][key]   # noqa: E731
     return {"verdict": out["verdict"], "signature": part("signature", "ok"), "replay": part("replay", "ok"),
             "schema": part("schema", "ok"), "grants": part("grants", "result"),
-            "claims": None if out["claims"] is None else [(c["result"], c.get("approved")) for c in out["claims"]],
+            "claims": None if out["claims"] is None else [(c["result"], "approved" in c, c.get("approved"))
+                                                          for c in out["claims"]],
             "skipped": out["skipped"]}
 
 
 def run(inp):
+    """The verifier's result for a vector's input; a `message_text` is parsed first, as the CLI parses a file."""
     o, rp = inp["options"], inp["options"]["replay"]
     replay = rp and pcm_verify.Replay(rp["window_s"], rp["per_sender"], started=rp["started"])
     kw = dict(me=o["me"], strict=o["strict"], now=o["now"], replay=replay)
     for m in (rp or {}).get("seen", []):
         pcm_verify.verify(m, inp["trust"], inp["schemas"], **kw)
-    return pcm_verify.verify(inp["message"], inp["trust"], inp["schemas"], **kw)
+    msg = loads(inp["message_text"]) if "message_text" in inp else inp["message"]
+    return pcm_verify.verify(msg, inp["trust"], inp["schemas"], **kw)
 
 
 def test_no_tracekit_import():
@@ -63,10 +67,22 @@ def test_the_vectors_were_made_with_the_frozen_table():
         assert json.loads((VECTORS / v["file"]).read_text())["input"]["tools"] == pcm_verify.TOOLS, v["name"]
 
 
+def test_conformance_tells_an_approved_null_from_none():
+    """SPEC 13.2: `approved` is present exactly when `expected` has it."""
+    out = {"verdict": "accept-unproven", "signature": None, "replay": None, "schema": None, "grants": None,
+           "skipped": [], "claims": [{"type": "tests_passed", "result": "unproven", "detail": "no evidence"}]}
+    extra = dict(out, claims=[dict(out["claims"][0], approved=None)])
+    assert conformance(extra) != conformance(out)
+
+
 @pytest.mark.parametrize("name", [v["name"] for v in INDEX])
 def test_vector(name):
     v = json.loads((VECTORS / f"{name}.json").read_text())
-    assert conformance(run(v["input"])) == conformance(v["expected"])
+    if v["expected"]["verdict"] == "bad-input":   # SPEC 13.2: the text must not parse, so there is no result
+        with pytest.raises(ValueError):
+            run(v["input"])
+    else:
+        assert conformance(run(v["input"])) == conformance(v["expected"])
 
 
 # ---------------------------------------------------------------------------------------------------- SPEC examples
@@ -126,6 +142,19 @@ def test_spec_ties_every_run_value_to_a_vector():
     """Ids and nonces (32 hex digits) change whenever the vectors are made again: SPEC.md holds each only inside an
     example tied to a vector, which test_spec_example checks."""
     assert re.findall(r"\b[0-9a-f]{32}\b", QUOTED.sub("", SPEC.read_text())) == []
+
+
+def unread(text):
+    """The comments in `text` that QUOTED does not tie to an example, but for one quoted as inline code (SPEC 3.4)."""
+    read = {m.start() for m in QUOTED.finditer(text)}
+    return [text[m.start():text.index("-->", m.start()) + 3] for m in re.finditer(r"(?<!`)<!--", text)
+            if m.start() not in read]
+
+
+def test_spec_ties_every_marker_to_its_example():
+    """A mistyped marker, or a word between a marker and its example, would leave the example unchecked."""
+    assert unread(SPEC.read_text()) == []
+    assert unread("<!-- vectr a b -->\n`x`\n<!-- vector a b --> see `x`") == ["<!-- vectr a b -->", "<!-- vector a b -->"]
 
 
 # ---------------------------------------------------------------------------------------------------- hostile input
@@ -233,7 +262,10 @@ def test_a_decision_without_its_id_matches_nothing():
     ("bücher.example", "xn--bcher-kva.example", "unproven"), ("faß.example", "fass.example", "unproven"),
     (" api.example.com", "api.example.com", "unproven"), ("%61pi.example.com", "api.example.com", "unproven"),
     ("h.com%00.evil", "api.example.com", "unproven"), ("%5b", "api.example.com", "unproven"),
-    ("::ffff:1.2.03.4", "1.2.3.4", "unproven"), ("1.2.3.4", "::ffff:01.2.3.4", "unproven")])
+    ("::ffff:1.2.03.4", "1.2.3.4", "unproven"), ("1.2.3.4", "::ffff:01.2.3.4", "unproven"),
+    # SPEC 6.7: an IPv4 address only as a dotted quad
+    ("10.0.0.1", "10.0.0.1", "proven"), ("0127.0.0.1", "127.0.0.1", "unproven"), ("127.1", "127.0.0.1", "unproven"),
+    ("2130706433", "127.0.0.1", "unproven"), ("127.0.0.1", "0127.0.0.1", "unproven")])
 def test_an_effects_host_is_compared_in_canonical_form(host, claim, result):
     msg = message(claim_args={"host": claim}, event={**EVENT, "data": {**EVENT["data"], "host": host}})
     assert check(msg)["claims"][0]["result"] == result
@@ -267,6 +299,7 @@ def first_part(netloc):
     ("api.example.com", "http://[::1]@evil.example/", "unproven"), ("api.example.com", "[::1]@api.example.com/x",
                                                                     "unproven"),
     ("::1", "http://[zz]@[::1]/", "unproven"), ("::1", "http://[::1]x/", "unproven"), ("x", "http://[@x::1]/", "unproven"),
+    ("a.com", "http://[x]@%61.com/", "unproven"),
     ("api.example.com", "http://[::1]@/", "unproven"), ("::1", "http://[::1]@/", "unproven"),
     ("api.example.com", "file://[::1]@api.example.com/", "unproven"),
     # SPEC 6.7 step 1: what urlsplit strips (leading controls and spaces, tabs and line breaks) differs by release
@@ -277,12 +310,15 @@ def first_part(netloc):
     ("good.com", "http://good.com/a[1]", "proven"), ("other.com", "http://good.com/?q=]", "failed")])
 def test_no_verdict_depends_on_the_urlsplit_release(emu, host, url, result, monkeypatch):
     """urlsplit's own bracket check differs between Python releases (none, the first bracketed part, the part after the
-    last `@`), and so does what it strips: under each, the verdict is the same."""
+    last `@`), and so does what it strips: under each, the verdict and the detail are this release's."""
     urllib.parse.clear_cache()   # urlsplit caches what it read
+    native = pcm_verify.reached_host({"host": host}, fetched(url))
+    urllib.parse.clear_cache()
     for name, value in emu.items():
         monkeypatch.setattr(urllib.parse, name, value, raising=False)
     try:
-        assert pcm_verify.reached_host({"host": host}, fetched(url))[0] == result
+        assert native[0] == result
+        assert pcm_verify.reached_host({"host": host}, fetched(url)) == native
     finally:
         urllib.parse.clear_cache()
 
@@ -299,14 +335,16 @@ def test_only_printable_ascii_is_read(host, url):
     readers of each Unicode version name some hosts apart, and URL readers drop spaces, tabs and controls differently,
     even inside a percent-escape. The detail says what the sender can do (SPEC 6.6)."""
     assert pcm_verify.reached_host({"host": host}, fetched(url)) == (
-        "unproven", f"the verifier can't tell whether call c reached {host}: its URL is not printable ASCII: send the "
-        "URL with the host in xn-- form and the path and query percent-encoded")
+        "unproven", f"the verifier can't tell whether call c reached {host}: its URL is not printable ASCII: send it "
+        "without spaces or control characters, with the host in xn-- form and anything else percent-encoded")
 
 
 @pytest.mark.parametrize("host, url", [
     ("a.example", "http://%61.example/"), ("a.example", "http:\\\\%61.example/"),
     ("a.example", "http://a.example\\@%61.example/"), ("b.example", "http://a.example\\@%62.example/"),
-    ("h.com", "http://%5bh.com%5d/"), ("h.com.evil", "http://h.com%00.evil/"), ("::1", "http://[::1%25eth0]/")])
+    ("h.com", "http://%5bh.com%5d/"), ("h.com.evil", "http://h.com%00.evil/"), ("::1", "http://[::1%25eth0]/"),
+    # a zone id is no address, so its .01 is no leading zero: the URL passes the bracket rule
+    ("::1", "http://[::1%25a.01]/"), ("fe80::1", "http://[fe80::1%25en.05]/")])
 def test_a_host_with_a_percent_is_unproven(host, url):
     """SPEC 6.7 step 5: a host is never percent-decoded, in the browser's reading or the generic one. The detail says
     what the sender can do (SPEC 6.6)."""
@@ -315,9 +353,65 @@ def test_a_host_with_a_percent_is_unproven(host, url):
         "host as plain ASCII, not percent-encoded")
 
 
+NOT_QUAD = ("its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255 without "
+            "leading zeros")
+
+
+@pytest.mark.parametrize("host, url", [
+    ("87.0.0.1", "http://0127.0.0.1/"), ("127.0.0.1", "http://0127.0.0.1:8080/x"), ("10.0.0.1", "http://010.0.0.1/"),
+    ("192.168.0.10", "http://192.168.0.010/"), ("127.0.0.1", "http://0127.0.0.1./"), ("127.0.0.1", "http://127.1/"),
+    ("127.0.0.1", "http://0x7f.0.0.1/"), ("127.0.0.1", "http://0X7F.0.0.1/"), ("127.0.0.1", "http://2130706433/"),
+    ("0.0.0.0", "http://0x/"), ("1.2.3.4", "http://1.2.3.4.5/"), ("1.2.3.4", "http://a.1.2.3.4/"),
+    ("1.2.3.4", "http://1.2.3.256/"), ("8.8.8.8", "http://0128.0.0.1/"), ("127.0.0.1", "http:\\\\0127.0.0.1/")])
+def test_an_ipv4_host_not_written_as_a_dotted_quad_is_unproven(host, url):
+    """SPEC 6.7 step 5: a host whose last label is a number is an IPv4 address, read only as four decimal numbers 0-255
+    without leading zeros; resolvers read the other forms apart (macOS reaches 127.0.0.1 from 0127.0.0.1, inet_aton
+    reads 87.0.0.1). The detail says what the sender can do (SPEC 6.6)."""
+    assert pcm_verify.reached_host({"host": host}, fetched(url)) == (
+        "unproven", f"the verifier can't tell whether call c reached {host}: {NOT_QUAD}")
+
+
+@pytest.mark.parametrize("host", ["0127.0.0.1", "127.1", "2130706433", "0x7f.0.0.1", "127.0.0.01:443"])
+def test_a_claimed_ipv4_host_not_written_as_a_dotted_quad_is_unproven(host):
+    """SPEC 6.6 step 1: the claim's host is the sender's own, so its detail says what to fix too."""
+    assert pcm_verify.reached_host({"host": host}, fetched("http://127.0.0.1/")) == (
+        "unproven", f"{host} is no host the verifier can read: {NOT_QUAD}")
+
+
+@pytest.mark.parametrize("host, url", [("10.0.0.1", "http://10.0.0.1:8080/"), ("0.0.0.0", "http://0.0.0.0/"),
+                                       ("127.0.0.1", "http://127.0.0.1./"), ("1a.example", "http://1a.example/"),
+                                       ("example.0x1g", "http://example.0x1g/")])
+def test_a_dotted_quad_or_a_name_ending_in_no_number_is_read(host, url):
+    assert pcm_verify.reached_host({"host": host}, fetched(url))[0] == "proven"
+
+
 def test_no_advice_for_another_cause():
     assert pcm_verify.reached_host({"host": "b.example"}, fetched("http://a.example\\@b.example/")) == (
         "unproven", "the verifier can't tell whether call c reached b.example")
+
+
+@pytest.mark.parametrize("host, url", [("::1", "http://[::1]@[::1%25x]/"), ("127.0.0.1", "http://[x]@0127.0.0.1/")])
+def test_no_advice_for_a_url_the_bracket_rule_refuses(host, url):
+    """SPEC 6.6: the `%` and dotted-quad sentences are for a URL that passes the bracket rule; a reading of one it
+    refuses moves with the URL and the urlsplit release."""
+    assert pcm_verify.reached_host({"host": host}, fetched(url)) == (
+        "unproven", f"the verifier can't tell whether call c reached {host}")
+
+
+@pytest.mark.parametrize("recs", [fetched("file:///x"), [({**EVENT, "data": {**EVENT["data"], "host": ":443"}}, None)]])
+def test_a_claimed_host_that_reads_as_none_is_unproven(recs):
+    """SPEC 6.7: `:80` passes the claim pattern and reads as no host, which must not match the no host of a file: URL
+    or of an effect's `:443`."""
+    assert pcm_verify.reached_host({"host": ":80"}, recs) == ("unproven", ":80 is no host the verifier can read")
+
+
+@pytest.mark.parametrize("url", ["blob:http://a.com/x", "view-source:http://a.com/", "BLOB:view-source:https://a.com/",
+                                 "blob:http://[x]@a.com/", "blob:http://%61.com/", "view-source:http://0127.0.0.1/"])
+def test_a_view_source_or_blob_url_is_unproven(url):
+    """SPEC 6.7 step 4: a browser's address bar reads the URL inside view-source: and blob:, WHATWG URL reads no host
+    from either: the verifier can't tell, and says nothing the sender could fix in the host."""
+    assert pcm_verify.reached_host({"host": "a.com"}, fetched(url)) == (
+        "unproven", "the verifier can't tell whether call c reached a.com")
 
 
 @pytest.mark.parametrize("old", [False, True], ids=["this-release", "lenient-ipaddress"])
@@ -329,9 +423,11 @@ def test_an_ipv6_dotted_quad_with_a_leading_zero_is_unproven(old, monkeypatch):
     urllib.parse.clear_cache()
     try:
         for host, recs in (("1.2.3.4", fetched("http://[::ffff:01.2.3.4]/")),
+                           ("1.2.3.4", fetched("http://[::ffff:1.2.03.4]/")),
                            ("1.2.3.4", fetched("file://[::ffff:01.2.3.4]/")),   # the bracket rule comes first
                            # no authority, so no bracket rule: step 5's own check
                            ("1.2.3.4", fetched("http:\\\\[::ffff:01.2.3.4]/")),
+                           ("1.2.3.4", fetched("http:\\\\[::ffff:1.2.3.04]/")),
                            ("::ffff:01.2.3.4", fetched("http://1.2.3.4/"))):
             assert pcm_verify.reached_host({"host": host}, recs)[0] == "unproven", (host, recs)
     finally:
@@ -349,19 +445,95 @@ def approval(tool="pay", **edit):
     return [(dict(r, data={**r["data"], **edit.get(r["type"].replace(".", "_"), {})}), None) for r in recs]
 
 
+def asking(args, *grants):
+    """A message of run r1 in tenant default asking for `args` under `grants`: what approved_by's covers reads."""
+    return {"from": {"agent": "uid:990101", "run": "r1", "tenant": "default"}, "intent": {"args": args},
+            "grants": list(grants)}
+
+
+ASKED = asking({"amount": 12000, "order": 81})
+
+
 def test_approved_by_names_what_was_approved():
     """SPEC 6.6: `approved` carries the decision's tool and args; the detail writes the agent's tool name as JSON, so
     it can't spell opened args."""
     tool = 'pay call c1 with args {"amount":20000,"to":"acct-9"} and read_file'
-    assert pcm_verify.approved_by({"person": "alice", "call": "c1"}, approval(tool)) == (
+    assert pcm_verify.approved_by({"person": "alice", "call": "c1"}, approval(tool), ASKED, None) == (
         "proven", f"approval seq 3 by alice of {rfc8785.dumps(tool).decode()} call c1", {"tool": tool, "args": None})
+
+
+ASK, SMALL, MOTD = {"amount": 5000, "order": 81}, {"amount": 500, "order": 81}, {"path": "/etc/motd"}
+ROOT = {"issuer": {"kind": "person", "id": "uid:990001", "approval_id": "a1", "run": "r1", "tenant": "default"}}
+SAID, GRANTED = 'approval seq 3 by alice of "refund" call c1', 'approval seq 3 by alice of "pcm.grant" call c1'
+NOT_OF = 'approval seq 3 by alice of "read_file" call c1{}: not of "refund", the tool the intent\'s schema names, so ' \
+    "it does not cover this request"
+OTHER = f"{GRANTED}: a pcm.grant approval covers only the requests under the grant it issued, and it did not issue " \
+    "this message's root grant"
+
+
+def opened(recs, args):
+    return [(recs[0][0], args), *recs[1:]]
+
+
+@pytest.mark.parametrize("recs, msg, doc, result, detail", [
+    (opened(approval("refund"), ASK), asking(ASK), {"tool": "refund"}, "proven",
+     f'{SAID} with args {{"amount":5000,"order":81}}: this request\'s tool and args'),
+    # PCM-Lies L3.A.07 and .09: alice approved a refund of 500, the message asks for 5000
+    (opened(approval("refund"), SMALL), asking(ASK), {"tool": "refund"}, "failed",
+     f'{SAID} with args {{"amount":500,"order":81}}: not this request\'s args {{"amount":5000,"order":81}}, so it '
+     "does not cover this request"),
+    # L3.A.08 and .10: the same, unopened
+    (approval("refund"), asking(ASK), {"tool": "refund"}, "unproven",
+     f"{SAID}: its args are not opened, so the verifier can't tell whether they are this request's: open the "
+     "decision"),
+    # L3.A.11 and .12: alice approved a read_file, the message asks for a refund, opened or not
+    (opened(approval("read_file"), MOTD), asking(ASK), {"tool": "refund"}, "failed",
+     NOT_OF.format(' with args {"path":"/etc/motd"}')),
+    (approval("read_file"), asking(ASK), {"tool": "refund"}, "failed", NOT_OF.format("")),
+    (opened(approval("refund"), ASK), asking(ASK), None, "unproven",
+     f'{SAID} with args {{"amount":5000,"order":81}}: the intent\'s schema names no tool, so the verifier can\'t tell '
+     "whether it covers this request: name the tool in the schema document, or cite the approval that issued the "
+     "message's root grant"),
+    (approval("pcm.grant"), asking(ASK, ROOT), None, "proven", f"{GRANTED}, which issued this message's root grant"),
+    (approval("pcm.grant"), asking(ASK, ROOT), {"tool": "refund"}, "proven",
+     f"{GRANTED}, which issued this message's root grant"),
+    (approval("pcm.grant"), asking(ASK), {"tool": "refund"}, "failed", OTHER),
+    *[(approval("pcm.grant"), asking(ASK, {"issuer": {**ROOT["issuer"], k: v}}), None, "failed", OTHER)
+      for k, v in (("approval_id", "a2"), ("run", "r2"), ("tenant", "acme"))]])
+def test_approved_by_covers_only_this_request(recs, msg, doc, result, detail):
+    """SPEC 6.6: with covers the approval covers the message's request by its tool and args, under a schema that names
+    the tool, or as the approval that issued the message's root grant. Without covers the claim only says what alice
+    approved."""
+    got = pcm_verify.approved_by({"person": "alice", "call": "c1", "covers": True}, recs, msg, doc)
+    assert got[:2] == (result, detail) and len(got) == (3 if result == "proven" else 2), got
+    assert pcm_verify.approved_by({"person": "alice", "call": "c1"}, recs, msg, doc)[0] == "proven"
+
+
+def test_a_required_approved_by_must_say_it_covers_the_request():
+    """SPEC 8 step 7: a proven approved_by without covers meets no need the schema lists, so a sender that cites an
+    approval of another call is not accepted on it; under strict it is rejected."""
+    out = {"replay": {"ok": True}, "schema": {"errors": []}, "grants": None,
+           "claims": [{"type": "approved_by", "result": "proven", "detail": "d"}]}
+    need = {"claims": ["approved_by"]}
+    for covers, strict, verdict in ((True, False, "accept"), (True, True, "accept"), (False, False, "accept-unproven"),
+                                    (False, True, "reject")):
+        sent = [{"type": "approved_by", "args": {"person": "alice", "call": "c1", "covers": covers}}]
+        assert pcm_verify._verdict(out, need, strict, sent) == (verdict, [] if covers else [
+            "approved_by: required, not proven to cover this request: claim it with covers true"])
+    assert pcm_verify._verdict(out, {}, True, sent) == ("accept", [])
+
+
+@pytest.mark.parametrize("tool, ok", [("refund", True), ("x" * 256, True), ("", False), ("x" * 257, False),
+                                      (1, False), (None, False), (["refund"], False)])
+def test_a_schema_document_may_name_its_tool(tool, ok):
+    assert (pcm_verify.check_schema({**DOC, "tool": tool}) == []) is ok
 
 
 @pytest.mark.parametrize("edit", [{"approval": {"approver_kind": "agent"}}, {"approval": {"self_approved": True}},
                                   {"approval": {"decision": "reject"}}, {"approval_request": {"approval_id": "a2"}},
                                   {"policy_decision": {"tool_use_id": "c2"}}, {"policy_decision": {"tool": ""}}])
 def test_approved_by_needs_a_persons_own_approval_of_the_decision_its_request_names(edit):
-    assert pcm_verify.approved_by({"person": "alice", "call": "c1"}, approval(**edit))[0] == "failed"
+    assert pcm_verify.approved_by({"person": "alice", "call": "c1"}, approval(**edit), ASKED, None)[0] == "failed"
 
 
 def test_approved_by_does_not_depend_on_record_order():
@@ -385,13 +557,13 @@ def test_approved_by_does_not_depend_on_record_order():
                       ([(dec[0], {"x": True}), req, app, one, request("a2", "d2"), again],
                        "2 different decisions approved as")):
         for order in (recs, recs[::-1]):
-            got = pcm_verify.approved_by(claim, order)
+            got = pcm_verify.approved_by(claim, order, ASKED, None)
             assert got[0] == "failed" and why in got[1], (order, got)
     for recs, want in (([dec, req, app, request("a2", "d1"), again], {"tool": "read_file", "args": None}),
                        ([(dec[0], motd), req, app], {"tool": "read_file", "args": motd})):
         end = "" if want["args"] is None else ' with args {"path":"/etc/motd"}'
         for order in (recs, recs[::-1]):
-            assert pcm_verify.approved_by(claim, order) == (
+            assert pcm_verify.approved_by(claim, order, ASKED, None) == (
                 "proven", f'approval seq 3 by alice of "read_file" call c1{end}', want), order
 
 
@@ -463,7 +635,7 @@ def test_no_test_command(suite):
                                    {"type": "file_written", "args": {"path": "work/x", "digest": ZERO}},
                                    {"type": "file_written", "args": {"path": "/a/../x", "digest": ZERO}}])
 def test_a_malformed_claim_fails_without_evidence(claim):
-    assert pcm_verify.check_claim(claim, message(), TRUST)["result"] == "failed"
+    assert pcm_verify.check_claim(claim, message(), TRUST, None)["result"] == "failed"
 
 
 @pytest.mark.parametrize("bad", ["not a vkey", VKEY + "="])
@@ -574,7 +746,7 @@ def test_cli_exit_codes(tmp_path):
     del nev["claims"][0]["evidence"]
     nev = signed(nev, pcm_verify.MESSAGE_TAG)
     assert cli(write("nev.json", nev), "--trust", trust, "--schema", schema).returncode == 3
-    for garbage in ("{", '{"a": NaN}', '{"a": 1, "a": 2}', "[" * 100000):
+    for garbage in ("{", '{"a": NaN}', '{"a": 1, "a": 2}', "[" * 100000, '{"a": 1e400}', '{"a": -1E400}'):
         r = cli(write("g.json", garbage), "--trust", trust, "--schema", schema)
         assert r.returncode == 2 and "Traceback" not in r.stderr, r.stderr
     r = cli(write("ok.json", message()), "--trust", str(tmp_path / "missing.json"), "--schema", schema)
@@ -584,6 +756,17 @@ def test_cli_exit_codes(tmp_path):
     deep["payload"] = {"kind": "data", "data": json.loads("[" * 200 + "]" * 200)}
     r = cli(write("deep.json", signed(deep, pcm_verify.MESSAGE_TAG)), "--trust", trust, "--schema", schema)
     assert r.returncode == 2 and "deeper than 128" in r.stderr, r.stderr
+
+
+@pytest.mark.parametrize("text", ["1e400", "-1e400", "1.7976931348623159e308", "[0, 1E309]"])
+def test_a_number_past_the_double_range_does_not_parse(text):
+    """SPEC 3.3: a number that rounds to no finite IEEE 754 double is bad input, not infinity."""
+    with pytest.raises(ValueError, match="IEEE 754 double"):
+        loads(text)
+
+
+def test_numbers_within_the_double_range_parse():
+    assert loads("[1.7976931348623157e308, 1e-400, -0.0]") == [1.7976931348623157e308, 0.0, -0.0]
 
 
 def test_cli_prints_what_a_proven_approved_by_approved(tmp_path):
