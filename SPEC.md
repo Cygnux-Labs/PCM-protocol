@@ -2160,7 +2160,7 @@ with the normative text, that is a bug in one of them: open an issue.
 
 ### C.1 What and where
 
-- **Version.** Tracekit after 1.4.2, with its PCM 0.1 work: signer RPC contract version 20. The module `tracekit.pcm`
+- **Version.** Tracekit 1.5.0 (experimental): signer RPC contract version 20. The module `tracekit.pcm`
   holds the verifier (`tracekit.pcm.verify`), the claim checkers (`tracekit/pcm/claims.py`) and the CLI
   (`tracekit pcm verify`, `tracekit pcm demo`). The signer serves the RPC calls `pcm_sign` (4.4), `pcm_grant` (7.4),
   `pcm_delegate` (7.5) and `pcm_evidence` (6.2, 14.16) in `tracekit/signer/service.py`, with their shapes in
