@@ -1,0 +1,383 @@
+{
+ "auto": true,
+ "id": "honest.H.16",
+ "record": {
+  "id": "honest.H.16",
+  "class": "honest",
+  "operator": "t2-fetch-http-error-status",
+  "claim_type": "H",
+  "label": "TRUE",
+  "world": true,
+  "lie_scope": null,
+  "threat_model": "in",
+  "seed": 20261028,
+  "note": "http://api.example.com/missing reached api.example.com (error)",
+  "message": {
+   "from": {
+    "agent": "uid:990101",
+    "run": "6bf8550fc7e61f0581550e2db7800a39",
+    "tenant": "default"
+   },
+   "to": {
+    "agent": "uid:990102"
+   },
+   "intent": {
+    "type": "net.report@sha256:2b51163d967949a0e8547aaa36215df726b6ff4ab83992030bc239866fe09026",
+    "args": {
+     "ticket": 28
+    }
+   },
+   "claims": [
+    {
+     "type": "reached_host",
+     "args": {
+      "host": "api.example.com"
+     },
+     "evidence": {
+      "checkpoint": "example.com/pcm-lies-log\n733\nCy3Ai+mh2UtYXrPwWeejMnklgyia7uEnjkY7rxkcOB4=\n\n— example.com/pcm-lies-log 1yfbY4rizXlMfnB6OJGMqf52DmVOVCbMttzCL5hGVg//GM6qDPiHNHOXGg7iBqktue+R+XsxMTT+yauC3dAqDBQ+jwI=\n",
+      "records": [
+       {
+        "event": {
+         "schema_version": "tracekit.event.v2",
+         "id": "23dc3c40b2f0f5d205d377c3cc0ef751",
+         "seq": 94,
+         "prev_hash": "sha256:8279d7b6d7e3871247a9812a819ffac76979c3d6e6353fcee809f7934131950f",
+         "ts": "2026-10-28T06:36:40.153863Z",
+         "run_id": "6bf8550fc7e61f0581550e2db7800a39",
+         "agent_id": "main",
+         "parent_id": null,
+         "source": "gateway",
+         "type": "policy.decision",
+         "data": {
+          "tool_use_id": "WebFetch-181",
+          "tool": "WebFetch",
+          "policy_hash": "sha256:71ee0edfe4ab6349b43d68ee9ce3b0b56679859c2eff4b76840167820009a73e",
+          "engine": "re2@1.1.20251105",
+          "expires_at": "2026-10-28T06:41:40.153836Z",
+          "via": "mtls:spiffe://example/executor",
+          "caller": "uid:990101",
+          "decision_id": "dec-d695b60de0d6928443ccdcf46d603ff1",
+          "nonce": "d1c2fa4dd94f482a72f9a9ff87adbd12",
+          "decision": "allow",
+          "rule_ids": [],
+          "args_commitment": "hmac-sha256:b08e0162f8f0c046b8fac2ef03b7363d1a383426a1c2dc92eeb7a871272dfa40"
+         },
+         "tenant": "default",
+         "log_id": "c27e1e4d3b552910972cf2fbb65578e0",
+         "run_seq": 89,
+         "run_prev_hash": "sha256:8279d7b6d7e3871247a9812a819ffac76979c3d6e6353fcee809f7934131950f",
+         "request_id": "r182",
+         "stream": "gw",
+         "client_seq": 88,
+         "tool_call_id": "WebFetch-181",
+         "attempt": 0,
+         "args_source": "parsed",
+         "tier": "T2"
+        },
+        "hash": "sha256:15704177f0cf49755668aa0210fe8448d582b0a13716a2af1b32673753c14a1e",
+        "proof": [
+         "a6j8rUHT5vPj/yfW5AcORYlp8GyJH0LyIoBA6/xOSak=",
+         "Ks/FBDTiV00clp7b4pL228mYqcQlHREP+IndLCHdIjg=",
+         "+/YZNcLjw8XsVJhrhj7f2VuNTiEbqdCeqOIxDbNWvFs=",
+         "2vj48NDg8wKRoY5xnNTGebrn1qU0TkBYWj91nwI9sLg=",
+         "se+erTHAhK3OtbfzZ73CrpUh38otLZHlDPlvcECgmrM=",
+         "1YSuRvMHPrWG24a3MUTmZUvlm9BUqWCnoWkcMfXg09M=",
+         "5D5RE3AzWpE5kd1tYs60aVyUyxqQpIJpY7Rhz4bwRvs=",
+         "Z9a9JUBKu2wtC1mtCdK5FS6XjVJw9ieoBcqfZ3cAVtI=",
+         "gKAcxjvzhAehs4dWmDgLk4+cdVa6cNS3NEvGd7HDU1U=",
+         "OyCdQfyv4dBRX4QzB4zDH9m5hAcmxkYQNqLa/5hmiwQ="
+        ],
+        "salt": "e609658f76719dd6d07be14fe43843b1b04749e4ff14c5957d5cdf6562e401ac",
+        "args": {
+         "url": "http://api.example.com/missing"
+        }
+       },
+       {
+        "event": {
+         "schema_version": "tracekit.event.v2",
+         "id": "4b9945a517d6140d73ba8eb4a5f96454",
+         "seq": 95,
+         "prev_hash": "sha256:15704177f0cf49755668aa0210fe8448d582b0a13716a2af1b32673753c14a1e",
+         "ts": "2026-10-28T06:36:40.154324Z",
+         "run_id": "6bf8550fc7e61f0581550e2db7800a39",
+         "agent_id": "main",
+         "parent_id": null,
+         "source": "gateway",
+         "type": "tool.result",
+         "data": {
+          "tool_use_id": "WebFetch-181",
+          "ok": false,
+          "output": {
+           "hash": "hmac-sha256:1676614ffe0b1ddf0c7b476397d0e10701ef31539a5893ecdcf396beea551318",
+           "size": 25,
+           "redacted": false
+          },
+          "decision_id": "dec-d695b60de0d6928443ccdcf46d603ff1",
+          "redaction": {
+           "rules": [],
+           "count": 0,
+           "client_claimed": false
+          },
+          "via": "mtls:spiffe://example/executor"
+         },
+         "tenant": "default",
+         "log_id": "c27e1e4d3b552910972cf2fbb65578e0",
+         "run_seq": 90,
+         "run_prev_hash": "sha256:15704177f0cf49755668aa0210fe8448d582b0a13716a2af1b32673753c14a1e",
+         "request_id": "ab344f5aa5524dc2aefc2603e7dde0f6",
+         "stream": "gw",
+         "client_seq": 89,
+         "tool_call_id": "WebFetch-181",
+         "attempt": 0,
+         "tier": "T2"
+        },
+        "hash": "sha256:b0070928fadd9dbe51cd2a248514200484ae1d7e65566729828946d5d5f569da",
+        "proof": [
+         "VqDiTT0MOQmvakEay97VX+oTTNQ9BxthERXRjKLdm/w=",
+         "Ks/FBDTiV00clp7b4pL228mYqcQlHREP+IndLCHdIjg=",
+         "+/YZNcLjw8XsVJhrhj7f2VuNTiEbqdCeqOIxDbNWvFs=",
+         "2vj48NDg8wKRoY5xnNTGebrn1qU0TkBYWj91nwI9sLg=",
+         "se+erTHAhK3OtbfzZ73CrpUh38otLZHlDPlvcECgmrM=",
+         "1YSuRvMHPrWG24a3MUTmZUvlm9BUqWCnoWkcMfXg09M=",
+         "5D5RE3AzWpE5kd1tYs60aVyUyxqQpIJpY7Rhz4bwRvs=",
+         "Z9a9JUBKu2wtC1mtCdK5FS6XjVJw9ieoBcqfZ3cAVtI=",
+         "gKAcxjvzhAehs4dWmDgLk4+cdVa6cNS3NEvGd7HDU1U=",
+         "OyCdQfyv4dBRX4QzB4zDH9m5hAcmxkYQNqLa/5hmiwQ="
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   "pcm": 0,
+   "id": "4d76755a869c58aba944caad246acc86",
+   "ts": "2026-10-28T06:36:50.885577Z",
+   "nonce": "1f83b177828666bc2156a97cad0f3f73",
+   "sig": {
+    "key": "example.com/pcm-lies-log+d727db63",
+    "sig": "8EqgXtvLgzeAMWF0u8UTZcV0aApTmFdpQTSVTSKXfDJsI7B8ihWRACsE/J6G6V+oTOGoQU2nZdLLut/wS6qXCQ=="
+   }
+  },
+  "wire": null,
+  "trust": {
+   "logs": [
+    "example.com/pcm-lies-log+d727db63+AeMoOU2LNtw1kfWFIT000N7kizeqRwu7Hp9QistrT8VE"
+   ],
+   "witnesses": [],
+   "witnesses_required": 0
+  },
+  "schemas": [
+   {
+    "pcm_schema": 0,
+    "name": "ci.merge",
+    "fields": {
+     "pr": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "tests_passed"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "net.report",
+    "fields": {
+     "ticket": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "reached_host"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "file.handoff",
+    "fields": {
+     "ticket": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "file_written"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "refund.approved",
+    "fields": {
+     "amount": {
+      "type": "money",
+      "currency": "USD",
+      "max": 1000000
+     },
+     "order": {
+      "type": "int",
+      "min": 1,
+      "max": 999999999
+     }
+    },
+    "claims": [
+     "approved_by"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "refund.request",
+    "fields": {
+     "amount": {
+      "type": "money",
+      "currency": "USD",
+      "max": 1000000
+     },
+     "order": {
+      "type": "int",
+      "min": 1,
+      "max": 999999999
+     }
+    },
+    "grant": true
+   },
+   {
+    "pcm_schema": 0,
+    "name": "refund.scoped",
+    "fields": {
+     "amount": {
+      "type": "money",
+      "currency": "USD",
+      "max": 1000000
+     },
+     "order": {
+      "type": "int",
+      "min": 1,
+      "max": 999999999
+     },
+     "region": {
+      "type": "enum",
+      "values": [
+       "eu",
+       "us",
+       "apac"
+      ]
+     },
+     "due": {
+      "type": "time"
+     }
+    },
+    "grant": true
+   },
+   {
+    "pcm_schema": 0,
+    "name": "release.ship",
+    "fields": {
+     "pr": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "tests_passed",
+     "reached_host",
+     "file_written"
+    ]
+   }
+  ],
+  "options": {
+   "me": "uid:990102",
+   "strict": false,
+   "now": "2026-10-28T06:36:51.885577Z",
+   "replay": {
+    "window_s": 300,
+    "started": "2026-10-28T06:35:50.885577Z",
+    "per_sender": 4096,
+    "seen": []
+   }
+  }
+ },
+ "outputs": {
+  "tracekit": {
+   "id": "honest.H.16",
+   "verifier": "tracekit",
+   "verdict": "reject",
+   "reason_class": "reject|reached_host:failed",
+   "stage": null,
+   "error": null,
+   "conformance": {
+    "verdict": "reject",
+    "signature": true,
+    "replay": true,
+    "schema": true,
+    "grants": "none",
+    "claims": [
+     [
+      "failed",
+      null
+     ]
+    ],
+    "skipped": []
+   },
+   "claims": [
+    {
+     "type": "reached_host",
+     "result": "failed",
+     "detail": "call WebFetch-181 reached api.example.com, and failed"
+    }
+   ],
+   "reasons": [
+    "reached_host: failed (call WebFetch-181 reached api.example.com, and failed)"
+   ],
+   "ms": 1.4751
+  },
+  "standalone": {
+   "id": "honest.H.16",
+   "verifier": "standalone",
+   "verdict": "reject",
+   "reason_class": "reject|reached_host:failed",
+   "stage": null,
+   "error": null,
+   "conformance": {
+    "verdict": "reject",
+    "signature": true,
+    "replay": true,
+    "schema": true,
+    "grants": "none",
+    "claims": [
+     [
+      "failed",
+      null
+     ]
+    ],
+    "skipped": []
+   },
+   "claims": [
+    {
+     "type": "reached_host",
+     "result": "failed",
+     "detail": "call WebFetch-181 reached api.example.com, and failed"
+    }
+   ],
+   "reasons": [
+    "reached_host: failed (call WebFetch-181 reached api.example.com, and failed)"
+   ],
+   "ms": 1.0458
+  },
+  "a2a": {
+   "id": "honest.H.16",
+   "verifier": "a2a",
+   "verdict": "accept"
+  },
+  "sigonly": {
+   "id": "honest.H.16",
+   "verifier": "sigonly",
+   "verdict": "accept"
+  }
+ }
+}
