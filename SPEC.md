@@ -564,7 +564,8 @@ evidence item is:
    for `reached_host` maybe what the sender can do, 6.6); next record. No: next record. Yes:
    1. If `class` is set and the placement table does not map `data.tool` to `class`: candidate `unproven`; next record.
    2. For each `tool.result` record whose `(data.decision_id, data.tool_use_id)` equals the decision's:
-      - `data.ok` is not `true`: candidate `failed` ("… and failed");
+      - `data.ok` is not `true`: candidate `failed` ("… and failed", and for `reached_host` what the sender can do,
+        6.6);
       - else top-level `source == "gateway"` and `tier == "T2"`: result `proven`; stop;
       - else: candidate `unproven` ("the result is the agent's own report (T1)").
 3. The result is the best candidate.
@@ -830,8 +831,10 @@ Hosts are compared in the form of 6.7.
    **A response is not a failure, but the record doesn't say so.** A call that got any answer from the host reached
    it, but `Ran` needs a result with `data.ok == true`, and the evidence profile (6.4) records no protocol status
    that tells an error answer from a failure to connect. So a call the host answered with an error, which an attesting
-   party may record as not ok, gives `failed` (Appendix C.3; Appendix B question 6). An `effect.observed` of the
-   connection (step 2) proves the claim whatever the answer.
+   party may record as not ok, gives `failed`, and the message is rejected (Appendix C.3; Appendix B question 6). The
+   detail says what the sender can do: `call ... reached api.example.com, and failed: its result is not ok, which an
+   HTTP error answer gives too: claim the host from a call that succeeded, or from an egress observer's record`. An
+   `effect.observed` of the connection (step 2) proves the claim whatever the answer.
 
 Vectors: `accept-reached-host-http` (`https://API.Example.COM:8443/v1` is `api.example.com`),
 `accept-reached-host-claim-port`, `accept-reached-host-trailing-dot`, `accept-reached-host-dotted-quad`,
@@ -2130,9 +2133,9 @@ are questions for a later draft:
    matching on trust instead of checking it.
 6. **A response with an error status** (6.6, `reached_host`). A call the host answered with an HTTP error, such as
    a 404, reached the host, but the evidence profile records only whether the result was ok, and an attesting party
-   may record such a call as not ok (Appendix C.3), so it proves nothing. For PCM 0.2: the evidence profile could
-   record whether a call got a response, such as its protocol status, so that `reached_host` rests on any response
-   rather than on success. That changes the evidence format, so 0.1 keeps it; an egress observer's
+   may record such a call as not ok (Appendix C.3), so its claim fails and an honest message is rejected. For PCM
+   0.2: the evidence profile could record whether a call got a response, such as its protocol status, so that
+   `reached_host` rests on any response rather than on success. That changes the evidence format, so 0.1 keeps it; an egress observer's
    `effect.observed` (6.6, `reached_host` step 2) proves the connection whatever the answer.
 
 ## Appendix C. Reference implementation

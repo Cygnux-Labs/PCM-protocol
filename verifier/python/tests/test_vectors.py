@@ -414,6 +414,16 @@ def test_a_view_source_or_blob_url_is_unproven(url):
         "unproven", "the verifier can't tell whether call c reached a.com")
 
 
+def test_a_failed_call_says_how_to_prove_the_host():
+    """SPEC 6.6: a call the host answered with an HTTP error is recorded as not ok, as one that reached nothing is; the
+    claim fails, and its detail says how to prove the host instead."""
+    recs = fetched("http://a.com/")
+    recs[1][0]["data"]["ok"] = False
+    assert pcm_verify.reached_host({"host": "a.com"}, recs) == (
+        "failed", "call c reached a.com, and failed: its result is not ok, which an HTTP error answer gives too: claim "
+                  "the host from a call that succeeded, or from an egress observer's record")
+
+
 @pytest.mark.parametrize("old", [False, True], ids=["this-release", "lenient-ipaddress"])
 def test_an_ipv6_dotted_quad_with_a_leading_zero_is_unproven(old, monkeypatch):
     """SPEC 6.7: ::ffff:01.2.3.4 is no IPv6 address. Python before 3.9.5 reads it as ::ffff:1.2.3.4, emulated here."""
