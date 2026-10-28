@@ -5,8 +5,14 @@ runs, checked by Tracekit's `pcm.verify`, the standalone `pcm_verify`, plain A2A
 sender-signature-only check. Added after the pre-registration: models of six real agent protocols as receivers ("Real
 protocols as receivers").
 
-**This run (after):** dataset 2, 926 messages, at Tracekit `7d843e6377` and pcm `73a287c` (pcm main `0f26c38` merged,
-with PCM's fixes for F1, F3 and F5).
+**This run (after):** dataset 2, 926 messages, pinned to Tracekit v1.5.0 (`510566193e`).
+- Dataset 2 was first produced and run at Tracekit `7d843e6377` (a commit of the branch that #450 squash-merged as
+  `cb4533981e`; `data/meta.json` records it) and pcm `73a287c` (pcm main `0f26c38` merged, with PCM's fixes for F1, F3
+  and F5). The files in `results/` are that run's.
+- Its verdicts reproduce unchanged on Tracekit v1.5.0 with this repository's verifier: `run` then `report` give the
+  same verdict, reason class, conformance fields and claim results on all 926 messages in both verifiers, and the same
+  rows for every other receiver. Only the timings, the temporary file names in loader errors and 11 claim details
+  differ: both verifiers now tell the sender how to prove a host after a failed `reached_host` call.
 
 **Before:** dataset 1, 879 messages, at Tracekit `384a6042bd` and pcm `1ba784a` (main `619fbba`), commit `9b430ab`.
 
@@ -19,16 +25,20 @@ honest fetches `honest.H.07`, `.08`, `.09` and `.13` now use canonical spellings
 |---|---|---|
 | H1 lies accepted, both verifiers | **FAIL** 23/687 (3.3%, 95% CI 2.2–5.0%) | **FAIL** 10/712 (1.4%, 95% CI 0.8–2.6%) |
 | … of which not freshness | 13 (F1 7, F3 6) | **0** |
-| H2 honest claims proven | **FAIL** 71/73 (97.3%) | **FAIL** 81/83 (97.6%); 69 with verdict `accept` |
+| … the verdicts on the lies | 610 `reject`, 54 `accept-unproven`, 23 `accept` | 626 `reject`, 76 `accept-unproven`, 10 `accept` |
+| H2 honest claims proven | **FAIL** 66/68 claims (97.1%); 71/73 messages | **FAIL** 76/78 claims (97.4%); 81/83 messages, 69 with verdict `accept` |
 | H3 T1-only claims unproven | **PASS** 72/72 | **PASS** 72/72 |
 | H4 verifiers agree | **FAIL** 874/879 | **PASS** 926/926 |
-| H5 plain A2A / signature only accept | 687/687 / 628/687 | 712/712 / 643/712 (90.3%) |
+| baselines (no pass bar): plain A2A / signature only accept | 687/687 / 628/687 | 712/712 / 643/712 (90.3%) |
 | verify p50 (p99), Tracekit / standalone | 1.4 (2.9) / 0.9 (1.6) ms | 1.2 (2.4) / 0.8 (1.8) ms |
 
 **H1** still fails: only F2 (freshness, 10 messages) is left. Every other lie, 702 of them, is not accepted. That
 covers the claim, evidence, authority, delivery, encoding and message scopes, and includes 11 signer-bug grants.
 
-**H2** still fails on F4 alone. "Honest claims proven" counts claims, as pre-registered. Two numbers differ by design:
+**H2** still fails on F4 alone: 81 of 83 honest messages (76 of 78 claims, 97.4%). As pre-registered, the pass bar
+is on claims. A message counts when nothing rejects it and each of its claims is proven; 13 of the 83 carry no claim
+(a grant only), and count when they are accepted. The two misses are the same either way. Two numbers differ by
+design:
 - 12 messages are new under the covers rule: the honest `approved_by` messages without covers under `refund.approved`,
   a schema that lists `approved_by` (`honest.A.01`–`12`). Their claims are proven, but the verdict is now
   `accept-unproven` ("required, not proven to cover this request: claim it with covers true").
@@ -115,7 +125,8 @@ signs itself. A replay (L11) is the original message sent again, unchanged.
 | SCITT receipts | RFC 9943 and 9942: each claim's records are in a pinned log (content hash, inclusion receipt) | 550/712 (77.2%) | 74.0–80.2% | 83/83 |
 | Verifiable Intent | Mastercard VI 0.1: AP2's checks, with a person key an issuer certifies (L1) | 509/712 (71.5%) | 68.1–74.7% | 67/83 |
 | AP2 mandates | AP2 0.2 (Trusted Agent Provider model): the open mandate's signer, constraints, exp and cnf; checkout mandates; KB-JWT aud, nonce and iat | 504/712 (70.8%) | 67.3–74.0% | 67/83 |
-| PCM 0.1 (H1) | SPEC 8 | 10/712 (1.4%) | 0.8–2.6% | 69/83 `accept` (H2: 81/83 claims proven) |
+| AP2 ∩ SCITT ∩ RFC 9421 (stacked) | accepts only what all three accept | 365/712 (51.3%) | 47.6–54.9% | 67/83 |
+| PCM 0.1 (H1) | SPEC 8 | 10/712 (1.4%) | 0.8–2.6% | 69/83 `accept` (H2: 81 of 83 honest messages, 76 of 78 claims) |
 
 What each catches, and what it misses:
 
@@ -167,12 +178,13 @@ What each catches, and what it misses:
   very request. So the faithful counts are most likely 553 for AP2 (77.7%) and 559 for VI (78.5%). The chart and the
   README show the measured 504 and 509, the counts that favour AP2.
 - **Mappings.** A root grant is an open mandate, a person's approval a checkout mandate, and a child grant has no AP2
-  form. AP2 is modelled with its Trusted Agent Provider model (the receiver trusts the platforms whose logs it pins)
-  and VI with its L1 issuer (who certifies the persons the signer's configuration names). Other choices give other
-  numbers on L8, L14 and the signer-bug grants.
-- **Encodings.** Signatures are real Ed25519, over the model's own encodings rather than JWS, SD-JWT, COSE or HTTP
-  header syntax; no check here depends on that syntax. The RFC 9421 window is ANP-02's 300 s; TAP allows 480 s, which
-  changes nothing here (the replays outside the window are 600 s old).
+  form. AP2 is modelled with its Trusted Agent Provider model: the receiver trusts the agent's platform to sign a
+  mandate only after a person consents, and here those platforms are the ones whose logs it pins. VI stands for AP2's
+  other model, User Credential, with its L1 issuer (who certifies the persons the signer's configuration names). Other
+  choices give other numbers on L8, L14 and the signer-bug grants.
+- **Encodings.** Signatures are real Ed25519, over the model's own byte layouts rather than literal JWS, SD-JWT, COSE
+  or HTTP header syntax; no check here depends on that syntax. The RFC 9421 window is ANP-02's 300 s; TAP allows
+  480 s, which changes nothing here (the replays outside the window are 600 s old).
 - **Not modelled.** Transport security (TLS, mTLS, OAuth), which authenticates the liar too; VI's suggested mandate
   lifetimes; the protocols that reduce to plain A2A on these claims (MCP, IBM ACP, LangChain Agent Protocol, Agora,
   Coral, FIPA-ACL) or to RFC 9421 + replay at best (Visa TAP, OpenAI/Stripe ACP).
@@ -185,7 +197,8 @@ What each catches, and what it misses:
 The text below explains each finding as it stood before the fixes. F1, F3 and F5 are now fixed; F2 and F4 are open.
 
 These are not fixed here: per the task, fixes go to the owners of the spec and the code. Each finding has a minimal
-repro under `findings/`. `python bench/lies/findings/repro.py findings/<id>.json` runs both verifiers on one of them.
+repro under `findings/`. `PYTHONPATH=<tracekit> python bench/lies/findings/repro.py bench/lies/findings/<id>.json`, from
+this repository's root, runs both verifiers on one of them.
 
 **F1. A leading-zero IPv4 octet proves a host the connection never reached** (`L16.H.01`–`L16.H.07`; both verifiers;
 in the threat model).
@@ -289,9 +302,10 @@ fetches, below).
 - **(d) numbers out of the double range:** each claim type gets `1.8e308` in the intent's args and `-1e400` in the
   payload, as raw text.
 - **(c):** no change was needed: `honest.H.15` and `.16` already test a 404.
-- **H2 counts claims:** `report.py` now counts H2 as pre-registered, that is honest *claims* proven, so an honest
-  `approved_by` without covers still counts under a schema that requires a covering one. It also shows how many
-  honest messages got the verdict `accept`. For dataset 1 both counts were the same: 71/73.
+- **H2 counts claims and messages:** `report.py` counted honest messages (each claim proven and nothing rejecting the
+  message), not claims. It now also counts honest *claims* proven, as pre-registered, and applies the pass bar to
+  them, so an honest `approved_by` without covers counts under a schema that requires a covering one. It also shows
+  how many honest messages got the verdict `accept`. Dataset 1: 66 of 68 claims, 71 of 73 messages, 71 `accept`.
 
 ## Dataset 1: the pre-final run
 
@@ -316,7 +330,12 @@ Comparing the two runs message by message (ids are stable):
 So the final heads' new host rules don't touch F1. A leading-zero octet is printable ASCII and has no `%`, so it is
 still read by `inet_aton`.
 
-## Design (pre-registered 2026-10-28, followed here)
+## Design (pre-registered 2026-10-28)
+
+The design as written is in [`PREREGISTRATION.md`](PREREGISTRATION.md), with a header on where this run departed from
+it: the improve loop stopped with H1 and H2 failing, the dataset grew after the first run, and the six protocol
+receivers came later. It has no public timestamp before these results: it was a local note, written that morning
+before the benchmark's first commit, and committed here after the results. In short:
 
 - **Threat model:**
   - The sender controls its own process, its messages and T1 reports, and any file it can write.
@@ -327,7 +346,8 @@ still read by `inet_aton`.
   - H2: at least 99% of honest T2 or signer-backed claims proven.
   - H3: 100% of T1-only claims unproven.
   - H4: Tracekit and standalone give the same verdict and reason class on every message.
-  - H5: the baselines, reported for comparison only.
+  - Baselines (no pass bar; H5 in the pre-registration): plain A2A and the sender's signature only, reported for
+    comparison.
   - Cost: message size, and p50/p99 verify time.
 - **Lies:**
   - L1 fabricated event;
@@ -420,12 +440,28 @@ These are bugs in the harness only. No verifier or Tracekit code was changed.
 
 ## Reproduce
 
+**The published numbers**, from the committed dataset: `run`, then `report`. `run` needs a Tracekit checkout at
+v1.5.0 on `PYTHONPATH` and the standalone verifier's two dependencies (`rfc8785`, `cryptography`); `report` needs only
+the standard library. Every verdict and count reproduces; timings differ from run to run, and on v1.5.0 so do 11
+claim details (above).
+
 ```sh
-cd <this repo>   # PYTHONPATH: a Tracekit checkout; the standalone verifier is found under verifier/python
-PYTHONPATH=<tracekit> python -m bench.lies gen      # data/dataset.jsonl, data/meta.json (~1 min)
+cd <this repo>   # the standalone verifier is found under verifier/python
 PYTHONPATH=<tracekit> python -m bench.lies run --verifier all   # results/{tracekit,standalone,baselines}.jsonl
 # baselines.jsonl holds a2a, sigonly and the six protocol receivers (no extra dependencies)
 python -m bench.lies report                          # results/results.json, findings/, the tables below
+```
+
+**A new dataset**, with `gen` before them. `gen` overwrites the committed `data/dataset.jsonl` and `data/meta.json`.
+It needs:
+- Tracekit's own dependencies, plus pytest: the suites really run;
+- IPv6 loopback, `::1`: a local server listens there;
+- a resolver that reads IPv4 spellings as macOS does: each host's label is what this machine's `getaddrinfo` reads
+  (`gen.py`, `World.destination`). glibc reads a leading-zero octet as octal, so on Linux some L16 labels, and the
+  counts, differ from the committed dataset.
+
+```sh
+PYTHONPATH=<tracekit> python -m bench.lies gen      # data/dataset.jsonl, data/meta.json (~1 min)
 ```
 
 <!-- auto:begin -->
