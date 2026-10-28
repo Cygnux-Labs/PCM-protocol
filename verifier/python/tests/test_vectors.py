@@ -86,10 +86,10 @@ def test_vector(name):
 
 
 # ---------------------------------------------------------------------------------------------------- SPEC examples
-# SPEC.md ties an example to the vector it quotes with `<!-- vector NAME PATH -->` right before the code block or
-# inline code: PATH is a dotted path into vectors/NAME.json (a number indexes an array), and `@signed` turns a message
-# into the bytes its signature covers (SPEC 4.2).
-SPEC = HERE.parents[2] / "SPEC.md"
+# SPEC.md and README.md tie an example to the vector it quotes with `<!-- vector NAME PATH -->` right before the code
+# block or inline code: PATH is a dotted path into vectors/NAME.json (a number indexes an array), and `@signed` turns a
+# message into the bytes its signature covers (SPEC 4.2).
+DOCS = [HERE.parents[2] / name for name in ("SPEC.md", "README.md")]
 QUOTED = re.compile(r"<!-- vector ([\w-]+) ([\w.@-]+) -->\s*(?:```\w*\n(.*?)\n\s*```|`([^`]+)`)", re.S)
 
 
@@ -127,10 +127,10 @@ def shown(e, v):
     return type(e) is type(v) and e == v
 
 
-@pytest.mark.parametrize("name, path, text", quoted(SPEC.read_text()))
+@pytest.mark.parametrize("name, path, text", [q for doc in DOCS for q in quoted(doc.read_text(encoding="utf-8"))])
 def test_spec_example(name, path, text):
-    """Each example SPEC.md ties to a vector shows that vector's value: a string as written, `...` for text left out;
-    anything else as JSON."""
+    """Each example SPEC.md or README.md ties to a vector shows that vector's value: a string as written, `...` for text
+    left out; anything else as JSON."""
     value = at(name, path)
     if isinstance(value, str):
         assert re.fullmatch(".*".join(map(re.escape, text.split("..."))), value, re.S), (text, value)
