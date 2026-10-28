@@ -18,6 +18,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 import pcm_verify
+from pcm_verify.__main__ import loads
 
 HERE = pathlib.Path(__file__).resolve().parent
 VECTORS = HERE.parents[2] / "vectors"
@@ -37,12 +38,14 @@ def conformance(out):
 
 
 def run(inp):
+    """The verifier's result for a vector's input; a `message_text` is parsed first, as the CLI parses a file."""
     o, rp = inp["options"], inp["options"]["replay"]
     replay = rp and pcm_verify.Replay(rp["window_s"], rp["per_sender"], started=rp["started"])
     kw = dict(me=o["me"], strict=o["strict"], now=o["now"], replay=replay)
     for m in (rp or {}).get("seen", []):
         pcm_verify.verify(m, inp["trust"], inp["schemas"], **kw)
-    return pcm_verify.verify(inp["message"], inp["trust"], inp["schemas"], **kw)
+    msg = loads(inp["message_text"]) if "message_text" in inp else inp["message"]
+    return pcm_verify.verify(msg, inp["trust"], inp["schemas"], **kw)
 
 
 def test_no_tracekit_import():
@@ -66,7 +69,11 @@ def test_the_vectors_were_made_with_the_frozen_table():
 @pytest.mark.parametrize("name", [v["name"] for v in INDEX])
 def test_vector(name):
     v = json.loads((VECTORS / f"{name}.json").read_text())
-    assert conformance(run(v["input"])) == conformance(v["expected"])
+    if v["expected"]["verdict"] == "bad-input":   # SPEC 13.2: the text must not parse, so there is no result
+        with pytest.raises(ValueError):
+            run(v["input"])
+    else:
+        assert conformance(run(v["input"])) == conformance(v["expected"])
 
 
 # ---------------------------------------------------------------------------------------------------- SPEC examples
@@ -233,7 +240,10 @@ def test_a_decision_without_its_id_matches_nothing():
     ("bücher.example", "xn--bcher-kva.example", "unproven"), ("faß.example", "fass.example", "unproven"),
     (" api.example.com", "api.example.com", "unproven"), ("%61pi.example.com", "api.example.com", "unproven"),
     ("h.com%00.evil", "api.example.com", "unproven"), ("%5b", "api.example.com", "unproven"),
-    ("::ffff:1.2.03.4", "1.2.3.4", "unproven"), ("1.2.3.4", "::ffff:01.2.3.4", "unproven")])
+    ("::ffff:1.2.03.4", "1.2.3.4", "unproven"), ("1.2.3.4", "::ffff:01.2.3.4", "unproven"),
+    # SPEC 6.7: an IPv4 address only as a dotted quad
+    ("10.0.0.1", "10.0.0.1", "proven"), ("0127.0.0.1", "127.0.0.1", "unproven"), ("127.1", "127.0.0.1", "unproven"),
+    ("2130706433", "127.0.0.1", "unproven"), ("127.0.0.1", "0127.0.0.1", "unproven")])
 def test_an_effects_host_is_compared_in_canonical_form(host, claim, result):
     msg = message(claim_args={"host": claim}, event={**EVENT, "data": {**EVENT["data"], "host": host}})
     assert check(msg)["claims"][0]["result"] == result
@@ -267,6 +277,7 @@ def first_part(netloc):
     ("api.example.com", "http://[::1]@evil.example/", "unproven"), ("api.example.com", "[::1]@api.example.com/x",
                                                                     "unproven"),
     ("::1", "http://[zz]@[::1]/", "unproven"), ("::1", "http://[::1]x/", "unproven"), ("x", "http://[@x::1]/", "unproven"),
+    ("a.com", "http://[x]@%61.com/", "unproven"),
     ("api.example.com", "http://[::1]@/", "unproven"), ("::1", "http://[::1]@/", "unproven"),
     ("api.example.com", "file://[::1]@api.example.com/", "unproven"),
     # SPEC 6.7 step 1: what urlsplit strips (leading controls and spaces, tabs and line breaks) differs by release
@@ -277,12 +288,15 @@ def first_part(netloc):
     ("good.com", "http://good.com/a[1]", "proven"), ("other.com", "http://good.com/?q=]", "failed")])
 def test_no_verdict_depends_on_the_urlsplit_release(emu, host, url, result, monkeypatch):
     """urlsplit's own bracket check differs between Python releases (none, the first bracketed part, the part after the
-    last `@`), and so does what it strips: under each, the verdict is the same."""
+    last `@`), and so does what it strips: under each, the verdict and the detail are this release's."""
     urllib.parse.clear_cache()   # urlsplit caches what it read
+    native = pcm_verify.reached_host({"host": host}, fetched(url))
+    urllib.parse.clear_cache()
     for name, value in emu.items():
         monkeypatch.setattr(urllib.parse, name, value, raising=False)
     try:
-        assert pcm_verify.reached_host({"host": host}, fetched(url))[0] == result
+        assert native[0] == result
+        assert pcm_verify.reached_host({"host": host}, fetched(url)) == native
     finally:
         urllib.parse.clear_cache()
 
@@ -306,7 +320,9 @@ def test_only_printable_ascii_is_read(host, url):
 @pytest.mark.parametrize("host, url", [
     ("a.example", "http://%61.example/"), ("a.example", "http:\\\\%61.example/"),
     ("a.example", "http://a.example\\@%61.example/"), ("b.example", "http://a.example\\@%62.example/"),
-    ("h.com", "http://%5bh.com%5d/"), ("h.com.evil", "http://h.com%00.evil/"), ("::1", "http://[::1%25eth0]/")])
+    ("h.com", "http://%5bh.com%5d/"), ("h.com.evil", "http://h.com%00.evil/"), ("::1", "http://[::1%25eth0]/"),
+    # a zone id is no address, so its .01 is no leading zero: the URL passes the bracket rule
+    ("::1", "http://[::1%25a.01]/"), ("fe80::1", "http://[fe80::1%25en.05]/")])
 def test_a_host_with_a_percent_is_unproven(host, url):
     """SPEC 6.7 step 5: a host is never percent-decoded, in the browser's reading or the generic one. The detail says
     what the sender can do (SPEC 6.6)."""
@@ -315,9 +331,65 @@ def test_a_host_with_a_percent_is_unproven(host, url):
         "host as plain ASCII, not percent-encoded")
 
 
+NOT_QUAD = ("its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255 without "
+            "leading zeros")
+
+
+@pytest.mark.parametrize("host, url", [
+    ("87.0.0.1", "http://0127.0.0.1/"), ("127.0.0.1", "http://0127.0.0.1:8080/x"), ("10.0.0.1", "http://010.0.0.1/"),
+    ("192.168.0.10", "http://192.168.0.010/"), ("127.0.0.1", "http://0127.0.0.1./"), ("127.0.0.1", "http://127.1/"),
+    ("127.0.0.1", "http://0x7f.0.0.1/"), ("127.0.0.1", "http://0X7F.0.0.1/"), ("127.0.0.1", "http://2130706433/"),
+    ("0.0.0.0", "http://0x/"), ("1.2.3.4", "http://1.2.3.4.5/"), ("1.2.3.4", "http://a.1.2.3.4/"),
+    ("1.2.3.4", "http://1.2.3.256/"), ("8.8.8.8", "http://0128.0.0.1/"), ("127.0.0.1", "http:\\\\0127.0.0.1/")])
+def test_an_ipv4_host_not_written_as_a_dotted_quad_is_unproven(host, url):
+    """SPEC 6.7 step 5: a host whose last label is a number is an IPv4 address, read only as four decimal numbers 0-255
+    without leading zeros; resolvers read the other forms apart (macOS reaches 127.0.0.1 from 0127.0.0.1, inet_aton
+    reads 87.0.0.1). The detail says what the sender can do (SPEC 6.6)."""
+    assert pcm_verify.reached_host({"host": host}, fetched(url)) == (
+        "unproven", f"the verifier can't tell whether call c reached {host}: {NOT_QUAD}")
+
+
+@pytest.mark.parametrize("host", ["0127.0.0.1", "127.1", "2130706433", "0x7f.0.0.1", "127.0.0.01:443"])
+def test_a_claimed_ipv4_host_not_written_as_a_dotted_quad_is_unproven(host):
+    """SPEC 6.6 step 1: the claim's host is the sender's own, so its detail says what to fix too."""
+    assert pcm_verify.reached_host({"host": host}, fetched("http://127.0.0.1/")) == (
+        "unproven", f"{host} is no host the verifier can read: {NOT_QUAD}")
+
+
+@pytest.mark.parametrize("host, url", [("10.0.0.1", "http://10.0.0.1:8080/"), ("0.0.0.0", "http://0.0.0.0/"),
+                                       ("127.0.0.1", "http://127.0.0.1./"), ("1a.example", "http://1a.example/"),
+                                       ("example.0x1g", "http://example.0x1g/")])
+def test_a_dotted_quad_or_a_name_ending_in_no_number_is_read(host, url):
+    assert pcm_verify.reached_host({"host": host}, fetched(url))[0] == "proven"
+
+
 def test_no_advice_for_another_cause():
     assert pcm_verify.reached_host({"host": "b.example"}, fetched("http://a.example\\@b.example/")) == (
         "unproven", "the verifier can't tell whether call c reached b.example")
+
+
+@pytest.mark.parametrize("host, url", [("::1", "http://[::1]@[::1%25x]/"), ("127.0.0.1", "http://[x]@0127.0.0.1/")])
+def test_no_advice_for_a_url_the_bracket_rule_refuses(host, url):
+    """SPEC 6.6: the `%` and dotted-quad sentences are for a URL that passes the bracket rule; a reading of one it
+    refuses moves with the URL and the urlsplit release."""
+    assert pcm_verify.reached_host({"host": host}, fetched(url)) == (
+        "unproven", f"the verifier can't tell whether call c reached {host}")
+
+
+@pytest.mark.parametrize("recs", [fetched("file:///x"), [({**EVENT, "data": {**EVENT["data"], "host": ":443"}}, None)]])
+def test_a_claimed_host_that_reads_as_none_is_unproven(recs):
+    """SPEC 6.7: `:80` passes the claim pattern and reads as no host, which must not match the no host of a file: URL
+    or of an effect's `:443`."""
+    assert pcm_verify.reached_host({"host": ":80"}, recs) == ("unproven", ":80 is no host the verifier can read")
+
+
+@pytest.mark.parametrize("url", ["blob:http://a.com/x", "view-source:http://a.com/", "BLOB:view-source:https://a.com/",
+                                 "blob:http://[x]@a.com/", "blob:http://%61.com/", "view-source:http://0127.0.0.1/"])
+def test_a_view_source_or_blob_url_is_unproven(url):
+    """SPEC 6.7 step 4: a browser's address bar reads the URL inside view-source: and blob:, WHATWG URL reads no host
+    from either: the verifier can't tell, and says nothing the sender could fix in the host."""
+    assert pcm_verify.reached_host({"host": "a.com"}, fetched(url)) == (
+        "unproven", "the verifier can't tell whether call c reached a.com")
 
 
 @pytest.mark.parametrize("old", [False, True], ids=["this-release", "lenient-ipaddress"])
@@ -329,9 +401,11 @@ def test_an_ipv6_dotted_quad_with_a_leading_zero_is_unproven(old, monkeypatch):
     urllib.parse.clear_cache()
     try:
         for host, recs in (("1.2.3.4", fetched("http://[::ffff:01.2.3.4]/")),
+                           ("1.2.3.4", fetched("http://[::ffff:1.2.03.4]/")),
                            ("1.2.3.4", fetched("file://[::ffff:01.2.3.4]/")),   # the bracket rule comes first
                            # no authority, so no bracket rule: step 5's own check
                            ("1.2.3.4", fetched("http:\\\\[::ffff:01.2.3.4]/")),
+                           ("1.2.3.4", fetched("http:\\\\[::ffff:1.2.3.04]/")),
                            ("::ffff:01.2.3.4", fetched("http://1.2.3.4/"))):
             assert pcm_verify.reached_host({"host": host}, recs)[0] == "unproven", (host, recs)
     finally:
@@ -650,7 +724,7 @@ def test_cli_exit_codes(tmp_path):
     del nev["claims"][0]["evidence"]
     nev = signed(nev, pcm_verify.MESSAGE_TAG)
     assert cli(write("nev.json", nev), "--trust", trust, "--schema", schema).returncode == 3
-    for garbage in ("{", '{"a": NaN}', '{"a": 1, "a": 2}', "[" * 100000):
+    for garbage in ("{", '{"a": NaN}', '{"a": 1, "a": 2}', "[" * 100000, '{"a": 1e400}', '{"a": -1E400}'):
         r = cli(write("g.json", garbage), "--trust", trust, "--schema", schema)
         assert r.returncode == 2 and "Traceback" not in r.stderr, r.stderr
     r = cli(write("ok.json", message()), "--trust", str(tmp_path / "missing.json"), "--schema", schema)
@@ -660,6 +734,17 @@ def test_cli_exit_codes(tmp_path):
     deep["payload"] = {"kind": "data", "data": json.loads("[" * 200 + "]" * 200)}
     r = cli(write("deep.json", signed(deep, pcm_verify.MESSAGE_TAG)), "--trust", trust, "--schema", schema)
     assert r.returncode == 2 and "deeper than 128" in r.stderr, r.stderr
+
+
+@pytest.mark.parametrize("text", ["1e400", "-1e400", "1.7976931348623159e308", "[0, 1E309]"])
+def test_a_number_past_the_double_range_does_not_parse(text):
+    """SPEC 3.3: a number that rounds to no finite IEEE 754 double is bad input, not infinity."""
+    with pytest.raises(ValueError, match="IEEE 754 double"):
+        loads(text)
+
+
+def test_numbers_within_the_double_range_parse():
+    assert loads("[1.7976931348623157e308, 1e-400, -0.0]") == [1.7976931348623157e308, 0.0, -0.0]
 
 
 def test_cli_prints_what_a_proven_approved_by_approved(tmp_path):

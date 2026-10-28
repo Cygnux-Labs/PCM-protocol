@@ -703,56 +703,44 @@ def approved_by(a, recs, msg, doc):
 SPECIAL = ("http", "https", "ws", "wss", "ftp")
 PRINTABLE = re.compile(r"[!-~]*")
 ZERO_QUAD = re.compile(r"\.0[0-9]|:0[0-9]+\.")   # a leading zero in an IPv6 address's dotted quad: ::ffff:01.2.3.4
+NUMBER = re.compile(r"[0-9]+|0[xX][0-9A-Fa-f]*")   # a last label that makes a host an IPv4 address (WHATWG URL)
+_OCTET = r"(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])"
+QUAD = re.compile(rf"{_OCTET}(\.{_OCTET}){{3}}")   # the one form of an IPv4 address every resolver reads alike
+PEELED = re.compile(r"(?i)(view-source|blob):")   # SPEC 6.7 step 4: a browser reads the URL inside, WHATWG URL no host
 _BAD = object()   # looks like an address and is none
 # SPEC 6.6: what a call's detail tells the sender when its URL's host won't parse for a cause the sender can fix
 NOT_ASCII = ("its URL is not printable ASCII: send the URL with the host in xn-- form and the path and query "
              "percent-encoded")
 PERCENT = "its host has a %: send the URL with the host as plain ASCII, not percent-encoded"
+NOT_QUAD = ("its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255 without "
+            "leading zeros")
 
 
 def _whatwg_host(url):
-    """(scheme, host) as a browser reads them (SPEC 6.7 step 4): view-source: and blob: peeled, `\\` a `/`, any number
-    of slashes after a special scheme, the host after the last `@`, without its port. The host is None for a scheme
-    that has none; the scheme is None for //host."""
-    u = url[re.match(r"(?i)(?:view-source:|blob:)*", url).end():]
-    m = re.match(r"([A-Za-z][A-Za-z0-9+.-]*):", u)
+    """(scheme, host) as a browser reads them (SPEC 6.7 step 4): `\\` a `/`, any number of slashes after a special
+    scheme, the host after the last `@`, without its port. The host is None for a scheme that has none; the scheme is
+    None for //host."""
+    m = re.match(r"([A-Za-z][A-Za-z0-9+.-]*):", url)
     scheme = m.group(1).lower() if m else None
-    if scheme not in SPECIAL and (scheme or not re.match(r"[/\\]{2}", u)):
+    if scheme not in SPECIAL and (scheme or not re.match(r"[/\\]{2}", url)):
         return scheme, None
-    host = re.split(r"[/?#]", (u[m.end():] if m else u).replace("\\", "/").lstrip("/"), maxsplit=1)[0]
+    host = re.split(r"[/?#]", (url[m.end():] if m else url).replace("\\", "/").lstrip("/"), maxsplit=1)[0]
     host = host.rpartition("@")[2]
     return scheme, host[:host.find("]") + 1] if host.startswith("[") and "]" in host else host.split(":")[0]
 
 
-def _number(part):
-    """An IPv4 part in decimal, 0x hex or 0 octal; None for a name; -1 for 08 or more than 10 decimal digits."""
-    if re.fullmatch(r"0[xX][0-9A-Fa-f]*", part):
-        return int(part[2:] or "0", 16)
-    if re.fullmatch(r"0[0-7]+", part):
-        return int(part, 8)
-    if re.fullmatch(r"[0-9]+", part):
-        return -1 if len(part) > 1 and part[0] == "0" or len(part) > 10 else int(part)
-    return None
-
-
 def _address(host):
-    """The address a host names (IPv4 in inet_aton's 1 to 4 parts), None for a name, _BAD for neither."""
+    """The address a host names, None for a name, _BAD for neither. A host whose last label (one trailing dot dropped)
+    is a NUMBER is IPv4, and an address only as a dotted QUAD (SPEC 6.7 step 5)."""
     if ":" in host:
         try:
             return ipaddress.IPv6Address(host.strip("[]"))
         except ValueError:
             return _BAD
-    parts = host.split(".")
-    if len(parts) > 1 and parts[-1] == "":
-        parts.pop()
-    if _number(parts[-1]) is None:
+    name = host[:-1] if host.endswith(".") else host
+    if not NUMBER.fullmatch(name.rpartition(".")[2]):
         return None
-    if len(parts) > 4:
-        return _BAD
-    nums = [_number(p) for p in parts]
-    if None in nums or -1 in nums or any(n > 255 for n in nums[:-1]) or nums[-1] >= 256 ** (5 - len(nums)):
-        return _BAD
-    return ipaddress.IPv4Address(nums[-1] + sum(n << 8 * (3 - i) for i, n in enumerate(nums[:-1])))
+    return ipaddress.IPv4Address(name) if QUAD.fullmatch(name) else _BAD
 
 
 def _canonical_host(host):
@@ -784,7 +772,8 @@ def _brackets_ok(url):
         ipaddress.IPv6Address(inside)
     except ValueError:
         return re.fullmatch(r"v[0-9A-Fa-f]+\..+", inside) is not None
-    return not ZERO_QUAD.search(inside)   # Python before 3.9.5 takes a leading zero, later releases refuse it
+    # Python before 3.9.5 takes a leading zero, later releases refuse it; the zone id after a % is no address
+    return not ZERO_QUAD.search(inside.partition("%")[0])
 
 
 def _with_scheme(url):
@@ -795,11 +784,12 @@ def _with_scheme(url):
 
 def _url_host(url):
     """The host `url` reaches, in the form SPEC 6.7 compares: "" when it has none (no host, or a scheme without one:
-    file:, mailto:), None when it won't parse. The bracket rule comes before any other reading of the URL."""
+    file:, mailto:), None when it won't parse. The bracket rule comes before any other reading of the URL, and a URL
+    that starts with view-source: or blob: won't parse."""
     if not PRINTABLE.fullmatch(url):
         return None
     url = _with_scheme(url)
-    if not _brackets_ok(url):
+    if not _brackets_ok(url) or PEELED.match(url):
         return None
     scheme, wh = _whatwg_host(url)
     if scheme not in (*SPECIAL, None):
@@ -827,16 +817,20 @@ def _url_host(url):
 
 
 def _why(url):
-    """SPEC 6.6: NOT_ASCII (6.7 step 1) or PERCENT (step 5) when that is why the host of `url`, which won't parse,
-    won't; else None."""
+    """SPEC 6.6: NOT_ASCII (6.7 step 1), PERCENT or NOT_QUAD (step 5) when that is why the host of `url`, which won't
+    parse, won't; else None."""
     if not PRINTABLE.fullmatch(url):
         return NOT_ASCII
     url = _with_scheme(url)
+    if not _brackets_ok(url) or PEELED.match(url):
+        return None
     try:
-        hosts = (_whatwg_host(url)[1], urlsplit(url).hostname) if _brackets_ok(url) else ()
+        hosts = [h for h in (_whatwg_host(url)[1], urlsplit(url).hostname) if h]
     except ValueError:   # as in _url_host
         return None
-    return PERCENT if any("%" in h for h in hosts if h) else None
+    if any("%" in h for h in hosts):
+        return PERCENT
+    return NOT_QUAD if any(":" not in h and _address(h) is _BAD for h in hosts) else None
 
 
 def _host(host):
@@ -850,8 +844,9 @@ def _host(host):
 
 def reached_host(a, recs):
     want = _host(a["host"])
-    if want is None:
-        return "unproven", f"{a['host'][:64]} is no host the verifier can read"
+    if want is None:   # SPEC 6.6 step 1: the claim's host is the sender's own; NOT_QUAD is the cause its pattern passes
+        why = _why(f"http://{a['host']}/")
+        return "unproven", f"{a['host'][:64]} is no host the verifier can read" + (f": {why}" if why else "")
     seen = ("failed", "")
     for e, _ in recs:
         d = _data(e)

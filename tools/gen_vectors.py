@@ -21,7 +21,7 @@ from unittest import mock
 from tracekit import merkle, pcm
 from tracekit.crypto import public_from_secret
 from tracekit.format import checkpoint
-from tracekit.format.canon import event_hash
+from tracekit.format.canon import StrictJSONError, event_hash, loads_strict
 from tracekit.identity.base import CallerIdentity
 from tracekit.pcm.claims import placed
 from tracekit.policy2.engine import Engine
@@ -47,6 +47,8 @@ ARGS = {"amount": 12000, "order": 81}
 NOT_ASCII = "its URL is not printable ASCII: send the URL with the host in xn-- form and the path and query " \
             "percent-encoded"
 PERCENT = "its host has a %: send the URL with the host as plain ASCII, not percent-encoded"
+NOT_QUAD = "its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255 without " \
+           "leading zeros"
 
 
 def cv(field, op, value):
@@ -210,13 +212,18 @@ def fresh(msg, seen=()):
 
 
 def check(inp):
-    """What tracekit.pcm.verify returns for a vector's input: the `seen` messages go first through the same receiver."""
+    """What tracekit.pcm.verify returns for a vector's input: the `seen` messages go first through the same receiver.
+    A `message_text` is parsed as `tracekit pcm verify` parses a file (SPEC 3.3): text that won't parse is bad input."""
     assert inp["tools"] == placed(), "registry/tools.json is not tracekit's PCM 0.1 table (tracekit/pcm/tools.json)"
     o, now, rp = inp["options"], pcm._epoch(inp["options"]["now"]), inp["options"]["replay"]
+    try:
+        msg = loads_strict(inp["message_text"]) if "message_text" in inp else inp["message"]
+    except StrictJSONError as e:
+        return {"verdict": "bad-input", "reasons": [f"input: {e}"]}
     r = rp and pcm.Replay(rp["window_s"], rp["per_sender"], now=pcm._epoch(rp["started"]))
     for m in (rp or {}).get("seen", []):
         pcm.verify(m, inp["trust"], inp["schemas"], replay=r, me=o["me"], strict=o["strict"], now=now)
-    return pcm.verify(inp["message"], inp["trust"], inp["schemas"], replay=r, me=o["me"], strict=o["strict"], now=now)
+    return pcm.verify(msg, inp["trust"], inp["schemas"], replay=r, me=o["me"], strict=o["strict"], now=now)
 
 
 def build():
@@ -234,10 +241,11 @@ def cases(s, s2):
     trust = {"logs": [s.vkey], "witnesses": [], "witnesses_required": 0}
 
     def vector(name, description, msg, schemas, want="", trust=trust, me="uid:990102", strict=False, replay=None,
-               now=None):
+               now=None, text=None):
+        """`text`: the message as JSON text, in place of `msg` (SPEC 13.2)."""
         out.append((name, description, {
-            "message": msg, "schemas": schemas, "trust": trust, "tools": TOOLS,
-            "options": {"me": me, "strict": strict, "now": now or at(msg, 1), "replay": replay}}, want))
+            **({"message_text": text} if text else {"message": msg}), "schemas": schemas, "trust": trust,
+            "tools": TOOLS, "options": {"me": me, "strict": strict, "now": now or at(msg, 1), "replay": replay}}, want))
 
     def resign(obj, purpose, **changes):
         return pcm.sign(LOG, s.vkey, purpose, {**{k: v for k, v in obj.items() if k != "sig"}, **changes})
@@ -716,6 +724,10 @@ def cases(s, s2):
             "a host with an empty label won't parse, so the claim is unproven.",
             {"type": "reached_host", "args": {"host": "a..example"}, "evidence": observed},
             "no host the verifier can read")
+    claimed("accept-unproven-reached-host-claim-not-quad", "reached_host of 0127.0.0.1 with the observed evidence: an "
+            "IPv4 address not written as a dotted quad won't parse, and the detail says how to write it.",
+            {"type": "reached_host", "args": {"host": "0127.0.0.1"}, "evidence": observed},
+            f"no host the verifier can read: {NOT_QUAD}")
     for name, url, host, want, what in (
             ("accept-reached-host-http", "https://API.Example.COM:8443/v1/refunds", "api.example.com", "",
              "the host is read lower case, without the port"),
@@ -723,8 +735,18 @@ def cases(s, s2):
              "a port in the claim is ignored too"),
             ("accept-reached-host-trailing-dot", "https://api.example.com./v1/refunds", "api.example.com", "",
              "the host loses its one trailing dot"),
-            ("accept-reached-host-short-ipv4", "http://127.1/health", "127.0.0.1", "",
-             "127.1 is the IPv4 address 127.0.0.1"),
+            ("accept-reached-host-dotted-quad", "http://10.0.0.1:8080/health", "10.0.0.1", "",
+             "an IPv4 address written as four decimal numbers 0-255 without leading zeros, 0 itself among them"),
+            ("accept-unproven-reached-host-ipv4-leading-zero", "http://0127.0.0.1/ok", "87.0.0.1", NOT_QUAD,
+             "inet_aton reads 0127 as octal, 87, where macOS's resolver reads it as decimal and connects to "
+             "127.0.0.1: an IPv4 address not written as a dotted quad won't parse"),
+            ("accept-unproven-reached-host-short-ipv4", "http://127.1/health", "127.0.0.1", NOT_QUAD,
+             "inet_aton reads 127.1 as 127.0.0.1, but a host whose last label is a number counts only as a dotted "
+             "quad"),
+            ("accept-unproven-reached-host-hex-ipv4", "http://0x7f.0.0.1/", "127.0.0.1", NOT_QUAD,
+             "a hex label, which resolvers read apart, so it won't parse"),
+            ("accept-unproven-reached-host-ipv4-number", "http://2130706433/", "127.0.0.1", NOT_QUAD,
+             "one number, 127.0.0.1 to inet_aton, is no dotted quad, so it won't parse"),
             ("accept-reached-host-a-label", "https://XN--BCHER-KVA.Example/", "xn--bcher-kva.example", "",
              "an xn-- label is compared as written, in lower case: a name in another script is fetched and claimed in "
              "its A-label form"),
@@ -793,11 +815,19 @@ def cases(s, s2):
             ("accept-unproven-reached-host-ipv6-leading-zero", "http://[::ffff:01.2.3.4]/", "1.2.3.4",
              "can't tell whether", "a leading zero in the IPv6 address's dotted quad, which some IPv6 parsers read as "
              "1.2.3.4 and others refuse: it is no IPv6 address, so the bracket rule refuses the URL"),
+            ("accept-unproven-reached-host-ipv6-leading-zero-later-octet", "http://[::ffff:1.2.03.4]/", "1.2.3.4",
+             "can't tell whether", "a leading zero in a later part of the IPv6 address's dotted quad: it is no IPv6 "
+             "address either, so the bracket rule refuses the URL"),
             ("accept-unproven-reached-host-bracket-no-host", "http://[::1]@/", "api.example.com", "can't tell whether",
              "a bracketed IPv6 address in the user info and no host after it: the bracket rule refuses the URL before "
              "anything else reads it, so the claim is unproven, not failed, whatever urlsplit's own bracket check"),
             ("reject-claim-reached-host-file-url", "file://api.example.com/x", "api.example.com",
              "no call in the evidence", "a file: URL has no host a browser reads"),
+            ("accept-unproven-reached-host-claim-no-host", "file:///x", ":80", "no host the verifier can read",
+             "the claim :80 is a port and no host, so it won't parse, rather than match the no host of a file: URL"),
+            ("accept-unproven-reached-host-blob", "blob:https://api.example.com/x", "api.example.com",
+             "can't tell whether", "a browser's address bar reads the URL inside blob:, where WHATWG URL reads no "
+             "host, so it won't parse"),
             ("accept-unproven-reached-host-percent", "http://%61pi.example.com/", "api.example.com",
              PERCENT, "%61 is a, but a host is never percent-decoded: a host with a `%` won't parse"),
             ("accept-unproven-reached-host-nul", "http://api.example.com%00.evil/", "api.example.com",
@@ -830,6 +860,11 @@ def cases(s, s2):
                "payload": {"kind": "data", "data": {"n": [1.5e-7, 1e21, 0.1, 333333333.33333333, -0.0],
                                                     "été": "\u0007\u001f \u007f",
                                                     "": 1, "\U0001F600": 2}}})["message"], [QUOTE])
+    vector("bad-input-number-past-double", "A valid refund.quote as JSON text with `\"payload\": {\"kind\": \"data\", "
+           "\"data\": {\"n\": 1e400}}` added after signing: 1e400 rounds to no finite IEEE 754 double, so the text "
+           "doesn't parse and the verifier refuses it before any check, where one that read it as infinity would fail "
+           "the signature instead.", q, [QUOTE], "non_finite",
+           text=json.dumps(q)[:-1] + ', "payload": {"kind": "data", "data": {"n": 1e400}}}')
 
     # replay: remembered messages leave in the order they arrived
     q1, q2, q3 = (a.send("uid:990102", qref) for _ in range(3))
@@ -946,7 +981,7 @@ def cases(s, s2):
 
 
 def verdict_of(name):
-    return next(v for v in ("accept-unproven", "accept", "reject") if name.startswith(v + "-"))
+    return next(v for v in ("accept-unproven", "accept", "reject", "bad-input") if name.startswith(v + "-"))
 
 
 def main():

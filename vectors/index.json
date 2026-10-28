@@ -666,6 +666,12 @@
     "verdict": "accept-unproven"
   },
   {
+    "name": "accept-unproven-reached-host-claim-not-quad",
+    "file": "accept-unproven-reached-host-claim-not-quad.json",
+    "description": "reached_host of 0127.0.0.1 with the observed evidence: an IPv4 address not written as a dotted quad won't parse, and the detail says how to write it.",
+    "verdict": "accept-unproven"
+  },
+  {
     "name": "accept-reached-host-http",
     "file": "accept-reached-host-http.json",
     "description": "reached_host api.example.com by a WebFetch of https://API.Example.COM:8443/v1/refunds the executor ran (T2): the host is read lower case, without the port.",
@@ -684,10 +690,34 @@
     "verdict": "accept"
   },
   {
-    "name": "accept-reached-host-short-ipv4",
-    "file": "accept-reached-host-short-ipv4.json",
-    "description": "reached_host 127.0.0.1 by a WebFetch of http://127.1/health the executor ran (T2): 127.1 is the IPv4 address 127.0.0.1.",
+    "name": "accept-reached-host-dotted-quad",
+    "file": "accept-reached-host-dotted-quad.json",
+    "description": "reached_host 10.0.0.1 by a WebFetch of http://10.0.0.1:8080/health the executor ran (T2): an IPv4 address written as four decimal numbers 0-255 without leading zeros, 0 itself among them.",
     "verdict": "accept"
+  },
+  {
+    "name": "accept-unproven-reached-host-ipv4-leading-zero",
+    "file": "accept-unproven-reached-host-ipv4-leading-zero.json",
+    "description": "reached_host 87.0.0.1 by a WebFetch of http://0127.0.0.1/ok the executor ran (T2): inet_aton reads 0127 as octal, 87, where macOS's resolver reads it as decimal and connects to 127.0.0.1: an IPv4 address not written as a dotted quad won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-short-ipv4",
+    "file": "accept-unproven-reached-host-short-ipv4.json",
+    "description": "reached_host 127.0.0.1 by a WebFetch of http://127.1/health the executor ran (T2): inet_aton reads 127.1 as 127.0.0.1, but a host whose last label is a number counts only as a dotted quad.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-hex-ipv4",
+    "file": "accept-unproven-reached-host-hex-ipv4.json",
+    "description": "reached_host 127.0.0.1 by a WebFetch of http://0x7f.0.0.1/ the executor ran (T2): a hex label, which resolvers read apart, so it won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-ipv4-number",
+    "file": "accept-unproven-reached-host-ipv4-number.json",
+    "description": "reached_host 127.0.0.1 by a WebFetch of http://2130706433/ the executor ran (T2): one number, 127.0.0.1 to inet_aton, is no dotted quad, so it won't parse.",
+    "verdict": "accept-unproven"
   },
   {
     "name": "accept-reached-host-a-label",
@@ -834,6 +864,12 @@
     "verdict": "accept-unproven"
   },
   {
+    "name": "accept-unproven-reached-host-ipv6-leading-zero-later-octet",
+    "file": "accept-unproven-reached-host-ipv6-leading-zero-later-octet.json",
+    "description": "reached_host 1.2.3.4 by a WebFetch of http://[::ffff:1.2.03.4]/ the executor ran (T2): a leading zero in a later part of the IPv6 address's dotted quad: it is no IPv6 address either, so the bracket rule refuses the URL.",
+    "verdict": "accept-unproven"
+  },
+  {
     "name": "accept-unproven-reached-host-bracket-no-host",
     "file": "accept-unproven-reached-host-bracket-no-host.json",
     "description": "reached_host api.example.com by a WebFetch of http://[::1]@/ the executor ran (T2): a bracketed IPv6 address in the user info and no host after it: the bracket rule refuses the URL before anything else reads it, so the claim is unproven, not failed, whatever urlsplit's own bracket check.",
@@ -844,6 +880,18 @@
     "file": "reject-claim-reached-host-file-url.json",
     "description": "reached_host api.example.com by a WebFetch of file://api.example.com/x the executor ran (T2): a file: URL has no host a browser reads.",
     "verdict": "reject"
+  },
+  {
+    "name": "accept-unproven-reached-host-claim-no-host",
+    "file": "accept-unproven-reached-host-claim-no-host.json",
+    "description": "reached_host :80 by a WebFetch of file:///x the executor ran (T2): the claim :80 is a port and no host, so it won't parse, rather than match the no host of a file: URL.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-blob",
+    "file": "accept-unproven-reached-host-blob.json",
+    "description": "reached_host api.example.com by a WebFetch of blob:https://api.example.com/x the executor ran (T2): a browser's address bar reads the URL inside blob:, where WHATWG URL reads no host, so it won't parse.",
+    "verdict": "accept-unproven"
   },
   {
     "name": "accept-unproven-reached-host-percent",
@@ -892,6 +940,12 @@
     "file": "accept-jcs-payload.json",
     "description": "A data payload with floats, a non-ASCII key, a key outside the BMP that sorts before U+E000 by UTF-16 code units, controls and U+2028: the signature verifies only with exact RFC 8785.",
     "verdict": "accept"
+  },
+  {
+    "name": "bad-input-number-past-double",
+    "file": "bad-input-number-past-double.json",
+    "description": "A valid refund.quote as JSON text with `\"payload\": {\"kind\": \"data\", \"data\": {\"n\": 1e400}}` added after signing: 1e400 rounds to no finite IEEE 754 double, so the text doesn't parse and the verifier refuses it before any check, where one that read it as infinity would fail the signature instead.",
+    "verdict": "bad-input"
   },
   {
     "name": "reject-replay-floor-arrival-order",

@@ -1,0 +1,205 @@
+{
+  "name": "accept-unproven-reached-host-claim-not-quad",
+  "description": "reached_host of 0127.0.0.1 with the observed evidence: an IPv4 address not written as a dotted quad won't parse, and the detail says how to write it.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "860c4d25c364fa8d856666c528048692",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "claims": [
+        {
+          "type": "reached_host",
+          "args": {
+            "host": "0127.0.0.1"
+          },
+          "evidence": {
+            "checkpoint": "example.com/pcm-test-log\n220\nh46JczM5h/Mi1plCU7Y1uS7eYKq3WNyBF0NzCHfZfaU=\n\n— example.com/pcm-test-log C7keZoxD3dsCd+iHbTmTYD7PLRC1y9LA6iCV89k6nFO9a4CYiBMn5k4ALQCt3HQrA65OOWPtPixK30OhP8jYEg2DtwQ=\n",
+            "records": [
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "13b9920828aaf56576b7b22f78dc30ba",
+                  "seq": 218,
+                  "prev_hash": "sha256:166836ef122086852a804568967fb803c22240934561b58875614fea8d5602a5",
+                  "ts": "2026-10-28T00:16:31.605773Z",
+                  "run_id": "860c4d25c364fa8d856666c528048692",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "signer",
+                  "type": "effect.observed",
+                  "data": {
+                    "observer": "uid:990200",
+                    "kind": "net",
+                    "host": "api.example.com",
+                    "port": 443,
+                    "bytes_out": 512,
+                    "bytes_in": 2048,
+                    "connections": 1,
+                    "first_ts": "2026-10-28T00:16:31.605081Z",
+                    "last_ts": "2026-10-28T00:16:31.605081Z",
+                    "attribution": "token"
+                  },
+                  "tenant": "default",
+                  "log_id": "48401a2c0f4760c3e1bbccacd733c3ac",
+                  "run_seq": 193,
+                  "run_prev_hash": "sha256:166836ef122086852a804568967fb803c22240934561b58875614fea8d5602a5"
+                },
+                "hash": "sha256:e1795d4f85e1432c4240df958e76887cfaeffb1a03e53140e87bae142c8591b0",
+                "proof": [
+                  "Cpbjkk4ABRsoTgpa6ltd5y3M/PzdCDZ/eCq4RxGVe4g=",
+                  "xsgIDF+h8dk9Y6X677WCGyagtpvQbqu/8GXrWvwpqBg=",
+                  "h0WRgeEiCGmIPa7U86WMwXCwlzuh8l5KgzJW+U9NB6M=",
+                  "IoD4xAA6pWD17b0tyadZrnBu+2TUkwAiJzl319eyrMQ=",
+                  "O6sYgTbzcLDEf+KfzIpuUnIlyNcUte3qyHJHRV77WtM=",
+                  "7+7GoRHMOWGgFvLFqNB8TmCuvZHCY5cdhZBd0sUTbvE="
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "389770e6a5c3dcd071035fe5b4664b8b",
+      "ts": "2026-10-28T00:16:31.668456Z",
+      "nonce": "19d7938761253248b40a7d8ff54915a3",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "DfGlt/48zm9YFSVqDk0rNlZ6JRRPVwmv3O2fjREme9TUmoHJsSZGGmdjaAemuvcQZK43ZSfiR67Yt/W3TaHwCg=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.quote",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        }
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "Edit": "fs",
+      "Glob": "fs",
+      "Grep": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "Write": "fs",
+      "bash": "shell",
+      "container.exec": "shell",
+      "create_charge": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_refund": "payment",
+      "create_transfer": "payment",
+      "execute_query": "sql",
+      "execute_sql": "sql",
+      "fetch": "http",
+      "get_balance": "payment",
+      "get_transaction": "payment",
+      "gmail_send_message": "email",
+      "http_get": "http",
+      "http_post": "http",
+      "http_request": "http",
+      "list_payments": "payment",
+      "list_transactions": "payment",
+      "local_shell": "shell",
+      "mcp:fetch/fetch": "http",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "pay_invoice": "payment",
+      "query_database": "sql",
+      "requests_delete": "http",
+      "requests_get": "http",
+      "requests_patch": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "run_shell_command": "shell",
+      "run_sql": "sql",
+      "run_terminal_cmd": "shell",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "send_payment": "payment",
+      "shell": "shell",
+      "sql_db_query": "sql",
+      "srt:request": "http",
+      "terminal": "shell",
+      "transfer_funds": "payment",
+      "web_fetch": "http"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-28T00:16:32.668456Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+      "errors": []
+    },
+    "grants": {
+      "result": "none",
+      "steps": 0,
+      "root": null,
+      "problems": []
+    },
+    "claims": [
+      {
+        "type": "reached_host",
+        "result": "unproven",
+        "detail": "0127.0.0.1 is no host the verifier can read: its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255 without leading zeros"
+      }
+    ],
+    "verdict": "accept-unproven",
+    "reasons": [
+      "reached_host: unproven (0127.0.0.1 is no host the verifier can read: its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255 without leading zeros)"
+    ],
+    "skipped": [
+      "replay"
+    ]
+  }
+}
