@@ -1,29 +1,48 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="760" height="258" viewBox="0 0 760 258" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="520" viewBox="0 0 760 520" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
 <title id="t">Lies a receiver accepts</title>
-<desc id="d">Lie benchmark. Plain A2A accepts 712 of 712 lies, a sender-signature check 643 of 712, and PCM 0.1 10 of 712, all stale evidence.</desc>
+<desc id="d">Lie benchmark. Plain A2A accepts 712 of 712 lies, a sender-signature check 643 of 712; models of real protocols: A2A 1.0 with a signed card 712, uAgents 702, RFC 9421 with replay checks 682, SCITT receipts 550, Verifiable Intent 509, AP2 mandates 504; PCM 0.1 10 of 712, all stale evidence.</desc>
 <text x="0" y="26" font-size="18" font-weight="600" fill="#f2f1ec">Lies a receiver accepts</text>
 <text x="0" y="48" font-size="13" fill="#c3c2b7">Lie benchmark: false claims accepted as true, of 712 lies. Lower is better.</text>
-<line x1="220.0" y1="78" x2="220.0" y2="204" stroke="#3a3a37" stroke-width="1"/>
-<text x="220.0" y="222" font-size="11" text-anchor="middle" fill="#c3c2b7" style="font-variant-numeric: tabular-nums">0%</text>
-<line x1="310.0" y1="78" x2="310.0" y2="204" stroke="#3a3a37" stroke-width="1"/>
-<text x="310.0" y="222" font-size="11" text-anchor="middle" fill="#c3c2b7" style="font-variant-numeric: tabular-nums">25%</text>
-<line x1="400.0" y1="78" x2="400.0" y2="204" stroke="#3a3a37" stroke-width="1"/>
-<text x="400.0" y="222" font-size="11" text-anchor="middle" fill="#c3c2b7" style="font-variant-numeric: tabular-nums">50%</text>
-<line x1="490.0" y1="78" x2="490.0" y2="204" stroke="#3a3a37" stroke-width="1"/>
-<text x="490.0" y="222" font-size="11" text-anchor="middle" fill="#c3c2b7" style="font-variant-numeric: tabular-nums">75%</text>
-<line x1="580.0" y1="78" x2="580.0" y2="204" stroke="#3a3a37" stroke-width="1"/>
-<text x="580.0" y="222" font-size="11" text-anchor="middle" fill="#c3c2b7" style="font-variant-numeric: tabular-nums">100%</text>
+<line x1="220.0" y1="78" x2="220.0" y2="444" stroke="#3a3a37" stroke-width="1"/>
+<text x="220.0" y="462" font-size="11" text-anchor="middle" fill="#c3c2b7" style="font-variant-numeric: tabular-nums">0%</text>
+<line x1="310.0" y1="78" x2="310.0" y2="444" stroke="#3a3a37" stroke-width="1"/>
+<text x="310.0" y="462" font-size="11" text-anchor="middle" fill="#c3c2b7" style="font-variant-numeric: tabular-nums">25%</text>
+<line x1="400.0" y1="78" x2="400.0" y2="444" stroke="#3a3a37" stroke-width="1"/>
+<text x="400.0" y="462" font-size="11" text-anchor="middle" fill="#c3c2b7" style="font-variant-numeric: tabular-nums">50%</text>
+<line x1="490.0" y1="78" x2="490.0" y2="444" stroke="#3a3a37" stroke-width="1"/>
+<text x="490.0" y="462" font-size="11" text-anchor="middle" fill="#c3c2b7" style="font-variant-numeric: tabular-nums">75%</text>
+<line x1="580.0" y1="78" x2="580.0" y2="444" stroke="#3a3a37" stroke-width="1"/>
+<text x="580.0" y="462" font-size="11" text-anchor="middle" fill="#c3c2b7" style="font-variant-numeric: tabular-nums">100%</text>
 <text x="208" y="107.0" font-size="13" text-anchor="end" fill="#f2f1ec">Plain A2A (no proof)</text>
 <path d="M220,92 h356.00 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 h-356.00 z" fill="#d95926"/>
 <text x="588.0" y="107.0" font-size="12" fill="#f2f1ec" style="font-variant-numeric: tabular-nums"><tspan font-weight="600">100%</tspan><tspan fill="#c3c2b7">  712 / 712</tspan></text>
 <text x="208" y="147.0" font-size="13" text-anchor="end" fill="#f2f1ec">Sender's signature only</text>
 <path d="M220,132 h321.11 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 h-321.11 z" fill="#d95926"/>
 <text x="553.1123595505618" y="147.0" font-size="12" fill="#f2f1ec" style="font-variant-numeric: tabular-nums"><tspan font-weight="600">90.3%</tspan><tspan fill="#c3c2b7">  643 / 712</tspan></text>
-<text x="208" y="187.0" font-size="13" text-anchor="end" fill="#f2f1ec">PCM 0.1</text>
-<path d="M220,172 h2.53 a2.528089887640449,2.528089887640449 0 0 1 2.528089887640449,2.528089887640449 v14.9438202247191 a2.528089887640449,2.528089887640449 0 0 1 -2.528089887640449,2.528089887640449 h-2.53 z" fill="#3987e5"/>
-<text x="233.0561797752809" y="187.0" font-size="12" fill="#f2f1ec" style="font-variant-numeric: tabular-nums"><tspan font-weight="600">1.4%</tspan><tspan fill="#c3c2b7">  10 / 712 · all stale evidence, a stated limit</tspan></text>
-<rect x="220" y="236" width="12" height="12" rx="3" fill="#d95926"/>
-<text x="238" y="246" font-size="12" fill="#c3c2b7">baseline receivers</text>
-<rect x="390" y="236" width="12" height="12" rx="3" fill="#3987e5"/>
-<text x="408" y="246" font-size="12" fill="#c3c2b7">PCM</text>
+<text x="208" y="187.0" font-size="13" text-anchor="end" fill="#f2f1ec">A2A 1.0 + signed card</text>
+<path d="M220,172 h356.00 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 h-356.00 z" fill="#d95926"/>
+<text x="588.0" y="187.0" font-size="12" fill="#f2f1ec" style="font-variant-numeric: tabular-nums"><tspan font-weight="600">100%</tspan><tspan fill="#c3c2b7">  712 / 712</tspan></text>
+<text x="208" y="227.0" font-size="13" text-anchor="end" fill="#f2f1ec">uAgents envelope</text>
+<path d="M220,212 h350.94 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 h-350.94 z" fill="#d95926"/>
+<text x="582.943820224719" y="227.0" font-size="12" fill="#f2f1ec" style="font-variant-numeric: tabular-nums"><tspan font-weight="600">98.6%</tspan><tspan fill="#c3c2b7">  702 / 712</tspan></text>
+<text x="208" y="267.0" font-size="13" text-anchor="end" fill="#f2f1ec">RFC 9421 + replay</text>
+<path d="M220,252 h340.83 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 h-340.83 z" fill="#d95926"/>
+<text x="572.8314606741574" y="267.0" font-size="12" fill="#f2f1ec" style="font-variant-numeric: tabular-nums"><tspan font-weight="600">95.8%</tspan><tspan fill="#c3c2b7">  682 / 712</tspan></text>
+<text x="208" y="307.0" font-size="13" text-anchor="end" fill="#f2f1ec">SCITT receipts</text>
+<path d="M220,292 h274.09 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 h-274.09 z" fill="#d95926"/>
+<text x="506.08988764044943" y="307.0" font-size="12" fill="#f2f1ec" style="font-variant-numeric: tabular-nums"><tspan font-weight="600">77.2%</tspan><tspan fill="#c3c2b7">  550 / 712</tspan></text>
+<text x="208" y="347.0" font-size="13" text-anchor="end" fill="#f2f1ec">Verifiable Intent</text>
+<path d="M220,332 h253.36 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 h-253.36 z" fill="#d95926"/>
+<text x="485.35955056179773" y="347.0" font-size="12" fill="#f2f1ec" style="font-variant-numeric: tabular-nums"><tspan font-weight="600">71.5%</tspan><tspan fill="#c3c2b7">  509 / 712</tspan></text>
+<text x="208" y="387.0" font-size="13" text-anchor="end" fill="#f2f1ec">AP2 mandates</text>
+<path d="M220,372 h250.83 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -4,4 h-250.83 z" fill="#d95926"/>
+<text x="482.83146067415726" y="387.0" font-size="12" fill="#f2f1ec" style="font-variant-numeric: tabular-nums"><tspan font-weight="600">70.8%</tspan><tspan fill="#c3c2b7">  504 / 712</tspan></text>
+<text x="208" y="427.0" font-size="13" text-anchor="end" fill="#f2f1ec">PCM 0.1</text>
+<path d="M220,412 h2.53 a2.528089887640449,2.528089887640449 0 0 1 2.528089887640449,2.528089887640449 v14.9438202247191 a2.528089887640449,2.528089887640449 0 0 1 -2.528089887640449,2.528089887640449 h-2.53 z" fill="#3987e5"/>
+<text x="233.0561797752809" y="427.0" font-size="12" fill="#f2f1ec" style="font-variant-numeric: tabular-nums"><tspan font-weight="600">1.4%</tspan><tspan fill="#c3c2b7">  10 / 712 · all stale evidence, a stated limit</tspan></text>
+<rect x="220" y="476" width="12" height="12" rx="3" fill="#d95926"/>
+<text x="238" y="486" font-size="12" fill="#c3c2b7">baseline receivers</text>
+<rect x="390" y="476" width="12" height="12" rx="3" fill="#3987e5"/>
+<text x="408" y="486" font-size="12" fill="#c3c2b7">PCM</text>
+<text x="220" y="508" font-size="11" fill="#c3c2b7">Protocol rows below the signature check: models of each spec's checks, added after the pre-registration.</text>
 </svg>

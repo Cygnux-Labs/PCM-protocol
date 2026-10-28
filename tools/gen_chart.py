@@ -4,6 +4,13 @@ import os
 ROWS = [  # label, accepted, lies, group
     ("Plain A2A (no proof)", 712, 712, "base"),
     ("Sender's signature only", 643, 712, "base"),
+    # real protocols as receivers, modelled from their specs (added after the pre-registration), highest share first
+    ("A2A 1.0 + signed card", 712, 712, "base"),
+    ("uAgents envelope", 702, 712, "base"),
+    ("RFC 9421 + replay", 682, 712, "base"),
+    ("SCITT receipts", 550, 712, "base"),
+    ("Verifiable Intent", 509, 712, "base"),
+    ("AP2 mandates", 504, 712, "base"),
     ("PCM 0.1", 10, 712, "pcm"),
 ]
 THEMES = {  # validated with dataviz validate_palette.js (light on #fcfcfb, dark on #1a1a19): all checks pass
@@ -23,13 +30,14 @@ def bar(x, y, w, h, r, fill):
 
 def svg(t):
     c = THEMES[t]
-    h = TOP + ROW_H * len(ROWS) + 46
+    h = TOP + ROW_H * len(ROWS) + 68
     x0 = LABEL_W
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{h}" viewBox="0 0 {W} {h}" '
            f'font-family="{FONT}" role="img" aria-labelledby="t d">',
            '<title id="t">Lies a receiver accepts</title>',
-           '<desc id="d">Lie benchmark. Plain A2A accepts 712 of 712 lies, a sender-signature check 643 of 712, '
-           'and PCM 0.1 10 of 712, all stale evidence.</desc>',
+           '<desc id="d">Lie benchmark. Plain A2A accepts 712 of 712 lies, a sender-signature check 643 of 712; '
+           'models of real protocols: A2A 1.0 with a signed card 712, uAgents 702, RFC 9421 with replay checks 682, '
+           'SCITT receipts 550, Verifiable Intent 509, AP2 mandates 504; PCM 0.1 10 of 712, all stale evidence.</desc>',
            f'<text x="0" y="26" font-size="18" font-weight="600" fill="{c["text"]}">Lies a receiver accepts</text>',
            f'<text x="0" y="48" font-size="13" fill="{c["muted"]}">Lie benchmark: false claims accepted as true, '
            f'of 712 lies. Lower is better.</text>']
@@ -56,6 +64,8 @@ def svg(t):
         lx = x0 + j * 170
         out.append(f'<rect x="{lx}" y="{ly - 10}" width="12" height="12" rx="3" fill="{c[key]}"/>')
         out.append(f'<text x="{lx + 18}" y="{ly}" font-size="12" fill="{c["muted"]}">{name}</text>')
+    out.append(f'<text x="{x0}" y="{ly + 22}" font-size="11" fill="{c["muted"]}">Protocol rows below the signature '
+               f'check: models of each spec\'s checks, added after the pre-registration.</text>')
     out.append("</svg>\n")
     return "\n".join(out)
 
