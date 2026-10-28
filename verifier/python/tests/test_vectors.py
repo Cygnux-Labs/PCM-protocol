@@ -378,6 +378,25 @@ def test_a_claimed_ipv4_host_not_written_as_a_dotted_quad_is_unproven(host):
         "unproven", f"{host} is no host the verifier can read: {NOT_QUAD}")
 
 
+@pytest.mark.parametrize("host", ["1::2:3:4:5:6:7:8", "10:20:30:40:50:60:70:80:90"])
+def test_a_claimed_host_with_colons_gets_no_ipv4_advice(host):
+    """SPEC 6.6 step 1: a claim's host with two or more colons is read in brackets, as an IPv6 address."""
+    assert pcm_verify.reached_host({"host": host}, fetched("http://127.0.0.1/")) == (
+        "unproven", f"{host} is no host the verifier can read")
+
+
+@pytest.mark.parametrize("host, url", [
+    ("api.example.com", "/api.example.com/v1/x"), ("api.example.com", "\\api.example.com/x"),
+    ("api.example.com", "api.example.com/x"), ("api.example.com", "api.example.com"),
+    ("api.example.com", "api.example.com:8080/x"), ("127.0.0.1", "/127.0.0.1/x")])
+def test_a_url_without_a_scheme_is_unproven(host, url):
+    """SPEC 6.7 step 2: a client with a base URL reads these as a path on the base's host, so the verifier can't tell
+    what the call reached; the detail says what to send (SPEC 6.6)."""
+    assert pcm_verify.reached_host({"host": host}, fetched(url)) == (
+        "unproven", f"the verifier can't tell whether call c reached {host}: its URL has no scheme, so a client may "
+                    "read it against a base URL: send the whole URL, scheme and host")
+
+
 @pytest.mark.parametrize("host, url", [("10.0.0.1", "http://10.0.0.1:8080/"), ("0.0.0.0", "http://0.0.0.0/"),
                                        ("127.0.0.1", "http://127.0.0.1./"), ("1a.example", "http://1a.example/"),
                                        ("example.0x1g", "http://example.0x1g/")])
@@ -509,7 +528,17 @@ def opened(recs, args):
      f"{GRANTED}, which issued this message's root grant"),
     (approval("pcm.grant"), asking(ASK), {"tool": "refund"}, "failed", OTHER),
     *[(approval("pcm.grant"), asking(ASK, {"issuer": {**ROOT["issuer"], k: v}}), None, "failed", OTHER)
-      for k, v in (("approval_id", "a2"), ("run", "r2"), ("tenant", "acme"))]])
+      for k, v in (("approval_id", "a2"), ("run", "r2"), ("tenant", "acme"))],
+    # true and 1 are equal in Python, apart in JCS
+    (opened(approval("refund"), {"amount": 5000, "order": True}), asking({"amount": 5000, "order": 1}),
+     {"tool": "refund"}, "failed", f'{SAID} with args {{"amount":5000,"order":true}}: not this request\'s args '
+     '{"amount":5000,"order":1}, so it does not cover this request'),
+    # a second attempt of the grant call, approved too, issued the root grant: the detail names its approval
+    (approval("pcm.grant") + [(dict(r, seq=r["seq"] + 3, data={**r["data"], **edit}), None) for (r, _), edit in zip(
+        approval("pcm.grant"), ({"decision_id": "d2"}, {"approval_id": "a2", "decision_id": "d2"},
+                                {"approval_id": "a2"}))],
+     asking(ASK, {"issuer": {**ROOT["issuer"], "approval_id": "a2"}}), None, "proven",
+     'approval seq 6 by alice of "pcm.grant" call c1, which issued this message\'s root grant')])
 def test_approved_by_covers_only_this_request(recs, msg, doc, result, detail):
     """SPEC 6.6: with covers the approval covers the message's request by its tool and args, under a schema that names
     the tool, or as the approval that issued the message's root grant. Without covers the claim only says what alice
@@ -788,6 +817,22 @@ def test_cli_prints_what_a_proven_approved_by_approved(tmp_path):
     r = cli(*args, "--me", inp["options"]["me"])
     assert (r.returncode, r.stdout) == (0, 'accept\n  approved_by: {"tool": "pcm.grant", "args": null}\n'
                                            "  not checked: replay\n"), r.stderr
+
+
+def test_cli_prints_how_old_proven_evidence_is(tmp_path):
+    """SPEC 14.13: a proven tests_passed proves a call happened, not that nothing changed since: the text output says
+    how long before the message the claim's oldest record is."""
+    inp = json.loads((VECTORS / "accept-tests-passed-t2.json").read_text())["input"]
+    msg, args = inp["message"], []
+    for name, flag in (("message", None), ("trust", "--trust"), ("schemas", "--schema")):
+        (tmp_path / name).write_text(json.dumps(inp[name]))
+        args += [flag, str(tmp_path / name)] if flag else [str(tmp_path / name)]
+    [age] = [pcm_verify.epoch(msg["ts"]) - min(pcm_verify.epoch(r["event"]["ts"]) for r in c["evidence"]["records"])
+             for c in msg["claims"] if c["type"] == "tests_passed"]
+    r = cli(*args)
+    assert f"  evidence {age:.0f} s before the message: a claim proves a call happened, not that nothing changed " \
+           "since: check its age (SPEC 14.13)\n" in r.stdout, (r.stdout, r.stderr)
+    assert "evidence" not in cli(*args, "--json").stdout
 
 
 def test_cli_escapes_what_the_sender_wrote(tmp_path):

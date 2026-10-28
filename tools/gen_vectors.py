@@ -49,6 +49,7 @@ NOT_ASCII = "its URL is not printable ASCII: send it without spaces or control c
 PERCENT = "its host has a %: send the URL with the host as plain ASCII, not percent-encoded"
 NOT_QUAD = "its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255 without " \
            "leading zeros"
+RELATIVE = "its URL has no scheme, so a client may read it against a base URL: send the whole URL, scheme and host"
 
 
 def cv(field, op, value):
@@ -603,6 +604,12 @@ def cases(s, s2):
         vector(name, f"A refund.pay request of 12000, whose schema needs approved_by and {named}, with an approved_by "
                f"claim citing alice's approval {what}.", a.send("uid:990102", payref if doc is pay_doc else nref,
                                                                  claims=[claim]), [doc], want)
+    vector("reject-claim-approved-by-covers-args-true-and-1", "A refund.pay request of 12000 for order 1, whose schema "
+           "needs approved_by and names the tool pay, with an approved_by claim with covers citing alice's approval of "
+           "a pay for order true, opened: true and 1 differ in JCS, though Python's == takes them as equal, so the "
+           "approval does not cover the request.",
+           a.send("uid:990102", payref, args={**ARGS, "order": 1},
+                  claims=[approved_call("pay-8", "pay", {**ARGS, "order": True})]), [pay_doc], "not this request's args")
     groot, gseqs = a.grant("grant-pg", gref)
     vector("accept-approved-by-covers-grant", "A refund under alice's root grant, whose schema names the tool pay, with "
            "an approved_by claim with covers citing her approval of the pcm.grant call that issued the root grant: "
@@ -828,6 +835,9 @@ def cases(s, s2):
             ("accept-unproven-reached-host-blob", "blob:https://api.example.com/x", "api.example.com",
              "can't tell whether", "a browser's address bar reads the URL inside blob:, where WHATWG URL reads no "
              "host, so it won't parse"),
+            ("accept-unproven-reached-host-relative-path", "/api.example.com/v1/refunds", "api.example.com", RELATIVE,
+             "a URL with no scheme that starts with one slash, which a client given a base URL reads as a path on the "
+             "base's host, where an address bar reads api.example.com: it won't parse"),
             ("accept-unproven-reached-host-percent", "http://%61pi.example.com/", "api.example.com",
              PERCENT, "%61 is a, but a host is never percent-decoded: a host with a `%` won't parse"),
             ("accept-unproven-reached-host-nul", "http://api.example.com%00.evil/", "api.example.com",

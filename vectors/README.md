@@ -40,12 +40,17 @@ Each `<name>.json`:
   message with it (same trust, schemas, me, strict and now; ignore their results), then verify `message`. A `seen`
   message is recorded as SPEC section 9 says: not when its signature, recipient or schema check fails.
 
+A `bad-input-` vector holds `message_text`, the message as JSON text, in place of `message`, and its `expected` is
+`{"verdict": "bad-input", "reasons": [...]}`. Your verifier must refuse the text as a parse error before any check
+(SPEC 3.3, 13.2): `bad-input-number-past-double` holds a number past the IEEE double range.
+
 A trust or schema document a verifier must refuse as a configuration error (two Ed25519 keys of one log, a bad vkey,
 a bad schema document) has no result to compare, so it is no vector; the standalone verifier's tests cover those.
 
 ## Conformance
 
-A verifier conforms on a vector when these match `expected`:
+A verifier conforms on a `bad-input-` vector when it refuses the text. On any other vector, it conforms when these
+match `expected`:
 
 - `verdict`
 - `signature.ok`
@@ -95,4 +100,5 @@ PYTHONPATH=<tracekit checkout> python tools/gen_vectors.py   # vectors/
 
 `registry/tools.json` is not regenerated: it is PCM 0.1's frozen table. Both scripts stop if Tracekit's copy
 (`tracekit/pcm/tools.json`) holds another table. `gen_vectors.py` also stops if a vector's verdict does not match its
-name (`accept-`, `accept-unproven-`, `reject-`), or if the reasons don't name the cause the vector is for.
+name (`accept-`, `accept-unproven-`, `reject-`, `bad-input-`), or if the reasons don't name the cause the vector is
+for.

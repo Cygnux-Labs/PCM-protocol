@@ -432,6 +432,12 @@
     "verdict": "accept-unproven"
   },
   {
+    "name": "reject-claim-approved-by-covers-args-true-and-1",
+    "file": "reject-claim-approved-by-covers-args-true-and-1.json",
+    "description": "A refund.pay request of 12000 for order 1, whose schema needs approved_by and names the tool pay, with an approved_by claim with covers citing alice's approval of a pay for order true, opened: true and 1 differ in JCS, though Python's == takes them as equal, so the approval does not cover the request.",
+    "verdict": "reject"
+  },
+  {
     "name": "accept-approved-by-covers-grant",
     "file": "accept-approved-by-covers-grant.json",
     "description": "A refund under alice's root grant, whose schema names the tool pay, with an approved_by claim with covers citing her approval of the pcm.grant call that issued the root grant: the grant path holds whatever tool the schema names.",
@@ -891,6 +897,12 @@
     "name": "accept-unproven-reached-host-blob",
     "file": "accept-unproven-reached-host-blob.json",
     "description": "reached_host api.example.com by a WebFetch of blob:https://api.example.com/x the executor ran (T2): a browser's address bar reads the URL inside blob:, where WHATWG URL reads no host, so it won't parse.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-reached-host-relative-path",
+    "file": "accept-unproven-reached-host-relative-path.json",
+    "description": "reached_host api.example.com by a WebFetch of /api.example.com/v1/refunds the executor ran (T2): a URL with no scheme that starts with one slash, which a client given a base URL reads as a path on the base's host, where an address bar reads api.example.com: it won't parse.",
     "verdict": "accept-unproven"
   },
   {

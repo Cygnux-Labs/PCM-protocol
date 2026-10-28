@@ -650,7 +650,7 @@ def approved_by(a, recs, msg, doc):
             mine.append(e)
     if not mine:
         return "failed", f"no approval of {a['call']} by the person {a['person']}"
-    found, aids = {}, set()   # {JCS of [tool, args]: (the first approval of it, tool, args)}, the approvals' ids
+    found, aids = {}, {}   # {JCS of [tool, args]: (the first approval of it, tool, args)}, {approval id: approval}
     for e in sorted(mine, key=lambda e: e["seq"]):
         asked = {_data(x).get("decision_id") for x, _ in recs
                  if x.get("type") == "approval.request" and _data(x).get("approval_id") == _data(e).get("approval_id")}
@@ -661,7 +661,7 @@ def approved_by(a, recs, msg, doc):
             if x.get("type") == "policy.decision" and c.get("decision_id") in asked \
                     and c.get("tool_use_id") == a["call"] and c.get("tool"):
                 found.setdefault(jcs([c["tool"], args]), (e, c["tool"], args))
-                aids.add(_data(e).get("approval_id"))
+                aids[_data(e).get("approval_id")] = e
     if len(found) > 1:
         return "failed", (f"the evidence holds {len(found)} different decisions approved as call {a['call']} by "
                           f"{a['person']}: send the records of one approval")
@@ -670,16 +670,18 @@ def approved_by(a, recs, msg, doc):
                           "evidence holds no decision of the call it approved: add the approval.request it answers "
                           "and the policy.decision that request names")
     [(e, tool, args)] = found.values()
+    # SPEC 6.6, covers: the approval that issued the root grant, else one of the schema's tool with the intent's args
+    root, want = (msg.get("grants") or [{}])[0].get("issuer", {}), (doc or {}).get("tool")
+    issued = a.get("covers") is True and tool == "pcm.grant" and root.get("approval_id") in aids \
+        and (root["run"], root["tenant"]) == (msg["from"]["run"], msg["from"]["tenant"])
+    e = aids[root["approval_id"]] if issued else e   # of two attempts' approvals, the one that issued the root grant
     said = (f"approval seq {e['seq']} by {a['person']} of {jcs(tool).decode()} call {a['call']}"
             + ("" if args is None else f" with args {jcs(args).decode()}"))
     approved = {"tool": tool, "args": args}
     if a.get("covers") is not True:
         return "proven", said, approved
-    # SPEC 6.6, covers: the approval that issued the root grant, else one of the schema's tool with the intent's args
-    root, want = (msg.get("grants") or [{}])[0].get("issuer", {}), (doc or {}).get("tool")
     if tool == "pcm.grant":
-        if root.get("approval_id") in aids and (root["run"], root["tenant"]) == (msg["from"]["run"],
-                                                                                  msg["from"]["tenant"]):
+        if issued:
             return "proven", f"{said}, which issued this message's root grant", approved
         return "failed", (f"{said}: a pcm.grant approval covers only the requests under the grant it issued, and it "
                           "did not issue this message's root grant")
@@ -714,6 +716,7 @@ NOT_ASCII = ("its URL is not printable ASCII: send it without spaces or control 
 PERCENT = "its host has a %: send the URL with the host as plain ASCII, not percent-encoded"
 NOT_QUAD = ("its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255 without "
             "leading zeros")
+RELATIVE = "its URL has no scheme, so a client may read it against a base URL: send the whole URL, scheme and host"
 # SPEC 6.6: what a failed call's detail tells the sender, since its record can't tell an HTTP error answer from no answer
 NOT_OK = ("its result is not ok, which an HTTP error answer gives too: claim the host from a call that succeeded, or "
           "from an egress observer's record")
@@ -779,19 +782,18 @@ def _brackets_ok(url):
     return not ZERO_QUAD.search(inside.partition("%")[0])
 
 
-def _with_scheme(url):
-    """SPEC 6.7 step 2: `url` with http:// in front when it starts with no scheme and no two slashes."""
-    scheme = re.match(r"(?i)(https?|wss?|ftp|file):|[a-z][a-z0-9+.-]*:(?![0-9])|[/\\]{2}", url)
-    return url if scheme else "http://" + url
+def _relative(url):
+    """SPEC 6.7 step 2: whether `url` starts with no scheme and no two slashes, so a client with a base URL reads it as
+    a path on the base's host (`/api.example.com/x`, `api.example.com/x`)."""
+    return not re.match(r"(?i)(https?|wss?|ftp|file):|[a-z][a-z0-9+.-]*:(?![0-9])|[/\\]{2}", url)
 
 
 def _url_host(url):
     """The host `url` reaches, in the form SPEC 6.7 compares: "" when it has none (no host, or a scheme without one:
     file:, mailto:), None when it won't parse. The bracket rule comes before any other reading of the URL, and a URL
-    that starts with view-source: or blob: won't parse."""
-    if not PRINTABLE.fullmatch(url):
+    that starts with view-source: or blob:, or with no scheme and no two slashes, won't parse."""
+    if not PRINTABLE.fullmatch(url) or _relative(url):
         return None
-    url = _with_scheme(url)
     if not _brackets_ok(url) or PEELED.match(url):
         return None
     scheme, wh = _whatwg_host(url)
@@ -820,11 +822,12 @@ def _url_host(url):
 
 
 def _why(url):
-    """SPEC 6.6: NOT_ASCII (6.7 step 1), PERCENT or NOT_QUAD (step 5) when that is why the host of `url`, which won't
-    parse, won't; else None."""
+    """SPEC 6.6: NOT_ASCII (6.7 step 1), RELATIVE (step 2), PERCENT or NOT_QUAD (step 5) when that is why the host of
+    `url`, which won't parse, won't; else None."""
     if not PRINTABLE.fullmatch(url):
         return NOT_ASCII
-    url = _with_scheme(url)
+    if _relative(url):
+        return RELATIVE
     if not _brackets_ok(url) or PEELED.match(url):
         return None
     try:
@@ -848,7 +851,7 @@ def _host(host):
 def reached_host(a, recs):
     want = _host(a["host"])
     if want is None:   # SPEC 6.6 step 1: the claim's host is the sender's own; NOT_QUAD is the cause its pattern passes
-        why = _why(f"http://{a['host']}/")
+        why = _why(f"http://[{a['host']}]/" if a["host"].count(":") > 1 else f"http://{a['host']}/")   # as _host reads
         return "unproven", f"{a['host'][:64]} is no host the verifier can read" + (f": {why}" if why else "")
     seen = ("failed", "")
     for e, _ in recs:

@@ -702,15 +702,19 @@ request. Without it, or with `false`, the checks above are all, and `approved` s
 1. **Grant path.** The approval issued the message's root grant (7.4): the decision's `data.tool` is `pcm.grant`, and
    the root grant's `issuer.approval_id`, `issuer.run` and `issuer.tenant` are the `data.approval_id`, `run_id` and
    `tenant` of an approval that leads to the decision (vectors `accept-approved-by`, and
-   `accept-approved-by-covers-grant`, whose schema names another tool: the grant path does not read it).
+   `accept-approved-by-covers-grant`, whose schema names another tool: the grant path does not read it). When
+   approvals of several attempts of the call lead to the decision, the detail names the one that issued the root
+   grant.
 2. **Direct path.** The intent's schema document names a `tool` (5.1) equal to the decision's `data.tool`, the
-   evidence opens the decision (6.3), and its args are equal to `intent.args` in JCS (vector
-   `accept-approved-by-covers-direct`).
+   evidence opens the decision (6.3), and its args are equal to `intent.args` in JCS (vectors
+   `accept-approved-by-covers-direct`, and `reject-claim-approved-by-covers-args-true-and-1`: `true` and `1` differ
+   in JCS). An approval is of a call, not of a message: this path covers every message that asks for that tool with
+   those args, to any receiver, as often as the sender sends one (14.27).
 
 Else, taking the first that applies:
 
-- a decision of `pcm.grant` that did not issue the message's root grant, or a message without grants: `failed`
-  (vector `reject-claim-approved-by-covers-grant-not-root`);
+- a decision of `pcm.grant` whose approval did not issue the message's root grant (or the message has no grants):
+  `failed` (vector `reject-claim-approved-by-covers-grant-not-root`);
 - the schema names no `tool`: `unproven`, as the verifier can't tell what the request is
   (<!-- vector accept-unproven-approved-by-covers-schema-without-tool expected.claims.0.detail -->
   `approval seq 137 by alice of "pay" call pay-5 with args {"amount":12000,"order":81}: the intent's schema names no
@@ -802,10 +806,12 @@ Hosts are compared in the form of 6.7.
    `mailto:` or `gopher:`, or no host at all): no; a URL whose host won't parse: can't tell; else yes when the URL's
    host has the claim's compared form.
 
-   **What the sender can do (decided, 0.1).** When a URL's host won't parse for one of three causes the sender can
+   **What the sender can do (decided, 0.1).** When a URL's host won't parse for one of four causes the sender can
    fix, the can't-tell detail SHOULD end with `: ` and that cause's sentence, exactly:
    - the URL is not printable ASCII (6.7 step 1): `its URL is not printable ASCII: send it without spaces or control
      characters, with the host in xn-- form and anything else percent-encoded`;
+   - else, the URL has no scheme and does not start with two slashes (6.7 step 2): `its URL has no scheme, so a
+     client may read it against a base URL: send the whole URL, scheme and host`;
    - else, the URL passes the bracket rule (6.7 step 3) and a reading of its host holds a `%` (6.7 steps 4 and 5;
      step 4 makes no reading of a `view-source:` or `blob:` URL):
      `its host has a %: send the URL with the host as plain ASCII, not percent-encoded`;
@@ -957,9 +963,13 @@ reading.
 
 1. **Printable ASCII.** If the URL holds a character outside U+0021 to U+007E, its host won't parse ("its URL is not
    printable ASCII: …", 6.6).
-2. **A scheme.** If the URL does not start with `http:`, `https:`, `ws:`, `wss:`, `ftp:` or `file:` (in any case),
-   another scheme (`[A-Za-z][A-Za-z0-9+.-]*` and `:`) not followed by a digit (so `localhost:` at the end is a
-   scheme), or two slashes (`/` or `\`), put `http://` in front: `example.com:8080/x` is `http://example.com:8080/x`.
+2. **A scheme (decided, 0.1).** If the URL does not start with `http:`, `https:`, `ws:`, `wss:`, `ftp:` or `file:`
+   (in any case), another scheme (`[A-Za-z][A-Za-z0-9+.-]*` and `:`) not followed by a digit (so `localhost:` at the
+   end is a scheme), or two slashes (`/` or `\`), its host won't parse ("its URL has no scheme, …", 6.6):
+   `/api.example.com/x`, `api.example.com/x` and `example.com:8080/x` (vector
+   `accept-unproven-reached-host-relative-path`). Rationale: a client given a base URL reads such a URL as a path on
+   the base's host, while an address bar or curl reads a host from it, so a verifier can't tell what the call
+   reached. A URL that starts with two slashes names its host whatever the base.
 3. **The bracket rule (decided, 0.1).** Take the URL's **authority**: if the URL starts with a scheme
    (`[A-Za-z][A-Za-z0-9+.-]*` and `:`), remove it and its `:`; if what remains starts with `//`, the authority is
    what follows the `//` up to the first `/`, `?` or `#` (`\` is no delimiter here); else it is empty. If the
@@ -1000,8 +1010,7 @@ reading.
    Otherwise the URL's scheme is the leading `[A-Za-z][A-Za-z0-9+.-]*` before a `:`, in lower case, or none. A URL
    whose scheme is not `http`, `https`, `ws`, `wss` or `ftp`, and not none, has no host,
    whatever the generic reading finds (`file://api.example.com/x`, `gopher://g.example/`; vector
-   `reject-claim-reached-host-file-url`); neither has a URL with no scheme that does not start with two slashes (`/`
-   or `\`). Otherwise read the host two ways:
+   `reject-claim-reached-host-file-url`). Otherwise read the host two ways:
    - **The browser reading.** Take what follows the scheme's `:` (all of the URL when it has no scheme), read every
      `\` as `/`, skip the leading slashes, and keep what comes before the first `/`, `?` or `#`, then what follows
      its last `@`. If that starts with `[` and holds a `]`, the reading is it up to and including the first `]`;
@@ -1842,7 +1851,12 @@ assumption PCM rests on, with the rule that closes or bounds it.
     `approved_by` only with `covers`, which the verifier checks against the root grant, or against the schema's
     `tool` and the intent's args (6.6). Vectors: `reject-claim-approved-by-covers-other-args`,
     `reject-claim-approved-by-covers-other-tool`, `reject-claim-approved-by-covers-grant-not-root`,
-    `accept-unproven-approved-by-required-without-covers`.
+    `accept-unproven-approved-by-required-without-covers`, `reject-claim-approved-by-covers-args-true-and-1`. The
+    direct path covers every message that asks for the approved tool with the approved args, to any receiver, as
+    often as the sender sends one, each with a new nonce, since nothing in an approval names a message. **Rule:** a
+    receiver that needs one-time authority lists a field unique to the request (such as `request_id`) in the
+    schema's fields, so the approved call carries it, and acts once per value; for repeated or bounded authority it
+    requires a grant, whose caveats and expiry bound it.
 28. **An attempt is not a connection.** A kernel sensor reports a process's call to connect, and an egress observer
     records a minute with no connection when its connect upstream failed; an earlier draft took either as proof that
     the run reached the host. **Rule:** only an egress observer's `net` record with `data.connections` above 0
@@ -2225,7 +2239,8 @@ with the normative text, that is a bug in one of them: open an issue.
   and what it strips nor `ipaddress`'s leading-zero rule, which differ between CPython releases, changes a verdict.
   The standalone verifier needs CPython 3.11.4 or later.
   `tracekit pcm verify` prints a proven `approved_by`'s detail on its line, and `python -m pcm_verify` its `approved`
-  (6.6).
+  (6.6). After a proven `tests_passed` or `file_written`, both print how long before the message the claim's oldest
+  evidence record is, for the receiver's age check (14.13).
 - **The tool executor** (`tracekit/executor.py`, tier T2) runs HTTP actions its operator names in its configuration,
   and records a call as `ok` when the upstream's HTTP status is under 400. A T2 call of a tool named `Bash` can
   therefore be such an action (6.4, 14.26).

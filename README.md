@@ -62,10 +62,13 @@ python -m pcm_verify MESSAGE --trust TRUST --schema SCHEMA --me uid:990102
 document of the message's intent, and `--me` is the receiver's own identity, so a message sent to someone else is
 rejected. Tools are placed with PCM 0.1's frozen table, `registry/tools.json`, which the package ships. It prints the
 verdict: `accept`, `accept-unproven` or `reject`, with the reasons and the checks it skipped (`not checked: replay`).
+After a proven `tests_passed` or `file_written` it prints how old the evidence was when the message was signed: a
+claim proves a call happened, not that nothing changed since, so a receiver checks the age itself (SPEC 14.13).
 
 Hosts are compared in printable ASCII only (SPEC 6.7): a `reached_host` claim resting on a URL with a space, a tab,
-a `%` in its host or any non-ASCII character is `unproven`. A sender fetches and claims a name in another script in
-its `xn--` form (`xn--bcher-kva.example`, not `bücher.example`).
+a `%` in its host or any non-ASCII character is `unproven`, and so is one resting on a URL with no scheme
+(`/api.example.com/x`), which a client with a base URL reads as a path. A sender fetches and claims a name in another
+script in its `xn--` form (`xn--bcher-kva.example`, not `bücher.example`), with the whole URL.
 
 The CLI does not check replay: it has no memory of earlier messages. That is fine for an audit. A receiver that acts
 on messages keeps one `pcm_verify.Replay` for its whole life and passes it to `pcm_verify.verify` (SPEC section 9).

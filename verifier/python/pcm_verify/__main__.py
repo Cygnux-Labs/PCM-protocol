@@ -5,7 +5,7 @@ import json
 import math
 import sys
 
-from pcm_verify import MAX_SAFE_INT, verify
+from pcm_verify import MAX_SAFE_INT, epoch, verify
 
 EXIT = {"accept": 0, "accept-unproven": 3, "reject": 1}
 
@@ -53,6 +53,19 @@ def load(path):
         return loads(f.read())
 
 
+def freshness(msg, out):
+    """SPEC 14.13: what the receiver checks itself after a proven tests_passed or file_written claim, how long before
+    the message the oldest record of its evidence is. None without one, or when a ts is no date."""
+    try:
+        ages = [epoch(msg["ts"]) - min(epoch(r["event"]["ts"]) for r in c["evidence"]["records"])
+                for c, r in (zip(msg["claims"], out["claims"]) if out["claims"] else ())
+                if r["result"] == "proven" and r["type"] in ("tests_passed", "file_written")]
+    except ValueError:   # a hostile pinned log can write a ts in month 13
+        return None
+    return ages and (f"evidence {max(ages):.0f} s before the message: a claim proves a call happened, not that nothing "
+                     "changed since: check its age (SPEC 14.13)")
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="python -m pcm_verify", description="Verify a PCM 0.1 message offline. Replay "
                                 "is not checked: a receiver that acts on a message keeps a pcm_verify.Replay.")
@@ -73,7 +86,8 @@ def main(argv=None):
         trust = load(a.trust)
         if not isinstance(trust, dict):
             raise ValueError("the trust file is a JSON object")
-        out = verify(load(a.message), trust, schemas, me=a.me, strict=a.strict)
+        msg = load(a.message)
+        out = verify(msg, trust, schemas, me=a.me, strict=a.strict)
     except (OSError, ValueError, TypeError, KeyError, AttributeError, RecursionError) as e:
         print(f"pcm_verify: can't check: {type(e).__name__}: {e}", file=sys.stderr)
         return 2
@@ -86,6 +100,8 @@ def main(argv=None):
         for c in out["claims"] or []:   # SPEC 6.6: what the person approved, which the receiver reads
             if "approved" in c:
                 print(f"  approved_by: {json.dumps(c['approved'])}")
+        if note := freshness(msg, out):
+            print(f"  {note}")
         if out["skipped"]:
             print(f"  not checked: {', '.join(out['skipped'])}")
     return EXIT[out["verdict"]]
