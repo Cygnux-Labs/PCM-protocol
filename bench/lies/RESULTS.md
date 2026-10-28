@@ -316,7 +316,7 @@ standalone:
 | hypothesis | result, both verifiers |
 |---|---|
 | H1 | 23/687 lies accepted |
-| H2 | 71/73 honest claims proven |
+| H2 | 66/68 honest claims proven (71/73 messages) |
 | H3 | 72/72 T1-only claims unproven |
 | H4 | 874/879 messages agree |
 
