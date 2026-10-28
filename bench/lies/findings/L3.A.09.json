@@ -1,0 +1,469 @@
+{
+ "auto": true,
+ "id": "L3.A.09",
+ "record": {
+  "id": "L3.A.09",
+  "class": "L3",
+  "operator": "approved-amount-x10-opened",
+  "claim_type": "A",
+  "label": "FALSE",
+  "world": false,
+  "lie_scope": "message",
+  "threat_model": "in",
+  "seed": 20261028,
+  "note": "alice approved {'amount': 2500, 'order': 81}",
+  "message": {
+   "from": {
+    "agent": "uid:990101",
+    "run": "df29aa67b83815464ceb3b2f12fd771b",
+    "tenant": "default"
+   },
+   "to": {
+    "agent": "uid:990102"
+   },
+   "intent": {
+    "type": "refund.approved@sha256:dc7ab6666dd4d667c2ea9d841cf7b23d9e451306ce96e729abf9cde0ad015704",
+    "args": {
+     "amount": 25000,
+     "order": 81
+    }
+   },
+   "claims": [
+    {
+     "type": "approved_by",
+     "args": {
+      "person": "alice",
+      "call": "refund-353"
+     },
+     "evidence": {
+      "checkpoint": "example.com/pcm-lies-log\n1061\nEr2M4F16uBrs7V3J024K4TfJtVURwZKs7WVsd/NlxQ0=\n\n— example.com/pcm-lies-log 1yfbY5Dy3eWDK9y3RtyTtzDrGR+6LbnsNCbDNDHnQq3Hp+4Uy/+iBdPOVZ8FyDhMCb239Yzupj5Km0ANNn7pb6+V/QY=\n",
+      "records": [
+       {
+        "event": {
+         "schema_version": "tracekit.event.v2",
+         "id": "61cbd782955af10196efd1d2063c70c6",
+         "seq": 184,
+         "prev_hash": "sha256:85a8e4920d0ab1958bf91b053d13458dec52329220e803543cb7141fad79ae67",
+         "ts": "2026-10-27T23:58:15.315404Z",
+         "run_id": "df29aa67b83815464ceb3b2f12fd771b",
+         "agent_id": "main",
+         "parent_id": null,
+         "source": "gateway",
+         "type": "policy.decision",
+         "data": {
+          "tool_use_id": "refund-353",
+          "tool": "refund",
+          "policy_hash": "sha256:71ee0edfe4ab6349b43d68ee9ce3b0b56679859c2eff4b76840167820009a73e",
+          "engine": "re2@1.1.20251105",
+          "expires_at": "2026-10-28T00:03:15.315289Z",
+          "via": "mtls:spiffe://example/executor",
+          "caller": "uid:990101",
+          "decision_id": "dec-e2300a1dcc71a17e6aaca3b25b309c33",
+          "nonce": "b624567d4d92f37c66f18214c99bee81",
+          "decision": "ask",
+          "rule_ids": [
+           "REFUND"
+          ],
+          "args_commitment": "hmac-sha256:1fafa52183a689fba21ceb533f429175dca187a0682200374369629634d2ba3f"
+         },
+         "tenant": "default",
+         "log_id": "617397ba0732fdb6b4c3836969dc0f82",
+         "run_seq": 179,
+         "run_prev_hash": "sha256:85a8e4920d0ab1958bf91b053d13458dec52329220e803543cb7141fad79ae67",
+         "request_id": "r354",
+         "stream": "gw",
+         "client_seq": 172,
+         "tool_call_id": "refund-353",
+         "attempt": 0,
+         "args_source": "parsed",
+         "tier": "T2"
+        },
+        "hash": "sha256:ca2a79245c5ce0b609d5aa90d89041fc3c0418f63edf010e2667a79f8a16f526",
+        "proof": [
+         "5ULSXqXmEu7vEQvEyZ7/SQuc1XKZd7JaGNj1Iylhv3w=",
+         "ubhMddyrd5yVE00yO2SpGZ9UB32+KJpCpfoX3pDsX4I=",
+         "3+eo6FJxP+PBRNsNY0RqGkgOc7TNKTErCHe/rOYlkDs=",
+         "5HHEeOz3xsfSD7zEqy+NRvkmIampVaZzRBd8LizVAUE=",
+         "ybEv+CpTJWYhi+ih1eP4vFBeJd2YWpziRUWqBbYXiko=",
+         "YpO8NYfntYRDfD9sIEqfufFKSInVe6jraqI4f9/uqss=",
+         "+Z8wRqWqoQr7IhUzvzoZuSL8uUtxSpDNKA7H5pKIsXg=",
+         "8M1qZYXbz26J1geNf/SM/5z853RL1ecuISjIvT9A6Tg=",
+         "0uqgdsT8f+L/fYhbXtQUy0P+wj5+KIyLEdqXk9I3VGA=",
+         "jtzgLY5g2Wjwe3bGx2UaeccVcFsTHWW+Qi0AnaH4zRc=",
+         "YjrBNOOCIwUFi/q0RNOvy55zkL05MK7wA2bpBG9JrdY="
+        ],
+        "salt": "63fd12051ad3317e104e100188654b1667ba9e8de639c6b831aa8f4335b5f260",
+        "args": {
+         "amount": 2500,
+         "order": 81
+        }
+       },
+       {
+        "event": {
+         "schema_version": "tracekit.event.v2",
+         "id": "57512afc67907904d9e44a21eefcec67",
+         "seq": 185,
+         "prev_hash": "sha256:ca2a79245c5ce0b609d5aa90d89041fc3c0418f63edf010e2667a79f8a16f526",
+         "ts": "2026-10-27T23:58:15.320799Z",
+         "run_id": "df29aa67b83815464ceb3b2f12fd771b",
+         "agent_id": "main",
+         "parent_id": null,
+         "source": "gateway",
+         "type": "approval.request",
+         "data": {
+          "approval_id": "apr-e6e02ee07c816ba336165d1912937187",
+          "decision_id": "dec-e2300a1dcc71a17e6aaca3b25b309c33",
+          "policy_hash": "sha256:71ee0edfe4ab6349b43d68ee9ce3b0b56679859c2eff4b76840167820009a73e",
+          "rule_ids": [
+           "REFUND"
+          ],
+          "expires_at": "2026-10-28T00:58:15.320069Z",
+          "requester": "uid:990101",
+          "binding": {
+           "v": 1,
+           "approval_id": "apr-e6e02ee07c816ba336165d1912937187",
+           "tenant": "default",
+           "run_id": "df29aa67b83815464ceb3b2f12fd771b",
+           "tool_call_id": "refund-353",
+           "attempt": 0,
+           "tool": "refund",
+           "args_commitment": "hmac-sha256:abc68ad454eadcc88b1fabb0af1aaf0a26fc44b6ba72ac40d1bbb8b56a94b071",
+           "args_source": "parsed",
+           "policy_hash": "sha256:71ee0edfe4ab6349b43d68ee9ce3b0b56679859c2eff4b76840167820009a73e",
+           "nonce": "e44cfc066ec8c9313a13d3689cac8afe",
+           "expires_at": "2026-10-28T00:58:15.320069Z"
+          },
+          "binding_digest": "sha256:8f04341fe926a3141f1242795136d45e0e1720d490d8a993cc80382f0374a76a",
+          "salt_id": "28c685fefdfd135bf4e284ea4976e9c0",
+          "via": "mtls:spiffe://example/executor"
+         },
+         "tenant": "default",
+         "log_id": "617397ba0732fdb6b4c3836969dc0f82",
+         "run_seq": 180,
+         "run_prev_hash": "sha256:ca2a79245c5ce0b609d5aa90d89041fc3c0418f63edf010e2667a79f8a16f526",
+         "request_id": "r355",
+         "tool_call_id": "refund-353",
+         "attempt": 0,
+         "tier": "T2"
+        },
+        "hash": "sha256:d5245070adef5fd9e810f493ca80fadfff137a39cda67cff0886bf69b44b44f8",
+        "proof": [
+         "O7wxHumKxfjhrh0J5aNw3jb/ReTonVOk7NCYyu4t3sE=",
+         "ubhMddyrd5yVE00yO2SpGZ9UB32+KJpCpfoX3pDsX4I=",
+         "3+eo6FJxP+PBRNsNY0RqGkgOc7TNKTErCHe/rOYlkDs=",
+         "5HHEeOz3xsfSD7zEqy+NRvkmIampVaZzRBd8LizVAUE=",
+         "ybEv+CpTJWYhi+ih1eP4vFBeJd2YWpziRUWqBbYXiko=",
+         "YpO8NYfntYRDfD9sIEqfufFKSInVe6jraqI4f9/uqss=",
+         "+Z8wRqWqoQr7IhUzvzoZuSL8uUtxSpDNKA7H5pKIsXg=",
+         "8M1qZYXbz26J1geNf/SM/5z853RL1ecuISjIvT9A6Tg=",
+         "0uqgdsT8f+L/fYhbXtQUy0P+wj5+KIyLEdqXk9I3VGA=",
+         "jtzgLY5g2Wjwe3bGx2UaeccVcFsTHWW+Qi0AnaH4zRc=",
+         "YjrBNOOCIwUFi/q0RNOvy55zkL05MK7wA2bpBG9JrdY="
+        ]
+       },
+       {
+        "event": {
+         "schema_version": "tracekit.event.v2",
+         "id": "4a8e23b663e8cb94e83f03ba5222e041",
+         "seq": 186,
+         "prev_hash": "sha256:d5245070adef5fd9e810f493ca80fadfff137a39cda67cff0886bf69b44b44f8",
+         "ts": "2026-10-27T23:58:15.321456Z",
+         "run_id": "df29aa67b83815464ceb3b2f12fd771b",
+         "agent_id": "main",
+         "parent_id": null,
+         "source": "sdk",
+         "type": "approval",
+         "data": {
+          "tool_use_id": "refund-353",
+          "approval_id": "apr-e6e02ee07c816ba336165d1912937187",
+          "decision": "approve",
+          "approver": "uid:990001",
+          "approver_identity": {
+           "scheme": "uid",
+           "subject": "990001",
+           "attested": true
+          },
+          "channel": "rpc",
+          "self_approved": false,
+          "person": "alice"
+         },
+         "tenant": "default",
+         "log_id": "617397ba0732fdb6b4c3836969dc0f82",
+         "run_seq": 181,
+         "run_prev_hash": "sha256:d5245070adef5fd9e810f493ca80fadfff137a39cda67cff0886bf69b44b44f8",
+         "request_id": "r356",
+         "tool_call_id": "refund-353"
+        },
+        "hash": "sha256:89c7e2032835aa0cc714de9b2ff6a5cd3c3fda2df4e6a043ec08fc72346b44cb",
+        "proof": [
+         "HCQsrC20wUg9AcAjHgFuJeIqnicajqc4uzCF7ILXQpc=",
+         "H7YiBGJfHX9Mz2BXbsKKrH9egS0YbXCt0QC13eBsxLE=",
+         "3+eo6FJxP+PBRNsNY0RqGkgOc7TNKTErCHe/rOYlkDs=",
+         "5HHEeOz3xsfSD7zEqy+NRvkmIampVaZzRBd8LizVAUE=",
+         "ybEv+CpTJWYhi+ih1eP4vFBeJd2YWpziRUWqBbYXiko=",
+         "YpO8NYfntYRDfD9sIEqfufFKSInVe6jraqI4f9/uqss=",
+         "+Z8wRqWqoQr7IhUzvzoZuSL8uUtxSpDNKA7H5pKIsXg=",
+         "8M1qZYXbz26J1geNf/SM/5z853RL1ecuISjIvT9A6Tg=",
+         "0uqgdsT8f+L/fYhbXtQUy0P+wj5+KIyLEdqXk9I3VGA=",
+         "jtzgLY5g2Wjwe3bGx2UaeccVcFsTHWW+Qi0AnaH4zRc=",
+         "YjrBNOOCIwUFi/q0RNOvy55zkL05MK7wA2bpBG9JrdY="
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   "pcm": 0,
+   "id": "4c9219059d8d97237f1cc8233e2cb07c",
+   "ts": "2026-10-27T23:58:45.291807Z",
+   "nonce": "5ae2d37e1b7b577cb73030563dc69daf",
+   "sig": {
+    "key": "example.com/pcm-lies-log+d727db63",
+    "sig": "el/5d5NeP+1TxEBUEsTDHVWwNrBhykfcrnjt6ZOapRbOnawnD/wqWbH2e5HYjOZ5TREe337txeJr2gOqNke3CA=="
+   }
+  },
+  "wire": null,
+  "trust": {
+   "logs": [
+    "example.com/pcm-lies-log+d727db63+AeMoOU2LNtw1kfWFIT000N7kizeqRwu7Hp9QistrT8VE"
+   ],
+   "witnesses": [],
+   "witnesses_required": 0
+  },
+  "schemas": [
+   {
+    "pcm_schema": 0,
+    "name": "ci.merge",
+    "fields": {
+     "pr": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "tests_passed"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "net.report",
+    "fields": {
+     "ticket": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "reached_host"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "file.handoff",
+    "fields": {
+     "ticket": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "file_written"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "refund.approved",
+    "fields": {
+     "amount": {
+      "type": "money",
+      "currency": "USD",
+      "max": 1000000
+     },
+     "order": {
+      "type": "int",
+      "min": 1,
+      "max": 999999999
+     }
+    },
+    "claims": [
+     "approved_by"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "refund.request",
+    "fields": {
+     "amount": {
+      "type": "money",
+      "currency": "USD",
+      "max": 1000000
+     },
+     "order": {
+      "type": "int",
+      "min": 1,
+      "max": 999999999
+     }
+    },
+    "grant": true
+   },
+   {
+    "pcm_schema": 0,
+    "name": "refund.scoped",
+    "fields": {
+     "amount": {
+      "type": "money",
+      "currency": "USD",
+      "max": 1000000
+     },
+     "order": {
+      "type": "int",
+      "min": 1,
+      "max": 999999999
+     },
+     "region": {
+      "type": "enum",
+      "values": [
+       "eu",
+       "us",
+       "apac"
+      ]
+     },
+     "due": {
+      "type": "time"
+     }
+    },
+    "grant": true
+   },
+   {
+    "pcm_schema": 0,
+    "name": "release.ship",
+    "fields": {
+     "pr": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "tests_passed",
+     "reached_host",
+     "file_written"
+    ]
+   }
+  ],
+  "options": {
+   "me": "uid:990102",
+   "strict": false,
+   "now": "2026-10-27T23:58:46.291807Z",
+   "replay": {
+    "window_s": 300,
+    "started": "2026-10-27T23:57:45.291807Z",
+    "per_sender": 4096,
+    "seen": []
+   }
+  }
+ },
+ "outputs": {
+  "tracekit": {
+   "id": "L3.A.09",
+   "verifier": "tracekit",
+   "verdict": "accept",
+   "reason_class": "accept|approved_by:proven",
+   "stage": null,
+   "error": null,
+   "conformance": {
+    "verdict": "accept",
+    "signature": true,
+    "replay": true,
+    "schema": true,
+    "grants": "none",
+    "claims": [
+     [
+      "proven",
+      {
+       "tool": "refund",
+       "args": {
+        "amount": 2500,
+        "order": 81
+       }
+      }
+     ]
+    ],
+    "skipped": []
+   },
+   "claims": [
+    {
+     "type": "approved_by",
+     "result": "proven",
+     "detail": "approval seq 186 by alice of \"refund\" call refund-353 with args {\"amount\":2500,\"order\":81}",
+     "approved": {
+      "tool": "refund",
+      "args": {
+       "amount": 2500,
+       "order": 81
+      }
+     }
+    }
+   ],
+   "reasons": [],
+   "ms": 1.9148
+  },
+  "standalone": {
+   "id": "L3.A.09",
+   "verifier": "standalone",
+   "verdict": "accept",
+   "reason_class": "accept|approved_by:proven",
+   "stage": null,
+   "error": null,
+   "conformance": {
+    "verdict": "accept",
+    "signature": true,
+    "replay": true,
+    "schema": true,
+    "grants": "none",
+    "claims": [
+     [
+      "proven",
+      {
+       "tool": "refund",
+       "args": {
+        "amount": 2500,
+        "order": 81
+       }
+      }
+     ]
+    ],
+    "skipped": []
+   },
+   "claims": [
+    {
+     "type": "approved_by",
+     "result": "proven",
+     "detail": "approval seq 186 by alice of \"refund\" call refund-353 with args {\"amount\":2500,\"order\":81}",
+     "approved": {
+      "tool": "refund",
+      "args": {
+       "amount": 2500,
+       "order": 81
+      }
+     }
+    }
+   ],
+   "reasons": [],
+   "ms": 1.5825
+  },
+  "a2a": {
+   "id": "L3.A.09",
+   "verifier": "a2a",
+   "verdict": "accept"
+  },
+  "sigonly": {
+   "id": "L3.A.09",
+   "verifier": "sigonly",
+   "verdict": "accept"
+  }
+ }
+}

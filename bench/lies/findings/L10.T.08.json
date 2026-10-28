@@ -1,0 +1,379 @@
+{
+ "auto": true,
+ "id": "L10.T.08",
+ "record": {
+  "id": "L10.T.08",
+  "class": "L10",
+  "operator": "pass-then-fail-cites-pass",
+  "claim_type": "T",
+  "label": "FALSE",
+  "world": false,
+  "lie_scope": "freshness",
+  "threat_model": "in",
+  "seed": 20261028,
+  "note": "the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure",
+  "message": {
+   "from": {
+    "agent": "uid:990101",
+    "run": "df29aa67b83815464ceb3b2f12fd771b",
+    "tenant": "default"
+   },
+   "to": {
+    "agent": "uid:990102"
+   },
+   "intent": {
+    "type": "ci.merge@sha256:1f4d3f4639e89cb862e48352c26334cc382f58790913bb309613101424677094",
+    "args": {
+     "pr": 394
+    }
+   },
+   "claims": [
+    {
+     "type": "tests_passed",
+     "args": {
+      "suite": "python -m pytest -q tests/test_state.py"
+     },
+     "evidence": {
+      "checkpoint": "example.com/pcm-lies-log\n522\nx6fEnYol5eIRu6JzQ6Qip8T7dq6AByvroYYloiBsy9c=\n\n— example.com/pcm-lies-log 1yfbY7ExfmnxhBWzEl4IefX4eIzNE2hxpMjuwNUalGkHZr5cw9+WxVstXO1sECfa22W2X4/BOTRoDmEr1gT1PQCjgQc=\n",
+      "records": [
+       {
+        "event": {
+         "schema_version": "tracekit.event.v2",
+         "id": "72cc25ae7b7bdb8b0859694aba54caaa",
+         "seq": 58,
+         "prev_hash": "sha256:c3749ea740ef478ef42541313009deb2193fdce6e510289e739d0ce91119282c",
+         "ts": "2026-10-27T23:58:12.210608Z",
+         "run_id": "df29aa67b83815464ceb3b2f12fd771b",
+         "agent_id": "main",
+         "parent_id": null,
+         "source": "gateway",
+         "type": "policy.decision",
+         "data": {
+          "tool_use_id": "Bash-109",
+          "tool": "Bash",
+          "policy_hash": "sha256:71ee0edfe4ab6349b43d68ee9ce3b0b56679859c2eff4b76840167820009a73e",
+          "engine": "re2@1.1.20251105",
+          "expires_at": "2026-10-28T00:03:12.210429Z",
+          "via": "mtls:spiffe://example/executor",
+          "caller": "uid:990101",
+          "decision_id": "dec-3594166da8946568c811b208cda36f65",
+          "nonce": "b795383c2867f0dfaec5d06b6c9ca28c",
+          "decision": "allow",
+          "rule_ids": [],
+          "args_commitment": "hmac-sha256:5c5a921ca15fc3397a7a6cba8cec665b48502c70733a41a9f27bf8226583cc85"
+         },
+         "tenant": "default",
+         "log_id": "617397ba0732fdb6b4c3836969dc0f82",
+         "run_seq": 53,
+         "run_prev_hash": "sha256:c3749ea740ef478ef42541313009deb2193fdce6e510289e739d0ce91119282c",
+         "request_id": "r110",
+         "stream": "gw",
+         "client_seq": 52,
+         "tool_call_id": "Bash-109",
+         "attempt": 0,
+         "args_source": "parsed",
+         "tier": "T2"
+        },
+        "hash": "sha256:fffc03c0534fd9942e2d8042378af8ac19b221168de7fc297edf6ace5d51cb54",
+        "proof": [
+         "Qqozj4gNUELbKTzbimbchDDUc9SVwJCEZtNxNStqTzU=",
+         "vaq6JPhego4iwYYJajC64zI6fjSRZ6sKTo5muYzgXVE=",
+         "YY42uvFJXh37cPPb6oX3ulrD7Fky3qyi5aPNysJdUBY=",
+         "P1/YqfpfL3knpMbguRwST8DGqZpzAQV2+oXgCt3tLBo=",
+         "FpE/vwpqabiVQSmYujkbnh0BoyxKlee5bYN5Tq0+wDY=",
+         "IqNI5L3KLEu9qD62tILtZqUzSjcQcLYjqU41ggb10Nc=",
+         "kGdMtlH6ThWqvG8ynmRpqDmpJqZOY05VScQoZc7ahKU=",
+         "Xe69SO/TkIZfOJL0j0u6e3jXAuJlhAk851rJ0RJHVEU=",
+         "0uqgdsT8f+L/fYhbXtQUy0P+wj5+KIyLEdqXk9I3VGA=",
+         "sFf9Rl2Meazodzdd8r6DZqTfUc7uXHMvbhtVulQ6ZB0="
+        ],
+        "salt": "81088d98e4725866b9c9c239083d65f8496396c4f5dc0301e85293427feba460",
+        "args": {
+         "command": "python -m pytest -q tests/test_state.py"
+        }
+       },
+       {
+        "event": {
+         "schema_version": "tracekit.event.v2",
+         "id": "8fb65d8414719372b225d45c2e257cfc",
+         "seq": 59,
+         "prev_hash": "sha256:fffc03c0534fd9942e2d8042378af8ac19b221168de7fc297edf6ace5d51cb54",
+         "ts": "2026-10-27T23:58:13.424472Z",
+         "run_id": "df29aa67b83815464ceb3b2f12fd771b",
+         "agent_id": "main",
+         "parent_id": null,
+         "source": "gateway",
+         "type": "tool.result",
+         "data": {
+          "tool_use_id": "Bash-109",
+          "ok": true,
+          "output": {
+           "hash": "hmac-sha256:4796946523cf4025e515411cfb00f7850a0b262f3eed1c17d9a87388fbd036e8",
+           "size": 21,
+           "redacted": false
+          },
+          "decision_id": "dec-3594166da8946568c811b208cda36f65",
+          "redaction": {
+           "rules": [],
+           "count": 0,
+           "client_claimed": false
+          },
+          "via": "mtls:spiffe://example/executor"
+         },
+         "tenant": "default",
+         "log_id": "617397ba0732fdb6b4c3836969dc0f82",
+         "run_seq": 54,
+         "run_prev_hash": "sha256:fffc03c0534fd9942e2d8042378af8ac19b221168de7fc297edf6ace5d51cb54",
+         "request_id": "086991b56bce455f870d34e3d6036fb6",
+         "stream": "gw",
+         "client_seq": 53,
+         "tool_call_id": "Bash-109",
+         "attempt": 0,
+         "tier": "T2"
+        },
+        "hash": "sha256:6591201c3192129e599cf90e22f37ebcd3a0e75989dc296a11db386b005c835c",
+        "proof": [
+         "M6pTHcFVta0YZAGMZ7k7VTgQ2usuo38PJjOvMKRNPB8=",
+         "vaq6JPhego4iwYYJajC64zI6fjSRZ6sKTo5muYzgXVE=",
+         "YY42uvFJXh37cPPb6oX3ulrD7Fky3qyi5aPNysJdUBY=",
+         "P1/YqfpfL3knpMbguRwST8DGqZpzAQV2+oXgCt3tLBo=",
+         "FpE/vwpqabiVQSmYujkbnh0BoyxKlee5bYN5Tq0+wDY=",
+         "IqNI5L3KLEu9qD62tILtZqUzSjcQcLYjqU41ggb10Nc=",
+         "kGdMtlH6ThWqvG8ynmRpqDmpJqZOY05VScQoZc7ahKU=",
+         "Xe69SO/TkIZfOJL0j0u6e3jXAuJlhAk851rJ0RJHVEU=",
+         "0uqgdsT8f+L/fYhbXtQUy0P+wj5+KIyLEdqXk9I3VGA=",
+         "sFf9Rl2Meazodzdd8r6DZqTfUc7uXHMvbhtVulQ6ZB0="
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   "pcm": 0,
+   "id": "ee48f59cafce69cb54d8714e57ed0f1e",
+   "ts": "2026-10-27T23:58:52.713469Z",
+   "nonce": "79c1fce8b298157bf6a1ac005c746c3e",
+   "sig": {
+    "key": "example.com/pcm-lies-log+d727db63",
+    "sig": "o5+23fN+R2qBczvmfsCF6+lTLshBhVMTZXAtoeLInfkUfcRMEiEv4xBRt2HvyuS+H1DvQqw1QFA7vNCH/JyZBw=="
+   }
+  },
+  "wire": null,
+  "trust": {
+   "logs": [
+    "example.com/pcm-lies-log+d727db63+AeMoOU2LNtw1kfWFIT000N7kizeqRwu7Hp9QistrT8VE"
+   ],
+   "witnesses": [],
+   "witnesses_required": 0
+  },
+  "schemas": [
+   {
+    "pcm_schema": 0,
+    "name": "ci.merge",
+    "fields": {
+     "pr": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "tests_passed"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "net.report",
+    "fields": {
+     "ticket": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "reached_host"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "file.handoff",
+    "fields": {
+     "ticket": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "file_written"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "refund.approved",
+    "fields": {
+     "amount": {
+      "type": "money",
+      "currency": "USD",
+      "max": 1000000
+     },
+     "order": {
+      "type": "int",
+      "min": 1,
+      "max": 999999999
+     }
+    },
+    "claims": [
+     "approved_by"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "refund.request",
+    "fields": {
+     "amount": {
+      "type": "money",
+      "currency": "USD",
+      "max": 1000000
+     },
+     "order": {
+      "type": "int",
+      "min": 1,
+      "max": 999999999
+     }
+    },
+    "grant": true
+   },
+   {
+    "pcm_schema": 0,
+    "name": "refund.scoped",
+    "fields": {
+     "amount": {
+      "type": "money",
+      "currency": "USD",
+      "max": 1000000
+     },
+     "order": {
+      "type": "int",
+      "min": 1,
+      "max": 999999999
+     },
+     "region": {
+      "type": "enum",
+      "values": [
+       "eu",
+       "us",
+       "apac"
+      ]
+     },
+     "due": {
+      "type": "time"
+     }
+    },
+    "grant": true
+   },
+   {
+    "pcm_schema": 0,
+    "name": "release.ship",
+    "fields": {
+     "pr": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "tests_passed",
+     "reached_host",
+     "file_written"
+    ]
+   }
+  ],
+  "options": {
+   "me": "uid:990102",
+   "strict": false,
+   "now": "2026-10-27T23:58:53.713469Z",
+   "replay": {
+    "window_s": 300,
+    "started": "2026-10-27T23:57:52.713469Z",
+    "per_sender": 4096,
+    "seen": []
+   }
+  }
+ },
+ "outputs": {
+  "tracekit": {
+   "id": "L10.T.08",
+   "verifier": "tracekit",
+   "verdict": "accept",
+   "reason_class": "accept|tests_passed:proven",
+   "stage": null,
+   "error": null,
+   "conformance": {
+    "verdict": "accept",
+    "signature": true,
+    "replay": true,
+    "schema": true,
+    "grants": "none",
+    "claims": [
+     [
+      "proven",
+      null
+     ]
+    ],
+    "skipped": []
+   },
+   "claims": [
+    {
+     "type": "tests_passed",
+     "result": "proven",
+     "detail": "call Bash-109 ran 'python -m pytest -q tests/test_state.py', run by mtls:spiffe://example/executor (T2)"
+    }
+   ],
+   "reasons": [],
+   "ms": 1.4613
+  },
+  "standalone": {
+   "id": "L10.T.08",
+   "verifier": "standalone",
+   "verdict": "accept",
+   "reason_class": "accept|tests_passed:proven",
+   "stage": null,
+   "error": null,
+   "conformance": {
+    "verdict": "accept",
+    "signature": true,
+    "replay": true,
+    "schema": true,
+    "grants": "none",
+    "claims": [
+     [
+      "proven",
+      null
+     ]
+    ],
+    "skipped": []
+   },
+   "claims": [
+    {
+     "type": "tests_passed",
+     "result": "proven",
+     "detail": "call Bash-109 ran 'python -m pytest -q tests/test_state.py', run by mtls:spiffe://example/executor (T2)"
+    }
+   ],
+   "reasons": [],
+   "ms": 1.0795
+  },
+  "a2a": {
+   "id": "L10.T.08",
+   "verifier": "a2a",
+   "verdict": "accept"
+  },
+  "sigonly": {
+   "id": "L10.T.08",
+   "verifier": "sigonly",
+   "verdict": "accept"
+  }
+ }
+}

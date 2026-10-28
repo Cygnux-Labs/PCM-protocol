@@ -1,0 +1,206 @@
+{
+ "auto": true,
+ "id": "L16.G.07",
+ "record": {
+  "id": "L16.G.07",
+  "class": "L16",
+  "operator": "wire-payload-1e400",
+  "claim_type": "G",
+  "label": "FALSE",
+  "world": false,
+  "lie_scope": "encoding",
+  "threat_model": "in",
+  "seed": 20261028,
+  "note": "",
+  "message": null,
+  "wire": "{\"from\": {\"agent\": \"uid:990101\", \"run\": \"df29aa67b83815464ceb3b2f12fd771b\", \"tenant\": \"default\"}, \"to\": {\"agent\": \"uid:990102\"}, \"intent\": {\"type\": \"refund.request@sha256:b8d90bbae81f0d1228e886da62b05b74bcd18ae071a702544b3728754bd192e3\", \"args\": {\"amount\": 15000, \"order\": 81}}, \"grants\": [{\"pcm_grant\": 0, \"ts\": \"2026-10-27T23:58:32.129675Z\", \"issuer\": {\"kind\": \"person\", \"id\": \"uid:990001\", \"run\": \"df29aa67b83815464ceb3b2f12fd771b\", \"tenant\": \"default\", \"approval_id\": \"apr-5b521648ec9b0f493df27ba3aa2ad72c\", \"person\": \"alice\"}, \"subject\": \"uid:990101\", \"intent\": \"refund.request@sha256:b8d90bbae81f0d1228e886da62b05b74bcd18ae071a702544b3728754bd192e3\", \"caveats\": [{\"field\": \"amount\", \"op\": \"<=\", \"value\": 30000}, {\"field\": \"order\", \"op\": \"==\", \"value\": 81}], \"expires_at\": \"2026-10-28T00:58:32.127892Z\", \"delegable\": false, \"parent\": null, \"sig\": {\"key\": \"example.com/pcm-lies-log+d727db63\", \"sig\": \"WNiqCdbQLe1InjHUn0L9AdX1ALfMlOSyGf3Vb7TQQ8JcICYF10C/Qj7+1NbchowBD4dm8va9I4a6rr/PoJBjAA==\"}}], \"payload\": {\"kind\": \"data\", \"data\": {\"n\": 1e400}}, \"pcm\": 0, \"id\": \"96bb96f4649dec6f307ff052e9287ebf\", \"ts\": \"2026-10-27T23:59:00.524101Z\", \"nonce\": \"79b728da489e9d113c876d365f156ab8\", \"sig\": {\"key\": \"example.com/pcm-lies-log+d727db63\", \"sig\": \"TullF0WehnuWmNXm9nF2x4It6OjyYIwIcSdufREcd4UfFzMSOMe0ZZToEcPHMzzEpu21ysfxcwg+jnZAsqDJDA==\"}}",
+  "trust": {
+   "logs": [
+    "example.com/pcm-lies-log+d727db63+AeMoOU2LNtw1kfWFIT000N7kizeqRwu7Hp9QistrT8VE"
+   ],
+   "witnesses": [],
+   "witnesses_required": 0
+  },
+  "schemas": [
+   {
+    "pcm_schema": 0,
+    "name": "ci.merge",
+    "fields": {
+     "pr": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "tests_passed"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "net.report",
+    "fields": {
+     "ticket": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "reached_host"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "file.handoff",
+    "fields": {
+     "ticket": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "file_written"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "refund.approved",
+    "fields": {
+     "amount": {
+      "type": "money",
+      "currency": "USD",
+      "max": 1000000
+     },
+     "order": {
+      "type": "int",
+      "min": 1,
+      "max": 999999999
+     }
+    },
+    "claims": [
+     "approved_by"
+    ]
+   },
+   {
+    "pcm_schema": 0,
+    "name": "refund.request",
+    "fields": {
+     "amount": {
+      "type": "money",
+      "currency": "USD",
+      "max": 1000000
+     },
+     "order": {
+      "type": "int",
+      "min": 1,
+      "max": 999999999
+     }
+    },
+    "grant": true
+   },
+   {
+    "pcm_schema": 0,
+    "name": "refund.scoped",
+    "fields": {
+     "amount": {
+      "type": "money",
+      "currency": "USD",
+      "max": 1000000
+     },
+     "order": {
+      "type": "int",
+      "min": 1,
+      "max": 999999999
+     },
+     "region": {
+      "type": "enum",
+      "values": [
+       "eu",
+       "us",
+       "apac"
+      ]
+     },
+     "due": {
+      "type": "time"
+     }
+    },
+    "grant": true
+   },
+   {
+    "pcm_schema": 0,
+    "name": "release.ship",
+    "fields": {
+     "pr": {
+      "type": "int",
+      "min": 1,
+      "max": 999999
+     }
+    },
+    "claims": [
+     "tests_passed",
+     "reached_host",
+     "file_written"
+    ]
+   }
+  ],
+  "options": {
+   "me": "uid:990102",
+   "strict": false,
+   "now": "2026-10-27T23:59:01.524101Z",
+   "replay": {
+    "window_s": 300,
+    "started": "2026-10-27T23:58:00.524101Z",
+    "per_sender": 4096,
+    "seen": []
+   }
+  }
+ },
+ "outputs": {
+  "tracekit": {
+   "id": "L16.G.07",
+   "verifier": "tracekit",
+   "verdict": "reject",
+   "reason_class": "reject|unreadable",
+   "stage": "load",
+   "error": "ValueError: /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/tmpo2_fg949.json: non_finite: 1e400",
+   "conformance": null,
+   "claims": null,
+   "reasons": [],
+   "ms": null
+  },
+  "standalone": {
+   "id": "L16.G.07",
+   "verifier": "standalone",
+   "verdict": "reject",
+   "reason_class": "reject|signature",
+   "stage": null,
+   "error": null,
+   "conformance": {
+    "verdict": "reject",
+    "signature": false,
+    "replay": null,
+    "schema": null,
+    "grants": null,
+    "claims": null,
+    "skipped": []
+   },
+   "claims": null,
+   "reasons": [
+    "signature: not JSON that RFC 8785 can encode (inf is not representable in JCS)"
+   ],
+   "ms": 0.091
+  },
+  "a2a": {
+   "id": "L16.G.07",
+   "verifier": "a2a",
+   "verdict": "accept"
+  },
+  "sigonly": {
+   "id": "L16.G.07",
+   "verifier": "sigonly",
+   "verdict": "reject"
+  }
+ }
+}

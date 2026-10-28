@@ -1,0 +1,3479 @@
+{
+ "messages": 879,
+ "verifiers": [
+  "tracekit",
+  "standalone",
+  "a2a",
+  "sigonly"
+ ],
+ "size": {
+  "AB-strip.A.TRUE": 12,
+  "AB-strip.F.TRUE": 12,
+  "AB-strip.H.TRUE": 20,
+  "AB-strip.T.TRUE": 12,
+  "AB-strip.X.TRUE": 4,
+  "AB-t1.F.UNKNOWABLE": 12,
+  "AB-t1.H.UNKNOWABLE": 12,
+  "AB-t1.T.UNKNOWABLE": 12,
+  "honest.A.TRUE": 12,
+  "honest.F.TRUE": 12,
+  "honest.G.TRUE": 13,
+  "honest.H.TRUE": 20,
+  "honest.T.TRUE": 12,
+  "honest.X.TRUE": 4,
+  "L1.A.FALSE": 12,
+  "L1.F.FALSE": 12,
+  "L1.H.FALSE": 12,
+  "L1.T.FALSE": 12,
+  "L2.A.FALSE": 12,
+  "L2.F.FALSE": 12,
+  "L2.H.FALSE": 12,
+  "L2.T.FALSE": 12,
+  "L3.A.FALSE": 12,
+  "L3.F.FALSE": 12,
+  "L3.H.FALSE": 12,
+  "L3.T.FALSE": 12,
+  "L4.F.UNKNOWABLE": 12,
+  "L4.H.UNKNOWABLE": 12,
+  "L4.T.UNKNOWABLE": 12,
+  "L5.A.FALSE": 12,
+  "L5.F.FALSE": 12,
+  "L5.G.FALSE": 12,
+  "L5.H.FALSE": 16,
+  "L5.T.FALSE": 14,
+  "L6.A.FALSE": 12,
+  "L6.F.FALSE": 12,
+  "L6.G.FALSE": 12,
+  "L6.H.FALSE": 12,
+  "L6.T.FALSE": 12,
+  "L7.A.FALSE": 10,
+  "L7.F.FALSE": 10,
+  "L7.H.FALSE": 10,
+  "L7.T.FALSE": 12,
+  "L8.A.FALSE": 10,
+  "L8.F.FALSE": 10,
+  "L8.G.FALSE": 12,
+  "L8.H.FALSE": 10,
+  "L8.T.FALSE": 13,
+  "L9.A.FALSE": 12,
+  "L9.F.FALSE": 12,
+  "L9.H.FALSE": 12,
+  "L9.T.FALSE": 12,
+  "L10.A.FALSE": 10,
+  "L10.F.FALSE": 10,
+  "L10.H.FALSE": 10,
+  "L10.T.FALSE": 10,
+  "L11.A.FALSE": 10,
+  "L11.F.FALSE": 10,
+  "L11.G.FALSE": 10,
+  "L11.H.FALSE": 10,
+  "L11.T.FALSE": 10,
+  "L12.G.FALSE": 18,
+  "L13.G.FALSE": 10,
+  "L14.A.FALSE": 10,
+  "L14.G.FALSE": 13,
+  "L15.G.FALSE": 13,
+  "L16.A.FALSE": 18,
+  "L16.A.TRUE": 4,
+  "L16.F.FALSE": 16,
+  "L16.F.TRUE": 7,
+  "L16.G.FALSE": 7,
+  "L16.G.TRUE": 4,
+  "L16.H.FALSE": 24,
+  "L16.H.TRUE": 4,
+  "L16.T.FALSE": 17,
+  "L16.T.TRUE": 4
+ },
+ "threat_model": {
+  "in": 868,
+  "signer-bug": 11
+ },
+ "classes": [
+  "AB-strip",
+  "AB-t1",
+  "honest",
+  "L1",
+  "L2",
+  "L3",
+  "L4",
+  "L5",
+  "L6",
+  "L7",
+  "L8",
+  "L9",
+  "L10",
+  "L11",
+  "L12",
+  "L13",
+  "L14",
+  "L15",
+  "L16"
+ ],
+ "confusion": {
+  "tracekit": {
+   "AB-strip": {
+    "TRUE>accept-unproven": 60
+   },
+   "AB-t1": {
+    "UNKNOWABLE>accept-unproven": 36
+   },
+   "honest": {
+    "TRUE>accept": 71,
+    "TRUE>reject": 2
+   },
+   "L1": {
+    "FALSE>accept-unproven": 10,
+    "FALSE>reject": 38
+   },
+   "L2": {
+    "FALSE>accept-unproven": 3,
+    "FALSE>reject": 45
+   },
+   "L3": {
+    "FALSE>accept": 6,
+    "FALSE>reject": 42
+   },
+   "L4": {
+    "UNKNOWABLE>accept-unproven": 36
+   },
+   "L5": {
+    "FALSE>reject": 66
+   },
+   "L6": {
+    "FALSE>reject": 60
+   },
+   "L7": {
+    "FALSE>reject": 42
+   },
+   "L8": {
+    "FALSE>reject": 55
+   },
+   "L9": {
+    "FALSE>reject": 48
+   },
+   "L10": {
+    "FALSE>accept": 10,
+    "FALSE>reject": 30
+   },
+   "L11": {
+    "FALSE>reject": 50
+   },
+   "L12": {
+    "FALSE>reject": 18
+   },
+   "L13": {
+    "FALSE>reject": 10
+   },
+   "L14": {
+    "FALSE>reject": 23
+   },
+   "L15": {
+    "FALSE>reject": 13
+   },
+   "L16": {
+    "TRUE>accept": 5,
+    "TRUE>reject": 18,
+    "FALSE>accept": 7,
+    "FALSE>accept-unproven": 5,
+    "FALSE>reject": 70
+   }
+  },
+  "standalone": {
+   "AB-strip": {
+    "TRUE>accept-unproven": 60
+   },
+   "AB-t1": {
+    "UNKNOWABLE>accept-unproven": 36
+   },
+   "honest": {
+    "TRUE>accept": 71,
+    "TRUE>reject": 2
+   },
+   "L1": {
+    "FALSE>accept-unproven": 10,
+    "FALSE>reject": 38
+   },
+   "L2": {
+    "FALSE>accept-unproven": 3,
+    "FALSE>reject": 45
+   },
+   "L3": {
+    "FALSE>accept": 6,
+    "FALSE>reject": 42
+   },
+   "L4": {
+    "UNKNOWABLE>accept-unproven": 36
+   },
+   "L5": {
+    "FALSE>reject": 66
+   },
+   "L6": {
+    "FALSE>reject": 60
+   },
+   "L7": {
+    "FALSE>reject": 42
+   },
+   "L8": {
+    "FALSE>reject": 55
+   },
+   "L9": {
+    "FALSE>reject": 48
+   },
+   "L10": {
+    "FALSE>accept": 10,
+    "FALSE>reject": 30
+   },
+   "L11": {
+    "FALSE>reject": 50
+   },
+   "L12": {
+    "FALSE>reject": 18
+   },
+   "L13": {
+    "FALSE>reject": 10
+   },
+   "L14": {
+    "FALSE>reject": 23
+   },
+   "L15": {
+    "FALSE>reject": 13
+   },
+   "L16": {
+    "TRUE>accept": 5,
+    "TRUE>reject": 18,
+    "FALSE>accept": 7,
+    "FALSE>accept-unproven": 5,
+    "FALSE>reject": 70
+   }
+  },
+  "a2a": {
+   "AB-strip": {
+    "TRUE>accept": 60
+   },
+   "AB-t1": {
+    "UNKNOWABLE>accept": 36
+   },
+   "honest": {
+    "TRUE>accept": 73
+   },
+   "L1": {
+    "FALSE>accept": 48
+   },
+   "L2": {
+    "FALSE>accept": 48
+   },
+   "L3": {
+    "FALSE>accept": 48
+   },
+   "L4": {
+    "UNKNOWABLE>accept": 36
+   },
+   "L5": {
+    "FALSE>accept": 66
+   },
+   "L6": {
+    "FALSE>accept": 60
+   },
+   "L7": {
+    "FALSE>accept": 42
+   },
+   "L8": {
+    "FALSE>accept": 55
+   },
+   "L9": {
+    "FALSE>accept": 48
+   },
+   "L10": {
+    "FALSE>accept": 40
+   },
+   "L11": {
+    "FALSE>accept": 50
+   },
+   "L12": {
+    "FALSE>accept": 18
+   },
+   "L13": {
+    "FALSE>accept": 10
+   },
+   "L14": {
+    "FALSE>accept": 23
+   },
+   "L15": {
+    "FALSE>accept": 13
+   },
+   "L16": {
+    "TRUE>accept": 18,
+    "TRUE>reject": 5,
+    "FALSE>accept": 82
+   }
+  },
+  "sigonly": {
+   "AB-strip": {
+    "TRUE>accept": 60
+   },
+   "AB-t1": {
+    "UNKNOWABLE>accept": 36
+   },
+   "honest": {
+    "TRUE>accept": 73
+   },
+   "L1": {
+    "FALSE>accept": 48
+   },
+   "L2": {
+    "FALSE>accept": 48
+   },
+   "L3": {
+    "FALSE>accept": 48
+   },
+   "L4": {
+    "UNKNOWABLE>accept": 36
+   },
+   "L5": {
+    "FALSE>accept": 66
+   },
+   "L6": {
+    "FALSE>accept": 16,
+    "FALSE>reject": 44
+   },
+   "L7": {
+    "FALSE>accept": 42
+   },
+   "L8": {
+    "FALSE>accept": 55
+   },
+   "L9": {
+    "FALSE>accept": 48
+   },
+   "L10": {
+    "FALSE>accept": 40
+   },
+   "L11": {
+    "FALSE>accept": 50
+   },
+   "L12": {
+    "FALSE>accept": 18
+   },
+   "L13": {
+    "FALSE>accept": 10
+   },
+   "L14": {
+    "FALSE>accept": 23
+   },
+   "L15": {
+    "FALSE>accept": 13
+   },
+   "L16": {
+    "TRUE>accept": 18,
+    "TRUE>reject": 5,
+    "FALSE>accept": 67,
+    "FALSE>reject": 15
+   }
+  }
+ },
+ "false_accepts": {
+  "tracekit": {
+   "lies": 687,
+   "false_accepts": 23,
+   "rate": 0.033478893740902474,
+   "ci95": [
+    0.02241055872173775,
+    0.04973564671811995
+   ],
+   "by_scope": {
+    "claim": {
+     "lies": 184,
+     "false_accepts": 0
+    },
+    "message": {
+     "lies": 6,
+     "false_accepts": 6
+    },
+    "evidence": {
+     "lies": 265,
+     "false_accepts": 0
+    },
+    "authority": {
+     "lies": 90,
+     "false_accepts": 0
+    },
+    "freshness": {
+     "lies": 10,
+     "false_accepts": 10
+    },
+    "delivery": {
+     "lies": 50,
+     "false_accepts": 0
+    },
+    "encoding": {
+     "lies": 82,
+     "false_accepts": 7
+    }
+   },
+   "by_threat_model": {
+    "in": {
+     "lies": 676,
+     "false_accepts": 23
+    },
+    "signer-bug": {
+     "lies": 11,
+     "false_accepts": 0
+    }
+   },
+   "ids": [
+    "L3.A.07",
+    "L3.A.08",
+    "L3.A.09",
+    "L3.A.10",
+    "L3.A.11",
+    "L3.A.12",
+    "L10.T.06",
+    "L10.T.07",
+    "L10.T.08",
+    "L10.T.09",
+    "L10.T.10",
+    "L10.F.06",
+    "L10.F.07",
+    "L10.F.08",
+    "L10.F.09",
+    "L10.F.10",
+    "L16.H.01",
+    "L16.H.02",
+    "L16.H.03",
+    "L16.H.04",
+    "L16.H.05",
+    "L16.H.06",
+    "L16.H.07"
+   ]
+  },
+  "standalone": {
+   "lies": 687,
+   "false_accepts": 23,
+   "rate": 0.033478893740902474,
+   "ci95": [
+    0.02241055872173775,
+    0.04973564671811995
+   ],
+   "by_scope": {
+    "claim": {
+     "lies": 184,
+     "false_accepts": 0
+    },
+    "message": {
+     "lies": 6,
+     "false_accepts": 6
+    },
+    "evidence": {
+     "lies": 265,
+     "false_accepts": 0
+    },
+    "authority": {
+     "lies": 90,
+     "false_accepts": 0
+    },
+    "freshness": {
+     "lies": 10,
+     "false_accepts": 10
+    },
+    "delivery": {
+     "lies": 50,
+     "false_accepts": 0
+    },
+    "encoding": {
+     "lies": 82,
+     "false_accepts": 7
+    }
+   },
+   "by_threat_model": {
+    "in": {
+     "lies": 676,
+     "false_accepts": 23
+    },
+    "signer-bug": {
+     "lies": 11,
+     "false_accepts": 0
+    }
+   },
+   "ids": [
+    "L3.A.07",
+    "L3.A.08",
+    "L3.A.09",
+    "L3.A.10",
+    "L3.A.11",
+    "L3.A.12",
+    "L10.T.06",
+    "L10.T.07",
+    "L10.T.08",
+    "L10.T.09",
+    "L10.T.10",
+    "L10.F.06",
+    "L10.F.07",
+    "L10.F.08",
+    "L10.F.09",
+    "L10.F.10",
+    "L16.H.01",
+    "L16.H.02",
+    "L16.H.03",
+    "L16.H.04",
+    "L16.H.05",
+    "L16.H.06",
+    "L16.H.07"
+   ]
+  },
+  "a2a": {
+   "lies": 687,
+   "false_accepts": 687,
+   "rate": 1.0,
+   "ci95": [
+    0.9944392462758466,
+    0.9999999999999999
+   ],
+   "by_scope": {
+    "claim": {
+     "lies": 184,
+     "false_accepts": 184
+    },
+    "message": {
+     "lies": 6,
+     "false_accepts": 6
+    },
+    "evidence": {
+     "lies": 265,
+     "false_accepts": 265
+    },
+    "authority": {
+     "lies": 90,
+     "false_accepts": 90
+    },
+    "freshness": {
+     "lies": 10,
+     "false_accepts": 10
+    },
+    "delivery": {
+     "lies": 50,
+     "false_accepts": 50
+    },
+    "encoding": {
+     "lies": 82,
+     "false_accepts": 82
+    }
+   },
+   "by_threat_model": {
+    "in": {
+     "lies": 676,
+     "false_accepts": 676
+    },
+    "signer-bug": {
+     "lies": 11,
+     "false_accepts": 11
+    }
+   },
+   "ids": [
+    "L1.T.01",
+    "L1.T.02",
+    "L1.T.03",
+    "L1.T.04",
+    "L1.T.05",
+    "L1.T.06",
+    "L1.T.07",
+    "L1.T.08",
+    "L1.T.09",
+    "L1.T.10",
+    "L1.T.11",
+    "L1.T.12",
+    "L1.H.01",
+    "L1.H.02",
+    "L1.H.03",
+    "L1.H.04",
+    "L1.H.05",
+    "L1.H.06",
+    "L1.H.07",
+    "L1.H.08",
+    "L1.H.09",
+    "L1.H.10",
+    "L1.H.11",
+    "L1.H.12",
+    "L1.F.01",
+    "L1.F.02",
+    "L1.F.03",
+    "L1.F.04",
+    "L1.F.05",
+    "L1.F.06",
+    "L1.F.07",
+    "L1.F.08",
+    "L1.F.09",
+    "L1.F.10",
+    "L1.F.11",
+    "L1.F.12",
+    "L1.A.01",
+    "L1.A.02",
+    "L1.A.03",
+    "L1.A.04",
+    "L1.A.05",
+    "L1.A.06",
+    "L1.A.07",
+    "L1.A.08",
+    "L1.A.09",
+    "L1.A.10",
+    "L1.A.11",
+    "L1.A.12",
+    "L2.T.01",
+    "L2.T.02",
+    "L2.T.03",
+    "L2.T.04",
+    "L2.T.05",
+    "L2.T.06",
+    "L2.T.07",
+    "L2.T.08",
+    "L2.T.09",
+    "L2.T.10",
+    "L2.T.11",
+    "L2.T.12",
+    "L2.H.01",
+    "L2.H.02",
+    "L2.H.03",
+    "L2.H.04",
+    "L2.H.05",
+    "L2.H.06",
+    "L2.H.07",
+    "L2.H.08",
+    "L2.H.09",
+    "L2.H.10",
+    "L2.H.11",
+    "L2.H.12",
+    "L2.F.01",
+    "L2.F.02",
+    "L2.F.03",
+    "L2.F.04",
+    "L2.F.05",
+    "L2.F.06",
+    "L2.F.07",
+    "L2.F.08",
+    "L2.F.09",
+    "L2.F.10",
+    "L2.F.11",
+    "L2.F.12",
+    "L2.A.01",
+    "L2.A.02",
+    "L2.A.03",
+    "L2.A.04",
+    "L2.A.05",
+    "L2.A.06",
+    "L2.A.07",
+    "L2.A.08",
+    "L2.A.09",
+    "L2.A.10",
+    "L2.A.11",
+    "L2.A.12",
+    "L3.T.01",
+    "L3.T.02",
+    "L3.T.03",
+    "L3.T.04",
+    "L3.T.05",
+    "L3.T.06",
+    "L3.T.07",
+    "L3.T.08",
+    "L3.T.09",
+    "L3.T.10",
+    "L3.T.11",
+    "L3.T.12",
+    "L3.H.01",
+    "L3.H.02",
+    "L3.H.03",
+    "L3.H.04",
+    "L3.H.05",
+    "L3.H.06",
+    "L3.H.07",
+    "L3.H.08",
+    "L3.H.09",
+    "L3.H.10",
+    "L3.H.11",
+    "L3.H.12",
+    "L3.F.01",
+    "L3.F.02",
+    "L3.F.03",
+    "L3.F.04",
+    "L3.F.05",
+    "L3.F.06",
+    "L3.F.07",
+    "L3.F.08",
+    "L3.F.09",
+    "L3.F.10",
+    "L3.F.11",
+    "L3.F.12",
+    "L3.A.01",
+    "L3.A.02",
+    "L3.A.03",
+    "L3.A.04",
+    "L3.A.05",
+    "L3.A.06",
+    "L3.A.07",
+    "L3.A.08",
+    "L3.A.09",
+    "L3.A.10",
+    "L3.A.11",
+    "L3.A.12",
+    "L4.T.01",
+    "L4.T.02",
+    "L4.T.03",
+    "L4.T.04",
+    "L4.T.05",
+    "L4.T.06",
+    "L4.T.07",
+    "L4.T.08",
+    "L4.T.09",
+    "L4.T.10",
+    "L4.T.11",
+    "L4.T.12",
+    "L4.H.01",
+    "L4.H.02",
+    "L4.H.03",
+    "L4.H.04",
+    "L4.H.05",
+    "L4.H.06",
+    "L4.H.07",
+    "L4.H.08",
+    "L4.H.09",
+    "L4.H.10",
+    "L4.H.11",
+    "L4.H.12",
+    "L4.F.01",
+    "L4.F.02",
+    "L4.F.03",
+    "L4.F.04",
+    "L4.F.05",
+    "L4.F.06",
+    "L4.F.07",
+    "L4.F.08",
+    "L4.F.09",
+    "L4.F.10",
+    "L4.F.11",
+    "L4.F.12",
+    "L5.T.01",
+    "L5.T.02",
+    "L5.T.03",
+    "L5.T.04",
+    "L5.T.05",
+    "L5.T.06",
+    "L5.T.07",
+    "L5.T.08",
+    "L5.T.09",
+    "L5.T.10",
+    "L5.T.11",
+    "L5.T.12",
+    "L5.T.13",
+    "L5.T.14",
+    "L5.H.01",
+    "L5.H.02",
+    "L5.H.03",
+    "L5.H.04",
+    "L5.H.05",
+    "L5.H.06",
+    "L5.H.07",
+    "L5.H.08",
+    "L5.H.09",
+    "L5.H.10",
+    "L5.H.11",
+    "L5.H.12",
+    "L5.H.13",
+    "L5.H.14",
+    "L5.H.15",
+    "L5.H.16",
+    "L5.F.01",
+    "L5.F.02",
+    "L5.F.03",
+    "L5.F.04",
+    "L5.F.05",
+    "L5.F.06",
+    "L5.F.07",
+    "L5.F.08",
+    "L5.F.09",
+    "L5.F.10",
+    "L5.F.11",
+    "L5.F.12",
+    "L5.A.01",
+    "L5.A.02",
+    "L5.A.03",
+    "L5.A.04",
+    "L5.A.05",
+    "L5.A.06",
+    "L5.A.07",
+    "L5.A.08",
+    "L5.A.09",
+    "L5.A.10",
+    "L5.A.11",
+    "L5.A.12",
+    "L5.G.01",
+    "L5.G.02",
+    "L5.G.03",
+    "L5.G.04",
+    "L5.G.05",
+    "L5.G.06",
+    "L5.G.07",
+    "L5.G.08",
+    "L5.G.09",
+    "L5.G.10",
+    "L5.G.11",
+    "L5.G.12",
+    "L6.T.01",
+    "L6.T.02",
+    "L6.T.03",
+    "L6.T.04",
+    "L6.T.05",
+    "L6.T.06",
+    "L6.T.07",
+    "L6.T.08",
+    "L6.T.09",
+    "L6.T.10",
+    "L6.T.11",
+    "L6.T.12",
+    "L6.H.01",
+    "L6.H.02",
+    "L6.H.03",
+    "L6.H.04",
+    "L6.H.05",
+    "L6.H.06",
+    "L6.H.07",
+    "L6.H.08",
+    "L6.H.09",
+    "L6.H.10",
+    "L6.H.11",
+    "L6.H.12",
+    "L6.F.01",
+    "L6.F.02",
+    "L6.F.03",
+    "L6.F.04",
+    "L6.F.05",
+    "L6.F.06",
+    "L6.F.07",
+    "L6.F.08",
+    "L6.F.09",
+    "L6.F.10",
+    "L6.F.11",
+    "L6.F.12",
+    "L6.A.01",
+    "L6.A.02",
+    "L6.A.03",
+    "L6.A.04",
+    "L6.A.05",
+    "L6.A.06",
+    "L6.A.07",
+    "L6.A.08",
+    "L6.A.09",
+    "L6.A.10",
+    "L6.A.11",
+    "L6.A.12",
+    "L6.G.01",
+    "L6.G.02",
+    "L6.G.03",
+    "L6.G.04",
+    "L6.G.05",
+    "L6.G.06",
+    "L6.G.07",
+    "L6.G.08",
+    "L6.G.09",
+    "L6.G.10",
+    "L6.G.11",
+    "L6.G.12",
+    "L7.T.01",
+    "L7.T.02",
+    "L7.T.03",
+    "L7.T.04",
+    "L7.T.05",
+    "L7.T.06",
+    "L7.T.07",
+    "L7.T.08",
+    "L7.T.09",
+    "L7.T.10",
+    "L7.T.11",
+    "L7.T.12",
+    "L7.H.01",
+    "L7.H.02",
+    "L7.H.03",
+    "L7.H.04",
+    "L7.H.05",
+    "L7.H.06",
+    "L7.H.07",
+    "L7.H.08",
+    "L7.H.09",
+    "L7.H.10",
+    "L7.F.01",
+    "L7.F.02",
+    "L7.F.03",
+    "L7.F.04",
+    "L7.F.05",
+    "L7.F.06",
+    "L7.F.07",
+    "L7.F.08",
+    "L7.F.09",
+    "L7.F.10",
+    "L7.A.01",
+    "L7.A.02",
+    "L7.A.03",
+    "L7.A.04",
+    "L7.A.05",
+    "L7.A.06",
+    "L7.A.07",
+    "L7.A.08",
+    "L7.A.09",
+    "L7.A.10",
+    "L8.T.01",
+    "L8.T.02",
+    "L8.T.03",
+    "L8.T.04",
+    "L8.T.05",
+    "L8.T.06",
+    "L8.T.07",
+    "L8.T.08",
+    "L8.T.09",
+    "L8.T.10",
+    "L8.T.11",
+    "L8.T.12",
+    "L8.T.13",
+    "L8.H.01",
+    "L8.H.02",
+    "L8.H.03",
+    "L8.H.04",
+    "L8.H.05",
+    "L8.H.06",
+    "L8.H.07",
+    "L8.H.08",
+    "L8.H.09",
+    "L8.H.10",
+    "L8.F.01",
+    "L8.F.02",
+    "L8.F.03",
+    "L8.F.04",
+    "L8.F.05",
+    "L8.F.06",
+    "L8.F.07",
+    "L8.F.08",
+    "L8.F.09",
+    "L8.F.10",
+    "L8.A.01",
+    "L8.A.02",
+    "L8.A.03",
+    "L8.A.04",
+    "L8.A.05",
+    "L8.A.06",
+    "L8.A.07",
+    "L8.A.08",
+    "L8.A.09",
+    "L8.A.10",
+    "L8.G.01",
+    "L8.G.02",
+    "L8.G.03",
+    "L8.G.04",
+    "L8.G.05",
+    "L8.G.06",
+    "L8.G.07",
+    "L8.G.08",
+    "L8.G.09",
+    "L8.G.10",
+    "L8.G.11",
+    "L8.G.12",
+    "L9.T.01",
+    "L9.T.02",
+    "L9.T.03",
+    "L9.T.04",
+    "L9.T.05",
+    "L9.T.06",
+    "L9.T.07",
+    "L9.T.08",
+    "L9.T.09",
+    "L9.T.10",
+    "L9.T.11",
+    "L9.T.12",
+    "L9.H.01",
+    "L9.H.02",
+    "L9.H.03",
+    "L9.H.04",
+    "L9.H.05",
+    "L9.H.06",
+    "L9.H.07",
+    "L9.H.08",
+    "L9.H.09",
+    "L9.H.10",
+    "L9.H.11",
+    "L9.H.12",
+    "L9.F.01",
+    "L9.F.02",
+    "L9.F.03",
+    "L9.F.04",
+    "L9.F.05",
+    "L9.F.06",
+    "L9.F.07",
+    "L9.F.08",
+    "L9.F.09",
+    "L9.F.10",
+    "L9.F.11",
+    "L9.F.12",
+    "L9.A.01",
+    "L9.A.02",
+    "L9.A.03",
+    "L9.A.04",
+    "L9.A.05",
+    "L9.A.06",
+    "L9.A.07",
+    "L9.A.08",
+    "L9.A.09",
+    "L9.A.10",
+    "L9.A.11",
+    "L9.A.12",
+    "L10.T.01",
+    "L10.T.02",
+    "L10.T.03",
+    "L10.T.04",
+    "L10.T.05",
+    "L10.H.01",
+    "L10.H.02",
+    "L10.H.03",
+    "L10.H.04",
+    "L10.H.05",
+    "L10.H.06",
+    "L10.H.07",
+    "L10.H.08",
+    "L10.H.09",
+    "L10.H.10",
+    "L10.F.01",
+    "L10.F.02",
+    "L10.F.03",
+    "L10.F.04",
+    "L10.F.05",
+    "L10.A.01",
+    "L10.A.02",
+    "L10.A.03",
+    "L10.A.04",
+    "L10.A.05",
+    "L10.A.06",
+    "L10.A.07",
+    "L10.A.08",
+    "L10.A.09",
+    "L10.A.10",
+    "L10.T.06",
+    "L10.T.07",
+    "L10.T.08",
+    "L10.T.09",
+    "L10.T.10",
+    "L10.F.06",
+    "L10.F.07",
+    "L10.F.08",
+    "L10.F.09",
+    "L10.F.10",
+    "L11.T.01",
+    "L11.T.02",
+    "L11.T.03",
+    "L11.T.04",
+    "L11.T.05",
+    "L11.T.06",
+    "L11.T.07",
+    "L11.T.08",
+    "L11.T.09",
+    "L11.T.10",
+    "L11.H.01",
+    "L11.H.02",
+    "L11.H.03",
+    "L11.H.04",
+    "L11.H.05",
+    "L11.H.06",
+    "L11.H.07",
+    "L11.H.08",
+    "L11.H.09",
+    "L11.H.10",
+    "L11.F.01",
+    "L11.F.02",
+    "L11.F.03",
+    "L11.F.04",
+    "L11.F.05",
+    "L11.F.06",
+    "L11.F.07",
+    "L11.F.08",
+    "L11.F.09",
+    "L11.F.10",
+    "L11.A.01",
+    "L11.A.02",
+    "L11.A.03",
+    "L11.A.04",
+    "L11.A.05",
+    "L11.A.06",
+    "L11.A.07",
+    "L11.A.08",
+    "L11.A.09",
+    "L11.A.10",
+    "L11.G.01",
+    "L11.G.02",
+    "L11.G.03",
+    "L11.G.04",
+    "L11.G.05",
+    "L11.G.06",
+    "L11.G.07",
+    "L11.G.08",
+    "L11.G.09",
+    "L11.G.10",
+    "L12.G.01",
+    "L12.G.02",
+    "L12.G.03",
+    "L12.G.04",
+    "L12.G.05",
+    "L12.G.06",
+    "L12.G.07",
+    "L12.G.08",
+    "L12.G.09",
+    "L12.G.10",
+    "L12.G.11",
+    "L12.G.12",
+    "L12.G.13",
+    "L12.G.14",
+    "L12.G.15",
+    "L12.G.16",
+    "L12.G.17",
+    "L12.G.18",
+    "L13.G.01",
+    "L13.G.02",
+    "L13.G.03",
+    "L13.G.04",
+    "L13.G.05",
+    "L13.G.06",
+    "L13.G.07",
+    "L13.G.08",
+    "L13.G.09",
+    "L13.G.10",
+    "L14.G.01",
+    "L14.G.02",
+    "L14.G.03",
+    "L14.G.04",
+    "L14.G.05",
+    "L14.G.06",
+    "L14.G.07",
+    "L14.G.08",
+    "L14.G.09",
+    "L14.G.10",
+    "L14.G.11",
+    "L14.G.12",
+    "L14.G.13",
+    "L14.A.01",
+    "L14.A.02",
+    "L14.A.03",
+    "L14.A.04",
+    "L14.A.05",
+    "L14.A.06",
+    "L14.A.07",
+    "L14.A.08",
+    "L14.A.09",
+    "L14.A.10",
+    "L15.G.01",
+    "L15.G.02",
+    "L15.G.03",
+    "L15.G.04",
+    "L15.G.05",
+    "L15.G.06",
+    "L15.G.07",
+    "L15.G.08",
+    "L15.G.09",
+    "L15.G.10",
+    "L15.G.11",
+    "L15.G.12",
+    "L15.G.13",
+    "L16.T.01",
+    "L16.T.02",
+    "L16.T.03",
+    "L16.T.04",
+    "L16.T.05",
+    "L16.T.06",
+    "L16.T.07",
+    "L16.T.08",
+    "L16.T.09",
+    "L16.T.10",
+    "L16.H.01",
+    "L16.H.02",
+    "L16.H.03",
+    "L16.H.04",
+    "L16.H.05",
+    "L16.H.06",
+    "L16.H.07",
+    "L16.H.08",
+    "L16.H.09",
+    "L16.H.10",
+    "L16.H.11",
+    "L16.H.12",
+    "L16.H.13",
+    "L16.H.14",
+    "L16.H.15",
+    "L16.H.16",
+    "L16.H.17",
+    "L16.F.01",
+    "L16.F.02",
+    "L16.F.03",
+    "L16.F.04",
+    "L16.F.05",
+    "L16.F.06",
+    "L16.F.07",
+    "L16.F.08",
+    "L16.F.09",
+    "L16.A.01",
+    "L16.A.02",
+    "L16.A.03",
+    "L16.A.04",
+    "L16.A.05",
+    "L16.A.06",
+    "L16.A.07",
+    "L16.A.08",
+    "L16.A.09",
+    "L16.A.10",
+    "L16.A.11",
+    "L16.T.11",
+    "L16.T.12",
+    "L16.T.13",
+    "L16.T.14",
+    "L16.T.17",
+    "L16.T.18",
+    "L16.T.19",
+    "L16.H.18",
+    "L16.H.19",
+    "L16.H.20",
+    "L16.H.21",
+    "L16.H.24",
+    "L16.H.25",
+    "L16.H.26",
+    "L16.F.13",
+    "L16.F.14",
+    "L16.F.15",
+    "L16.F.16",
+    "L16.F.19",
+    "L16.F.20",
+    "L16.F.21",
+    "L16.A.12",
+    "L16.A.13",
+    "L16.A.14",
+    "L16.A.15",
+    "L16.A.18",
+    "L16.A.19",
+    "L16.A.20",
+    "L16.G.01",
+    "L16.G.02",
+    "L16.G.03",
+    "L16.G.04",
+    "L16.G.07",
+    "L16.G.08",
+    "L16.G.09"
+   ]
+  },
+  "sigonly": {
+   "lies": 687,
+   "false_accepts": 628,
+   "rate": 0.9141193595342066,
+   "ci95": [
+    0.8907962963958511,
+    0.9328367911310145
+   ],
+   "by_scope": {
+    "claim": {
+     "lies": 184,
+     "false_accepts": 184
+    },
+    "message": {
+     "lies": 6,
+     "false_accepts": 6
+    },
+    "evidence": {
+     "lies": 265,
+     "false_accepts": 229
+    },
+    "authority": {
+     "lies": 90,
+     "false_accepts": 82
+    },
+    "freshness": {
+     "lies": 10,
+     "false_accepts": 10
+    },
+    "delivery": {
+     "lies": 50,
+     "false_accepts": 50
+    },
+    "encoding": {
+     "lies": 82,
+     "false_accepts": 67
+    }
+   },
+   "by_threat_model": {
+    "in": {
+     "lies": 676,
+     "false_accepts": 617
+    },
+    "signer-bug": {
+     "lies": 11,
+     "false_accepts": 11
+    }
+   },
+   "ids": [
+    "L1.T.01",
+    "L1.T.02",
+    "L1.T.03",
+    "L1.T.04",
+    "L1.T.05",
+    "L1.T.06",
+    "L1.T.07",
+    "L1.T.08",
+    "L1.T.09",
+    "L1.T.10",
+    "L1.T.11",
+    "L1.T.12",
+    "L1.H.01",
+    "L1.H.02",
+    "L1.H.03",
+    "L1.H.04",
+    "L1.H.05",
+    "L1.H.06",
+    "L1.H.07",
+    "L1.H.08",
+    "L1.H.09",
+    "L1.H.10",
+    "L1.H.11",
+    "L1.H.12",
+    "L1.F.01",
+    "L1.F.02",
+    "L1.F.03",
+    "L1.F.04",
+    "L1.F.05",
+    "L1.F.06",
+    "L1.F.07",
+    "L1.F.08",
+    "L1.F.09",
+    "L1.F.10",
+    "L1.F.11",
+    "L1.F.12",
+    "L1.A.01",
+    "L1.A.02",
+    "L1.A.03",
+    "L1.A.04",
+    "L1.A.05",
+    "L1.A.06",
+    "L1.A.07",
+    "L1.A.08",
+    "L1.A.09",
+    "L1.A.10",
+    "L1.A.11",
+    "L1.A.12",
+    "L2.T.01",
+    "L2.T.02",
+    "L2.T.03",
+    "L2.T.04",
+    "L2.T.05",
+    "L2.T.06",
+    "L2.T.07",
+    "L2.T.08",
+    "L2.T.09",
+    "L2.T.10",
+    "L2.T.11",
+    "L2.T.12",
+    "L2.H.01",
+    "L2.H.02",
+    "L2.H.03",
+    "L2.H.04",
+    "L2.H.05",
+    "L2.H.06",
+    "L2.H.07",
+    "L2.H.08",
+    "L2.H.09",
+    "L2.H.10",
+    "L2.H.11",
+    "L2.H.12",
+    "L2.F.01",
+    "L2.F.02",
+    "L2.F.03",
+    "L2.F.04",
+    "L2.F.05",
+    "L2.F.06",
+    "L2.F.07",
+    "L2.F.08",
+    "L2.F.09",
+    "L2.F.10",
+    "L2.F.11",
+    "L2.F.12",
+    "L2.A.01",
+    "L2.A.02",
+    "L2.A.03",
+    "L2.A.04",
+    "L2.A.05",
+    "L2.A.06",
+    "L2.A.07",
+    "L2.A.08",
+    "L2.A.09",
+    "L2.A.10",
+    "L2.A.11",
+    "L2.A.12",
+    "L3.T.01",
+    "L3.T.02",
+    "L3.T.03",
+    "L3.T.04",
+    "L3.T.05",
+    "L3.T.06",
+    "L3.T.07",
+    "L3.T.08",
+    "L3.T.09",
+    "L3.T.10",
+    "L3.T.11",
+    "L3.T.12",
+    "L3.H.01",
+    "L3.H.02",
+    "L3.H.03",
+    "L3.H.04",
+    "L3.H.05",
+    "L3.H.06",
+    "L3.H.07",
+    "L3.H.08",
+    "L3.H.09",
+    "L3.H.10",
+    "L3.H.11",
+    "L3.H.12",
+    "L3.F.01",
+    "L3.F.02",
+    "L3.F.03",
+    "L3.F.04",
+    "L3.F.05",
+    "L3.F.06",
+    "L3.F.07",
+    "L3.F.08",
+    "L3.F.09",
+    "L3.F.10",
+    "L3.F.11",
+    "L3.F.12",
+    "L3.A.01",
+    "L3.A.02",
+    "L3.A.03",
+    "L3.A.04",
+    "L3.A.05",
+    "L3.A.06",
+    "L3.A.07",
+    "L3.A.08",
+    "L3.A.09",
+    "L3.A.10",
+    "L3.A.11",
+    "L3.A.12",
+    "L4.T.01",
+    "L4.T.02",
+    "L4.T.03",
+    "L4.T.04",
+    "L4.T.05",
+    "L4.T.06",
+    "L4.T.07",
+    "L4.T.08",
+    "L4.T.09",
+    "L4.T.10",
+    "L4.T.11",
+    "L4.T.12",
+    "L4.H.01",
+    "L4.H.02",
+    "L4.H.03",
+    "L4.H.04",
+    "L4.H.05",
+    "L4.H.06",
+    "L4.H.07",
+    "L4.H.08",
+    "L4.H.09",
+    "L4.H.10",
+    "L4.H.11",
+    "L4.H.12",
+    "L4.F.01",
+    "L4.F.02",
+    "L4.F.03",
+    "L4.F.04",
+    "L4.F.05",
+    "L4.F.06",
+    "L4.F.07",
+    "L4.F.08",
+    "L4.F.09",
+    "L4.F.10",
+    "L4.F.11",
+    "L4.F.12",
+    "L5.T.01",
+    "L5.T.02",
+    "L5.T.03",
+    "L5.T.04",
+    "L5.T.05",
+    "L5.T.06",
+    "L5.T.07",
+    "L5.T.08",
+    "L5.T.09",
+    "L5.T.10",
+    "L5.T.11",
+    "L5.T.12",
+    "L5.T.13",
+    "L5.T.14",
+    "L5.H.01",
+    "L5.H.02",
+    "L5.H.03",
+    "L5.H.04",
+    "L5.H.05",
+    "L5.H.06",
+    "L5.H.07",
+    "L5.H.08",
+    "L5.H.09",
+    "L5.H.10",
+    "L5.H.11",
+    "L5.H.12",
+    "L5.H.13",
+    "L5.H.14",
+    "L5.H.15",
+    "L5.H.16",
+    "L5.F.01",
+    "L5.F.02",
+    "L5.F.03",
+    "L5.F.04",
+    "L5.F.05",
+    "L5.F.06",
+    "L5.F.07",
+    "L5.F.08",
+    "L5.F.09",
+    "L5.F.10",
+    "L5.F.11",
+    "L5.F.12",
+    "L5.A.01",
+    "L5.A.02",
+    "L5.A.03",
+    "L5.A.04",
+    "L5.A.05",
+    "L5.A.06",
+    "L5.A.07",
+    "L5.A.08",
+    "L5.A.09",
+    "L5.A.10",
+    "L5.A.11",
+    "L5.A.12",
+    "L5.G.01",
+    "L5.G.02",
+    "L5.G.03",
+    "L5.G.04",
+    "L5.G.05",
+    "L5.G.06",
+    "L5.G.07",
+    "L5.G.08",
+    "L5.G.09",
+    "L5.G.10",
+    "L5.G.11",
+    "L5.G.12",
+    "L6.T.01",
+    "L6.T.02",
+    "L6.T.03",
+    "L6.H.01",
+    "L6.H.02",
+    "L6.H.03",
+    "L6.F.01",
+    "L6.F.02",
+    "L6.F.03",
+    "L6.A.01",
+    "L6.A.02",
+    "L6.A.03",
+    "L6.G.01",
+    "L6.G.02",
+    "L6.G.03",
+    "L6.G.04",
+    "L7.T.01",
+    "L7.T.02",
+    "L7.T.03",
+    "L7.T.04",
+    "L7.T.05",
+    "L7.T.06",
+    "L7.T.07",
+    "L7.T.08",
+    "L7.T.09",
+    "L7.T.10",
+    "L7.T.11",
+    "L7.T.12",
+    "L7.H.01",
+    "L7.H.02",
+    "L7.H.03",
+    "L7.H.04",
+    "L7.H.05",
+    "L7.H.06",
+    "L7.H.07",
+    "L7.H.08",
+    "L7.H.09",
+    "L7.H.10",
+    "L7.F.01",
+    "L7.F.02",
+    "L7.F.03",
+    "L7.F.04",
+    "L7.F.05",
+    "L7.F.06",
+    "L7.F.07",
+    "L7.F.08",
+    "L7.F.09",
+    "L7.F.10",
+    "L7.A.01",
+    "L7.A.02",
+    "L7.A.03",
+    "L7.A.04",
+    "L7.A.05",
+    "L7.A.06",
+    "L7.A.07",
+    "L7.A.08",
+    "L7.A.09",
+    "L7.A.10",
+    "L8.T.01",
+    "L8.T.02",
+    "L8.T.03",
+    "L8.T.04",
+    "L8.T.05",
+    "L8.T.06",
+    "L8.T.07",
+    "L8.T.08",
+    "L8.T.09",
+    "L8.T.10",
+    "L8.T.11",
+    "L8.T.12",
+    "L8.T.13",
+    "L8.H.01",
+    "L8.H.02",
+    "L8.H.03",
+    "L8.H.04",
+    "L8.H.05",
+    "L8.H.06",
+    "L8.H.07",
+    "L8.H.08",
+    "L8.H.09",
+    "L8.H.10",
+    "L8.F.01",
+    "L8.F.02",
+    "L8.F.03",
+    "L8.F.04",
+    "L8.F.05",
+    "L8.F.06",
+    "L8.F.07",
+    "L8.F.08",
+    "L8.F.09",
+    "L8.F.10",
+    "L8.A.01",
+    "L8.A.02",
+    "L8.A.03",
+    "L8.A.04",
+    "L8.A.05",
+    "L8.A.06",
+    "L8.A.07",
+    "L8.A.08",
+    "L8.A.09",
+    "L8.A.10",
+    "L8.G.01",
+    "L8.G.02",
+    "L8.G.03",
+    "L8.G.04",
+    "L8.G.05",
+    "L8.G.06",
+    "L8.G.07",
+    "L8.G.08",
+    "L8.G.09",
+    "L8.G.10",
+    "L8.G.11",
+    "L8.G.12",
+    "L9.T.01",
+    "L9.T.02",
+    "L9.T.03",
+    "L9.T.04",
+    "L9.T.05",
+    "L9.T.06",
+    "L9.T.07",
+    "L9.T.08",
+    "L9.T.09",
+    "L9.T.10",
+    "L9.T.11",
+    "L9.T.12",
+    "L9.H.01",
+    "L9.H.02",
+    "L9.H.03",
+    "L9.H.04",
+    "L9.H.05",
+    "L9.H.06",
+    "L9.H.07",
+    "L9.H.08",
+    "L9.H.09",
+    "L9.H.10",
+    "L9.H.11",
+    "L9.H.12",
+    "L9.F.01",
+    "L9.F.02",
+    "L9.F.03",
+    "L9.F.04",
+    "L9.F.05",
+    "L9.F.06",
+    "L9.F.07",
+    "L9.F.08",
+    "L9.F.09",
+    "L9.F.10",
+    "L9.F.11",
+    "L9.F.12",
+    "L9.A.01",
+    "L9.A.02",
+    "L9.A.03",
+    "L9.A.04",
+    "L9.A.05",
+    "L9.A.06",
+    "L9.A.07",
+    "L9.A.08",
+    "L9.A.09",
+    "L9.A.10",
+    "L9.A.11",
+    "L9.A.12",
+    "L10.T.01",
+    "L10.T.02",
+    "L10.T.03",
+    "L10.T.04",
+    "L10.T.05",
+    "L10.H.01",
+    "L10.H.02",
+    "L10.H.03",
+    "L10.H.04",
+    "L10.H.05",
+    "L10.H.06",
+    "L10.H.07",
+    "L10.H.08",
+    "L10.H.09",
+    "L10.H.10",
+    "L10.F.01",
+    "L10.F.02",
+    "L10.F.03",
+    "L10.F.04",
+    "L10.F.05",
+    "L10.A.01",
+    "L10.A.02",
+    "L10.A.03",
+    "L10.A.04",
+    "L10.A.05",
+    "L10.A.06",
+    "L10.A.07",
+    "L10.A.08",
+    "L10.A.09",
+    "L10.A.10",
+    "L10.T.06",
+    "L10.T.07",
+    "L10.T.08",
+    "L10.T.09",
+    "L10.T.10",
+    "L10.F.06",
+    "L10.F.07",
+    "L10.F.08",
+    "L10.F.09",
+    "L10.F.10",
+    "L11.T.01",
+    "L11.T.02",
+    "L11.T.03",
+    "L11.T.04",
+    "L11.T.05",
+    "L11.T.06",
+    "L11.T.07",
+    "L11.T.08",
+    "L11.T.09",
+    "L11.T.10",
+    "L11.H.01",
+    "L11.H.02",
+    "L11.H.03",
+    "L11.H.04",
+    "L11.H.05",
+    "L11.H.06",
+    "L11.H.07",
+    "L11.H.08",
+    "L11.H.09",
+    "L11.H.10",
+    "L11.F.01",
+    "L11.F.02",
+    "L11.F.03",
+    "L11.F.04",
+    "L11.F.05",
+    "L11.F.06",
+    "L11.F.07",
+    "L11.F.08",
+    "L11.F.09",
+    "L11.F.10",
+    "L11.A.01",
+    "L11.A.02",
+    "L11.A.03",
+    "L11.A.04",
+    "L11.A.05",
+    "L11.A.06",
+    "L11.A.07",
+    "L11.A.08",
+    "L11.A.09",
+    "L11.A.10",
+    "L11.G.01",
+    "L11.G.02",
+    "L11.G.03",
+    "L11.G.04",
+    "L11.G.05",
+    "L11.G.06",
+    "L11.G.07",
+    "L11.G.08",
+    "L11.G.09",
+    "L11.G.10",
+    "L12.G.01",
+    "L12.G.02",
+    "L12.G.03",
+    "L12.G.04",
+    "L12.G.05",
+    "L12.G.06",
+    "L12.G.07",
+    "L12.G.08",
+    "L12.G.09",
+    "L12.G.10",
+    "L12.G.11",
+    "L12.G.12",
+    "L12.G.13",
+    "L12.G.14",
+    "L12.G.15",
+    "L12.G.16",
+    "L12.G.17",
+    "L12.G.18",
+    "L13.G.01",
+    "L13.G.02",
+    "L13.G.03",
+    "L13.G.04",
+    "L13.G.05",
+    "L13.G.06",
+    "L13.G.07",
+    "L13.G.08",
+    "L13.G.09",
+    "L13.G.10",
+    "L14.G.01",
+    "L14.G.02",
+    "L14.G.03",
+    "L14.G.04",
+    "L14.G.05",
+    "L14.G.06",
+    "L14.G.07",
+    "L14.G.08",
+    "L14.G.09",
+    "L14.G.10",
+    "L14.G.11",
+    "L14.G.12",
+    "L14.G.13",
+    "L14.A.01",
+    "L14.A.02",
+    "L14.A.03",
+    "L14.A.04",
+    "L14.A.05",
+    "L14.A.06",
+    "L14.A.07",
+    "L14.A.08",
+    "L14.A.09",
+    "L14.A.10",
+    "L15.G.01",
+    "L15.G.02",
+    "L15.G.03",
+    "L15.G.04",
+    "L15.G.05",
+    "L15.G.06",
+    "L15.G.07",
+    "L15.G.08",
+    "L15.G.09",
+    "L15.G.10",
+    "L15.G.11",
+    "L15.G.12",
+    "L15.G.13",
+    "L16.T.01",
+    "L16.T.02",
+    "L16.T.03",
+    "L16.T.04",
+    "L16.T.05",
+    "L16.T.06",
+    "L16.T.07",
+    "L16.T.08",
+    "L16.T.09",
+    "L16.T.10",
+    "L16.H.01",
+    "L16.H.02",
+    "L16.H.03",
+    "L16.H.04",
+    "L16.H.05",
+    "L16.H.06",
+    "L16.H.07",
+    "L16.H.08",
+    "L16.H.09",
+    "L16.H.10",
+    "L16.H.11",
+    "L16.H.12",
+    "L16.H.13",
+    "L16.H.14",
+    "L16.H.15",
+    "L16.H.16",
+    "L16.H.17",
+    "L16.F.01",
+    "L16.F.02",
+    "L16.F.03",
+    "L16.F.04",
+    "L16.F.05",
+    "L16.F.06",
+    "L16.F.07",
+    "L16.F.08",
+    "L16.F.09",
+    "L16.A.01",
+    "L16.A.02",
+    "L16.A.03",
+    "L16.A.04",
+    "L16.A.05",
+    "L16.A.06",
+    "L16.A.07",
+    "L16.A.08",
+    "L16.A.09",
+    "L16.A.10",
+    "L16.A.11",
+    "L16.T.11",
+    "L16.T.12",
+    "L16.T.13",
+    "L16.T.14",
+    "L16.H.18",
+    "L16.H.19",
+    "L16.H.20",
+    "L16.H.21",
+    "L16.F.13",
+    "L16.F.14",
+    "L16.F.15",
+    "L16.F.16",
+    "L16.A.12",
+    "L16.A.13",
+    "L16.A.14",
+    "L16.A.15",
+    "L16.G.01",
+    "L16.G.02",
+    "L16.G.03",
+    "L16.G.04"
+   ]
+  }
+ },
+ "detection": {
+  "tracekit": {
+   "L1": {
+    "false": 48,
+    "rejected": 38,
+    "not_accepted": 48
+   },
+   "L2": {
+    "false": 48,
+    "rejected": 45,
+    "not_accepted": 48
+   },
+   "L3": {
+    "false": 48,
+    "rejected": 42,
+    "not_accepted": 42
+   },
+   "L5": {
+    "false": 66,
+    "rejected": 66,
+    "not_accepted": 66
+   },
+   "L6": {
+    "false": 60,
+    "rejected": 60,
+    "not_accepted": 60
+   },
+   "L7": {
+    "false": 42,
+    "rejected": 42,
+    "not_accepted": 42
+   },
+   "L8": {
+    "false": 55,
+    "rejected": 55,
+    "not_accepted": 55
+   },
+   "L9": {
+    "false": 48,
+    "rejected": 48,
+    "not_accepted": 48
+   },
+   "L10": {
+    "false": 40,
+    "rejected": 30,
+    "not_accepted": 30
+   },
+   "L11": {
+    "false": 50,
+    "rejected": 50,
+    "not_accepted": 50
+   },
+   "L12": {
+    "false": 18,
+    "rejected": 18,
+    "not_accepted": 18
+   },
+   "L13": {
+    "false": 10,
+    "rejected": 10,
+    "not_accepted": 10
+   },
+   "L14": {
+    "false": 23,
+    "rejected": 23,
+    "not_accepted": 23
+   },
+   "L15": {
+    "false": 13,
+    "rejected": 13,
+    "not_accepted": 13
+   },
+   "L16": {
+    "false": 82,
+    "rejected": 70,
+    "not_accepted": 75
+   }
+  },
+  "standalone": {
+   "L1": {
+    "false": 48,
+    "rejected": 38,
+    "not_accepted": 48
+   },
+   "L2": {
+    "false": 48,
+    "rejected": 45,
+    "not_accepted": 48
+   },
+   "L3": {
+    "false": 48,
+    "rejected": 42,
+    "not_accepted": 42
+   },
+   "L5": {
+    "false": 66,
+    "rejected": 66,
+    "not_accepted": 66
+   },
+   "L6": {
+    "false": 60,
+    "rejected": 60,
+    "not_accepted": 60
+   },
+   "L7": {
+    "false": 42,
+    "rejected": 42,
+    "not_accepted": 42
+   },
+   "L8": {
+    "false": 55,
+    "rejected": 55,
+    "not_accepted": 55
+   },
+   "L9": {
+    "false": 48,
+    "rejected": 48,
+    "not_accepted": 48
+   },
+   "L10": {
+    "false": 40,
+    "rejected": 30,
+    "not_accepted": 30
+   },
+   "L11": {
+    "false": 50,
+    "rejected": 50,
+    "not_accepted": 50
+   },
+   "L12": {
+    "false": 18,
+    "rejected": 18,
+    "not_accepted": 18
+   },
+   "L13": {
+    "false": 10,
+    "rejected": 10,
+    "not_accepted": 10
+   },
+   "L14": {
+    "false": 23,
+    "rejected": 23,
+    "not_accepted": 23
+   },
+   "L15": {
+    "false": 13,
+    "rejected": 13,
+    "not_accepted": 13
+   },
+   "L16": {
+    "false": 82,
+    "rejected": 70,
+    "not_accepted": 75
+   }
+  },
+  "a2a": {
+   "L1": {
+    "false": 48,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L2": {
+    "false": 48,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L3": {
+    "false": 48,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L5": {
+    "false": 66,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L6": {
+    "false": 60,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L7": {
+    "false": 42,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L8": {
+    "false": 55,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L9": {
+    "false": 48,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L10": {
+    "false": 40,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L11": {
+    "false": 50,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L12": {
+    "false": 18,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L13": {
+    "false": 10,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L14": {
+    "false": 23,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L15": {
+    "false": 13,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L16": {
+    "false": 82,
+    "rejected": 0,
+    "not_accepted": 0
+   }
+  },
+  "sigonly": {
+   "L1": {
+    "false": 48,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L2": {
+    "false": 48,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L3": {
+    "false": 48,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L5": {
+    "false": 66,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L6": {
+    "false": 60,
+    "rejected": 44,
+    "not_accepted": 44
+   },
+   "L7": {
+    "false": 42,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L8": {
+    "false": 55,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L9": {
+    "false": 48,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L10": {
+    "false": 40,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L11": {
+    "false": 50,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L12": {
+    "false": 18,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L13": {
+    "false": 10,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L14": {
+    "false": 23,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L15": {
+    "false": 13,
+    "rejected": 0,
+    "not_accepted": 0
+   },
+   "L16": {
+    "false": 82,
+    "rejected": 15,
+    "not_accepted": 15
+   }
+  }
+ },
+ "H": {
+  "H1": {
+   "tracekit": {
+    "false_accepts": 23,
+    "pass": false,
+    "list": [
+     {
+      "id": "L3.A.07",
+      "operator": "approved-amount-x10-opened",
+      "lie_scope": "message",
+      "threat_model": "in",
+      "note": "alice approved {'amount': 500, 'order': 81}",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "approved_by",
+        "result": "proven",
+        "detail": "approval seq 176 by alice of \"refund\" call refund-341 with args {\"amount\":500,\"order\":81}",
+        "approved": {
+         "tool": "refund",
+         "args": {
+          "amount": 500,
+          "order": 81
+         }
+        }
+       }
+      ]
+     },
+     {
+      "id": "L3.A.08",
+      "operator": "approved-amount-x10",
+      "lie_scope": "message",
+      "threat_model": "in",
+      "note": "alice approved {'amount': 1200, 'order': 81}",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "approved_by",
+        "result": "proven",
+        "detail": "approval seq 181 by alice of \"refund\" call refund-347",
+        "approved": {
+         "tool": "refund",
+         "args": null
+        }
+       }
+      ]
+     },
+     {
+      "id": "L3.A.09",
+      "operator": "approved-amount-x10-opened",
+      "lie_scope": "message",
+      "threat_model": "in",
+      "note": "alice approved {'amount': 2500, 'order': 81}",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "approved_by",
+        "result": "proven",
+        "detail": "approval seq 186 by alice of \"refund\" call refund-353 with args {\"amount\":2500,\"order\":81}",
+        "approved": {
+         "tool": "refund",
+         "args": {
+          "amount": 2500,
+          "order": 81
+         }
+        }
+       }
+      ]
+     },
+     {
+      "id": "L3.A.10",
+      "operator": "approved-amount-x10",
+      "lie_scope": "message",
+      "threat_model": "in",
+      "note": "alice approved {'amount': 4999, 'order': 81}",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "approved_by",
+        "result": "proven",
+        "detail": "approval seq 191 by alice of \"refund\" call refund-359",
+        "approved": {
+         "tool": "refund",
+         "args": null
+        }
+       }
+      ]
+     },
+     {
+      "id": "L3.A.11",
+      "operator": "approved-other-tool-opened",
+      "lie_scope": "message",
+      "threat_model": "in",
+      "note": "alice approved read_file {'path': '/etc/motd-0'}",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "approved_by",
+        "result": "proven",
+        "detail": "approval seq 272 by alice of \"read_file\" call readfile-461 with args {\"path\":\"/etc/motd-0\"}",
+        "approved": {
+         "tool": "read_file",
+         "args": {
+          "path": "/etc/motd-0"
+         }
+        }
+       }
+      ]
+     },
+     {
+      "id": "L3.A.12",
+      "operator": "approved-other-tool",
+      "lie_scope": "message",
+      "threat_model": "in",
+      "note": "alice approved read_file {'path': '/etc/motd-1'}",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "approved_by",
+        "result": "proven",
+        "detail": "approval seq 277 by alice of \"read_file\" call readfile-467",
+        "approved": {
+         "tool": "read_file",
+         "args": null
+        }
+       }
+      ]
+     },
+     {
+      "id": "L10.T.06",
+      "operator": "pass-then-fail-cites-pass",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "tests_passed",
+        "result": "proven",
+        "detail": "call Bash-101 ran 'pytest -q tests/test_state.py', run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.T.07",
+      "operator": "pass-then-fail-cites-pass",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "tests_passed",
+        "result": "proven",
+        "detail": "call Bash-105 ran 'pytest tests/test_state.py', run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.T.08",
+      "operator": "pass-then-fail-cites-pass",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "tests_passed",
+        "result": "proven",
+        "detail": "call Bash-109 ran 'python -m pytest -q tests/test_state.py', run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.T.09",
+      "operator": "pass-then-fail-cites-pass",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "tests_passed",
+        "result": "proven",
+        "detail": "call Bash-113 ran 'pytest -q -k state tests/test_state.py', run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.T.10",
+      "operator": "pass-then-fail-cites-pass",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "tests_passed",
+        "result": "proven",
+        "detail": "call Bash-117 ran 'python3 -m pytest tests/test_state.py', run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.F.06",
+      "operator": "write-then-overwrite-cites-first",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the file was overwritten after; the sender cites the first write",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "file_written",
+        "result": "proven",
+        "detail": "call Write-321 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1 with sha256:641164af2ec73b0dbb1ccdbfbe500d9c466f77212ed06f17f378af7454d212dd, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.F.07",
+      "operator": "write-then-overwrite-cites-first",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the file was overwritten after; the sender cites the first write",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "file_written",
+        "result": "proven",
+        "detail": "call Write-325 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1 with sha256:dfc5fbb0ce001c6c35120c0d5aa81fbe928d203bb0e477b0d07077f09e5d4b14, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.F.08",
+      "operator": "write-then-overwrite-cites-first",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the file was overwritten after; the sender cites the first write",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "file_written",
+        "result": "proven",
+        "detail": "call Write-329 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1 with sha256:3c6b28d21ff2df80b40f4a9ba5369d297f913b7567536fc2447c8a0df5656fc4, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.F.09",
+      "operator": "write-then-overwrite-cites-first",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the file was overwritten after; the sender cites the first write",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "file_written",
+        "result": "proven",
+        "detail": "call Write-333 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1 with sha256:12a6ef3b2ccb86eeb2b9e3b9c382a3424a4af32550ab6b8f3ace5e5982c936e3, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.F.10",
+      "operator": "write-then-overwrite-cites-first",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the file was overwritten after; the sender cites the first write",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "file_written",
+        "result": "proven",
+        "detail": "call Write-337 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1 with sha256:dee79979fc1efad22d40567b6c739afca4ef931508a849973be094f236fcfc75, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.01",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://0127.0.0.1:49219/ok' reached 127.0.0.1 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2079 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.02",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://0127.0.0.01:49219/ok' reached 127.0.0.1 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2084 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.03",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://0127.000.000.001:49219/ok' reached 127.0.0.1 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2089 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.04",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://00127.0.0.1:49219/ok' reached 127.0.0.1 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2094 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.05",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://0177.0.0.1/' reached 177.0.0.1 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2099 reached 127.0.0.1, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.06",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://010.0.0.1/' reached 10.0.0.1 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2104 reached 8.0.0.1, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.07",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://192.168.0.010/' reached 192.168.0.10 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2109 reached 192.168.0.8, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     }
+    ]
+   },
+   "standalone": {
+    "false_accepts": 23,
+    "pass": false,
+    "list": [
+     {
+      "id": "L3.A.07",
+      "operator": "approved-amount-x10-opened",
+      "lie_scope": "message",
+      "threat_model": "in",
+      "note": "alice approved {'amount': 500, 'order': 81}",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "approved_by",
+        "result": "proven",
+        "detail": "approval seq 176 by alice of \"refund\" call refund-341 with args {\"amount\":500,\"order\":81}",
+        "approved": {
+         "tool": "refund",
+         "args": {
+          "amount": 500,
+          "order": 81
+         }
+        }
+       }
+      ]
+     },
+     {
+      "id": "L3.A.08",
+      "operator": "approved-amount-x10",
+      "lie_scope": "message",
+      "threat_model": "in",
+      "note": "alice approved {'amount': 1200, 'order': 81}",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "approved_by",
+        "result": "proven",
+        "detail": "approval seq 181 by alice of \"refund\" call refund-347",
+        "approved": {
+         "tool": "refund",
+         "args": null
+        }
+       }
+      ]
+     },
+     {
+      "id": "L3.A.09",
+      "operator": "approved-amount-x10-opened",
+      "lie_scope": "message",
+      "threat_model": "in",
+      "note": "alice approved {'amount': 2500, 'order': 81}",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "approved_by",
+        "result": "proven",
+        "detail": "approval seq 186 by alice of \"refund\" call refund-353 with args {\"amount\":2500,\"order\":81}",
+        "approved": {
+         "tool": "refund",
+         "args": {
+          "amount": 2500,
+          "order": 81
+         }
+        }
+       }
+      ]
+     },
+     {
+      "id": "L3.A.10",
+      "operator": "approved-amount-x10",
+      "lie_scope": "message",
+      "threat_model": "in",
+      "note": "alice approved {'amount': 4999, 'order': 81}",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "approved_by",
+        "result": "proven",
+        "detail": "approval seq 191 by alice of \"refund\" call refund-359",
+        "approved": {
+         "tool": "refund",
+         "args": null
+        }
+       }
+      ]
+     },
+     {
+      "id": "L3.A.11",
+      "operator": "approved-other-tool-opened",
+      "lie_scope": "message",
+      "threat_model": "in",
+      "note": "alice approved read_file {'path': '/etc/motd-0'}",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "approved_by",
+        "result": "proven",
+        "detail": "approval seq 272 by alice of \"read_file\" call readfile-461 with args {\"path\":\"/etc/motd-0\"}",
+        "approved": {
+         "tool": "read_file",
+         "args": {
+          "path": "/etc/motd-0"
+         }
+        }
+       }
+      ]
+     },
+     {
+      "id": "L3.A.12",
+      "operator": "approved-other-tool",
+      "lie_scope": "message",
+      "threat_model": "in",
+      "note": "alice approved read_file {'path': '/etc/motd-1'}",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "approved_by",
+        "result": "proven",
+        "detail": "approval seq 277 by alice of \"read_file\" call readfile-467",
+        "approved": {
+         "tool": "read_file",
+         "args": null
+        }
+       }
+      ]
+     },
+     {
+      "id": "L10.T.06",
+      "operator": "pass-then-fail-cites-pass",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "tests_passed",
+        "result": "proven",
+        "detail": "call Bash-101 ran 'pytest -q tests/test_state.py', run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.T.07",
+      "operator": "pass-then-fail-cites-pass",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "tests_passed",
+        "result": "proven",
+        "detail": "call Bash-105 ran 'pytest tests/test_state.py', run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.T.08",
+      "operator": "pass-then-fail-cites-pass",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "tests_passed",
+        "result": "proven",
+        "detail": "call Bash-109 ran 'python -m pytest -q tests/test_state.py', run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.T.09",
+      "operator": "pass-then-fail-cites-pass",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "tests_passed",
+        "result": "proven",
+        "detail": "call Bash-113 ran 'pytest -q -k state tests/test_state.py', run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.T.10",
+      "operator": "pass-then-fail-cites-pass",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the suite passed, the code changed, it failed; the sender cites the pass under the note from before the failure",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "tests_passed",
+        "result": "proven",
+        "detail": "call Bash-117 ran 'python3 -m pytest tests/test_state.py', run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.F.06",
+      "operator": "write-then-overwrite-cites-first",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the file was overwritten after; the sender cites the first write",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "file_written",
+        "result": "proven",
+        "detail": "call Write-321 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1 with sha256:641164af2ec73b0dbb1ccdbfbe500d9c466f77212ed06f17f378af7454d212dd, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.F.07",
+      "operator": "write-then-overwrite-cites-first",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the file was overwritten after; the sender cites the first write",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "file_written",
+        "result": "proven",
+        "detail": "call Write-325 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1 with sha256:dfc5fbb0ce001c6c35120c0d5aa81fbe928d203bb0e477b0d07077f09e5d4b14, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.F.08",
+      "operator": "write-then-overwrite-cites-first",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the file was overwritten after; the sender cites the first write",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "file_written",
+        "result": "proven",
+        "detail": "call Write-329 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1 with sha256:3c6b28d21ff2df80b40f4a9ba5369d297f913b7567536fc2447c8a0df5656fc4, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.F.09",
+      "operator": "write-then-overwrite-cites-first",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the file was overwritten after; the sender cites the first write",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "file_written",
+        "result": "proven",
+        "detail": "call Write-333 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1 with sha256:12a6ef3b2ccb86eeb2b9e3b9c382a3424a4af32550ab6b8f3ace5e5982c936e3, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L10.F.10",
+      "operator": "write-then-overwrite-cites-first",
+      "lie_scope": "freshness",
+      "threat_model": "in",
+      "note": "the file was overwritten after; the sender cites the first write",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "file_written",
+        "result": "proven",
+        "detail": "call Write-337 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1 with sha256:dee79979fc1efad22d40567b6c739afca4ef931508a849973be094f236fcfc75, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.01",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://0127.0.0.1:49219/ok' reached 127.0.0.1 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2079 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.02",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://0127.0.0.01:49219/ok' reached 127.0.0.1 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2084 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.03",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://0127.000.000.001:49219/ok' reached 127.0.0.1 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2089 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.04",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://00127.0.0.1:49219/ok' reached 127.0.0.1 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2094 reached 87.0.0.1, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.05",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://0177.0.0.1/' reached 177.0.0.1 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2099 reached 127.0.0.1, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.06",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://010.0.0.1/' reached 10.0.0.1 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2104 reached 8.0.0.1, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     },
+     {
+      "id": "L16.H.07",
+      "operator": "ipv4-leading-zero-octet",
+      "lie_scope": "encoding",
+      "threat_model": "in",
+      "note": "'http://192.168.0.010/' reached 192.168.0.10 (ok)",
+      "reasons": [],
+      "claims": [
+       {
+        "type": "reached_host",
+        "result": "proven",
+        "detail": "call WebFetch-2109 reached 192.168.0.8, run by mtls:spiffe://example/executor (T2)"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  "H2": {
+   "tracekit": {
+    "honest": 73,
+    "proven": 71,
+    "rate": 0.9726027397260274,
+    "pass": false,
+    "misses": [
+     {
+      "id": "honest.H.15",
+      "operator": "t2-fetch-http-error-status",
+      "verdict": "reject",
+      "reasons": [
+       "reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed)"
+      ],
+      "note": "http://127.0.0.1:49219/missing reached 127.0.0.1 (error)"
+     },
+     {
+      "id": "honest.H.16",
+      "operator": "t2-fetch-http-error-status",
+      "verdict": "reject",
+      "reasons": [
+       "reached_host: failed (call WebFetch-181 reached api.example.com, and failed)"
+      ],
+      "note": "http://api.example.com/missing reached api.example.com (error)"
+     }
+    ]
+   },
+   "standalone": {
+    "honest": 73,
+    "proven": 71,
+    "rate": 0.9726027397260274,
+    "pass": false,
+    "misses": [
+     {
+      "id": "honest.H.15",
+      "operator": "t2-fetch-http-error-status",
+      "verdict": "reject",
+      "reasons": [
+       "reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed)"
+      ],
+      "note": "http://127.0.0.1:49219/missing reached 127.0.0.1 (error)"
+     },
+     {
+      "id": "honest.H.16",
+      "operator": "t2-fetch-http-error-status",
+      "verdict": "reject",
+      "reasons": [
+       "reached_host: failed (call WebFetch-181 reached api.example.com, and failed)"
+      ],
+      "note": "http://api.example.com/missing reached api.example.com (error)"
+     }
+    ]
+   }
+  },
+  "H3": {
+   "tracekit": {
+    "unknowable": 72,
+    "unproven": 72,
+    "rate": 1.0,
+    "pass": true,
+    "violations": []
+   },
+   "standalone": {
+    "unknowable": 72,
+    "unproven": 72,
+    "rate": 1.0,
+    "pass": true,
+    "violations": []
+   }
+  },
+  "H4": {
+   "messages": 879,
+   "agree": 874,
+   "pass": false,
+   "disagreements": [
+    {
+     "id": "L16.T.17",
+     "class": "L16",
+     "operator": "wire-payload-1e400",
+     "label": "FALSE",
+     "tracekit": {
+      "verdict": "reject",
+      "reason_class": "reject|unreadable",
+      "reasons": [],
+      "error": "ValueError: /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/tmpmsdit6no.json: non_finite: 1e400"
+     },
+     "standalone": {
+      "verdict": "reject",
+      "reason_class": "reject|signature",
+      "reasons": [
+       "signature: not JSON that RFC 8785 can encode (inf is not representable in JCS)"
+      ],
+      "error": null
+     },
+     "conformance_equal": false
+    },
+    {
+     "id": "L16.H.24",
+     "class": "L16",
+     "operator": "wire-payload-1e400",
+     "label": "FALSE",
+     "tracekit": {
+      "verdict": "reject",
+      "reason_class": "reject|unreadable",
+      "reasons": [],
+      "error": "ValueError: /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/tmpyjk_qyei.json: non_finite: 1e400"
+     },
+     "standalone": {
+      "verdict": "reject",
+      "reason_class": "reject|signature",
+      "reasons": [
+       "signature: not JSON that RFC 8785 can encode (inf is not representable in JCS)"
+      ],
+      "error": null
+     },
+     "conformance_equal": false
+    },
+    {
+     "id": "L16.F.19",
+     "class": "L16",
+     "operator": "wire-payload-1e400",
+     "label": "FALSE",
+     "tracekit": {
+      "verdict": "reject",
+      "reason_class": "reject|unreadable",
+      "reasons": [],
+      "error": "ValueError: /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/tmpqru6rfw4.json: non_finite: 1e400"
+     },
+     "standalone": {
+      "verdict": "reject",
+      "reason_class": "reject|signature",
+      "reasons": [
+       "signature: not JSON that RFC 8785 can encode (inf is not representable in JCS)"
+      ],
+      "error": null
+     },
+     "conformance_equal": false
+    },
+    {
+     "id": "L16.A.18",
+     "class": "L16",
+     "operator": "wire-payload-1e400",
+     "label": "FALSE",
+     "tracekit": {
+      "verdict": "reject",
+      "reason_class": "reject|unreadable",
+      "reasons": [],
+      "error": "ValueError: /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/tmp4j5_t9xf.json: non_finite: 1e400"
+     },
+     "standalone": {
+      "verdict": "reject",
+      "reason_class": "reject|signature",
+      "reasons": [
+       "signature: not JSON that RFC 8785 can encode (inf is not representable in JCS)"
+      ],
+      "error": null
+     },
+     "conformance_equal": false
+    },
+    {
+     "id": "L16.G.07",
+     "class": "L16",
+     "operator": "wire-payload-1e400",
+     "label": "FALSE",
+     "tracekit": {
+      "verdict": "reject",
+      "reason_class": "reject|unreadable",
+      "reasons": [],
+      "error": "ValueError: /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/tmpo2_fg949.json: non_finite: 1e400"
+     },
+     "standalone": {
+      "verdict": "reject",
+      "reason_class": "reject|signature",
+      "reasons": [
+       "signature: not JSON that RFC 8785 can encode (inf is not representable in JCS)"
+      ],
+      "error": null
+     },
+     "conformance_equal": false
+    }
+   ]
+  },
+  "H5": {
+   "a2a": {
+    "lies": 687,
+    "accepted": 687,
+    "rate": 1.0
+   },
+   "sigonly": {
+    "lies": 687,
+    "accepted": 628,
+    "rate": 0.9141193595342066
+   }
+  }
+ },
+ "spec_receiver": {
+  "tracekit": {
+   "L3 message-scope lies": {
+    "messages": 6,
+    "verdict": {
+     "accept": 6
+    },
+    "with_scope_check": {
+     "accept-unproven": 6
+    }
+   },
+   "honest approved_by": {
+    "messages": 12,
+    "verdict": {
+     "accept": 12
+    },
+    "with_scope_check": {
+     "accept": 6,
+     "accept-unproven": 6
+    }
+   },
+   "all approved_by lies": {
+    "messages": 140,
+    "verdict": {
+     "reject": 132,
+     "accept-unproven": 2,
+     "accept": 6
+    },
+    "with_scope_check": {
+     "reject": 132,
+     "accept-unproven": 8
+    }
+   }
+  },
+  "standalone": {
+   "L3 message-scope lies": {
+    "messages": 6,
+    "verdict": {
+     "accept": 6
+    },
+    "with_scope_check": {
+     "accept-unproven": 6
+    }
+   },
+   "honest approved_by": {
+    "messages": 12,
+    "verdict": {
+     "accept": 12
+    },
+    "with_scope_check": {
+     "accept": 6,
+     "accept-unproven": 6
+    }
+   },
+   "all approved_by lies": {
+    "messages": 140,
+    "verdict": {
+     "reject": 132,
+     "accept-unproven": 2,
+     "accept": 6
+    },
+    "with_scope_check": {
+     "reject": 132,
+     "accept-unproven": 8
+    }
+   }
+  }
+ },
+ "cost": {
+  "size_bytes_honest": {
+   "A": {
+    "messages": 12,
+    "pcm_p50": 6024,
+    "pcm_p99": 6133,
+    "plain_p50": 467,
+    "plain_p99": 468,
+    "overhead_p50": 5556,
+    "overhead_p99": 5665,
+    "ratio_p50": 12.92274678111588
+   },
+   "F": {
+    "messages": 12,
+    "pcm_p50": 4404,
+    "pcm_p99": 4408,
+    "plain_p50": 596,
+    "plain_p99": 597,
+    "overhead_p50": 3808,
+    "overhead_p99": 3811,
+    "ratio_p50": 7.389261744966443
+   },
+   "G": {
+    "messages": 13,
+    "pcm_p50": 1907,
+    "pcm_p99": 2569,
+    "plain_p50": 428,
+    "plain_p99": 477,
+    "overhead_p50": 1480,
+    "overhead_p99": 2141,
+    "ratio_p50": 4.457943925233645
+   },
+   "H": {
+    "messages": 20,
+    "pcm_p50": 4157,
+    "pcm_p99": 4181,
+    "plain_p50": 438,
+    "plain_p99": 444,
+    "overhead_p50": 3725,
+    "overhead_p99": 3738,
+    "ratio_p50": 9.520547945205479
+   },
+   "T": {
+    "messages": 12,
+    "pcm_p50": 4161,
+    "pcm_p99": 4181,
+    "plain_p50": 450,
+    "plain_p99": 462,
+    "overhead_p50": 3711,
+    "overhead_p99": 3719,
+    "ratio_p50": 9.23059866962306
+   },
+   "X": {
+    "messages": 4,
+    "pcm_p50": 11659,
+    "pcm_p99": 11686,
+    "plain_p50": 720,
+    "plain_p99": 733,
+    "overhead_p50": 10939,
+    "overhead_p99": 10953,
+    "ratio_p50": 16.16481994459834
+   }
+  },
+  "verify_ms": {
+   "tracekit": {
+    "messages": 839,
+    "p50_ms": 1.2169,
+    "p99_ms": 2.0302,
+    "max_ms": 9.2704,
+    "by_claim_type": {
+     "A": {
+      "p50_ms": 1.5168,
+      "p99_ms": 2.0007
+     },
+     "F": {
+      "p50_ms": 1.4516,
+      "p99_ms": 1.7505
+     },
+     "G": {
+      "p50_ms": 0.9038,
+      "p99_ms": 1.4846
+     },
+     "H": {
+      "p50_ms": 1.2741,
+      "p99_ms": 1.9567
+     },
+     "T": {
+      "p50_ms": 1.4364,
+      "p99_ms": 2.1513
+     },
+     "X": {
+      "p50_ms": 0.6334,
+      "p99_ms": 3.4915
+     }
+    }
+   },
+   "standalone": {
+    "messages": 844,
+    "p50_ms": 0.8156,
+    "p99_ms": 1.6715,
+    "max_ms": 8.1116,
+    "by_claim_type": {
+     "A": {
+      "p50_ms": 1.2328,
+      "p99_ms": 1.6149
+     },
+     "F": {
+      "p50_ms": 1.0054,
+      "p99_ms": 1.3606
+     },
+     "G": {
+      "p50_ms": 0.4937,
+      "p99_ms": 0.7469
+     },
+     "H": {
+      "p50_ms": 0.9346,
+      "p99_ms": 1.2471
+     },
+     "T": {
+      "p50_ms": 0.9869,
+      "p99_ms": 2.2687
+     },
+     "X": {
+      "p50_ms": 0.435,
+      "p99_ms": 2.4014
+     }
+    }
+   }
+  }
+ },
+ "ablations": {
+  "AB-strip": {
+   "tracekit": {
+    "accept-unproven": 60
+   },
+   "standalone": {
+    "accept-unproven": 60
+   },
+   "a2a": {
+    "accept": 60
+   },
+   "sigonly": {
+    "accept": 60
+   }
+  },
+  "AB-t1": {
+   "tracekit": {
+    "accept-unproven": 36
+   },
+   "standalone": {
+    "accept-unproven": 36
+   },
+   "a2a": {
+    "accept": 36
+   },
+   "sigonly": {
+    "accept": 36
+   }
+  }
+ },
+ "verify_errors": {
+  "tracekit": [],
+  "standalone": []
+ },
+ "failing_ids": [
+  "L10.F.06",
+  "L10.F.07",
+  "L10.F.08",
+  "L10.F.09",
+  "L10.F.10",
+  "L10.T.06",
+  "L10.T.07",
+  "L10.T.08",
+  "L10.T.09",
+  "L10.T.10",
+  "L16.A.18",
+  "L16.F.19",
+  "L16.G.07",
+  "L16.H.01",
+  "L16.H.02",
+  "L16.H.03",
+  "L16.H.04",
+  "L16.H.05",
+  "L16.H.06",
+  "L16.H.07",
+  "L16.H.24",
+  "L16.T.17",
+  "L3.A.07",
+  "L3.A.08",
+  "L3.A.09",
+  "L3.A.10",
+  "L3.A.11",
+  "L3.A.12",
+  "honest.H.15",
+  "honest.H.16"
+ ]
+}

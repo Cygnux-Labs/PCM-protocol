@@ -1,0 +1,151 @@
+{
+  "seed": 20261028,
+  "generated": "2026-10-27T23:59:01Z",
+  "seconds": 61.8,
+  "messages": 879,
+  "tracekit": "e3221cf2b6d2240a18457d8ec7b0b0a03fe7f24e",
+  "pcm": "b54cfe42cec3e5b5a1947abb19b6e28b969301c9",
+  "python": "3.11.15",
+  "platform": "macOS-26.3-arm64-arm-64bit",
+  "signer_refusals": [
+    {
+      "attempt": "pcm_delegate wider than its parent (amount <= 30000 under <= 20000)",
+      "refused": true,
+      "code": "invalid_request",
+      "message": "amount <= 20000: dropped or widened"
+    },
+    {
+      "attempt": "pcm_delegate dropping the order caveat",
+      "refused": true,
+      "code": "invalid_request",
+      "message": "order == 81: dropped or widened"
+    },
+    {
+      "attempt": "pcm_delegate outliving its parent",
+      "refused": true,
+      "code": "invalid_request",
+      "message": "expires_at is after the parent's, 2026-10-28T00:58:32.131812Z"
+    },
+    {
+      "attempt": "pcm_delegate below a non-delegable root",
+      "refused": true,
+      "code": "forbidden",
+      "message": "this grant can't be passed on"
+    },
+    {
+      "attempt": "pcm_delegate by an agent that is not the grant's subject",
+      "refused": true,
+      "code": "forbidden",
+      "message": "only the grant's subject, uid:990101, may pass it on"
+    },
+    {
+      "attempt": "a root grant approved by an agent approver",
+      "refused": true,
+      "code": "unknown_approval",
+      "message": "apr-990fbd9ab00d975578cf6ec50c2c37f7"
+    },
+    {
+      "attempt": "a root grant approved by an identity no person maps to",
+      "refused": true,
+      "code": "forbidden",
+      "message": "a root grant needs the approval of a person signer.yaml's approvals.persons names: uid:990009 maps to none"
+    },
+    {
+      "attempt": "a root grant its own agent's person approved (self-approval)",
+      "refused": true,
+      "code": "forbidden",
+      "message": "a root grant needs the approval of a person other than the run's agent and the grant's subject"
+    },
+    {
+      "attempt": "a root grant expiring in 48 h",
+      "refused": true,
+      "code": "forbidden",
+      "message": "a grant expires within 24 h from now"
+    },
+    {
+      "attempt": "pcm_sign as another agent",
+      "refused": true,
+      "code": "forbidden",
+      "message": "the signer signs only as the calling run's own agent (uid:990101, run df29aa67b83815464ceb3b2f12fd771b, tenant default)"
+    },
+    {
+      "attempt": "pcm_sign as another run of the same agent",
+      "refused": true,
+      "code": "forbidden",
+      "message": "the signer signs only as the calling run's own agent (uid:990101, run df29aa67b83815464ceb3b2f12fd771b, tenant default)"
+    }
+  ],
+  "by_class": {
+    "honest.T": 12,
+    "honest.H": 20,
+    "honest.F": 12,
+    "honest.A": 12,
+    "honest.G": 13,
+    "honest.X": 4,
+    "AB-strip.T": 12,
+    "AB-strip.H": 20,
+    "AB-strip.F": 12,
+    "AB-strip.A": 12,
+    "AB-strip.X": 4,
+    "AB-t1.T": 12,
+    "AB-t1.H": 12,
+    "AB-t1.F": 12,
+    "L1.T": 12,
+    "L1.H": 12,
+    "L1.F": 12,
+    "L1.A": 12,
+    "L2.T": 12,
+    "L2.H": 12,
+    "L2.F": 12,
+    "L2.A": 12,
+    "L3.T": 12,
+    "L3.H": 12,
+    "L3.F": 12,
+    "L3.A": 12,
+    "L4.T": 12,
+    "L4.H": 12,
+    "L4.F": 12,
+    "L5.T": 14,
+    "L5.H": 16,
+    "L5.F": 12,
+    "L5.A": 12,
+    "L5.G": 12,
+    "L6.T": 12,
+    "L6.H": 12,
+    "L6.F": 12,
+    "L6.A": 12,
+    "L6.G": 12,
+    "L7.T": 12,
+    "L7.H": 10,
+    "L7.F": 10,
+    "L7.A": 10,
+    "L8.T": 13,
+    "L8.H": 10,
+    "L8.F": 10,
+    "L8.A": 10,
+    "L8.G": 12,
+    "L9.T": 12,
+    "L9.H": 12,
+    "L9.F": 12,
+    "L9.A": 12,
+    "L10.T": 10,
+    "L10.H": 10,
+    "L10.F": 10,
+    "L10.A": 10,
+    "L11.T": 10,
+    "L11.H": 10,
+    "L11.F": 10,
+    "L11.A": 10,
+    "L11.G": 10,
+    "L12.G": 18,
+    "L13.G": 10,
+    "L14.G": 13,
+    "L14.A": 10,
+    "L15.G": 13,
+    "L16.T": 21,
+    "L16.H": 28,
+    "L16.F": 23,
+    "L16.A": 22,
+    "L16.G": 11
+  }
+}
