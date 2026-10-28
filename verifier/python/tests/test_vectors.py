@@ -69,6 +69,65 @@ def test_vector(name):
     assert conformance(run(v["input"])) == conformance(v["expected"])
 
 
+# ---------------------------------------------------------------------------------------------------- SPEC examples
+# SPEC.md ties an example to the vector it quotes with `<!-- vector NAME PATH -->` right before the code block or
+# inline code: PATH is a dotted path into vectors/NAME.json (a number indexes an array), and `@signed` turns a message
+# into the bytes its signature covers (SPEC 4.2).
+SPEC = HERE.parents[2] / "SPEC.md"
+QUOTED = re.compile(r"<!-- vector ([\w-]+) ([\w.@-]+) -->\s*(?:```\w*\n(.*?)\n\s*```|`([^`]+)`)", re.S)
+
+
+def quoted(text):
+    """[(name, path, example)]; inline code that wraps reads as one line, as Markdown renders it."""
+    return [(name, path, block or re.sub(r"\s*\n\s*", " ", inline)) for name, path, block, inline in QUOTED.findall(text)]
+
+
+def at(name, path):
+    value = json.loads((VECTORS / f"{name}.json").read_text())
+    for step in path.split("."):
+        if step == "@signed":
+            value = rfc8785.dumps({**{k: v for k, v in value.items() if k != "sig"}, "t": pcm_verify.MESSAGE_TAG})
+            value = value.decode()
+        else:
+            value = value[int(step) if isinstance(value, list) else step]
+    return value
+
+
+def elided(e):
+    return isinstance(e, str) and e.startswith("...")
+
+
+def shown(e, v):
+    """Whether JSON example `e` shows `v`: a string that starts with `...` stands for any value, an object with a member
+    `...` for one with more members, an array that ends in such a string for one with more items."""
+    if elided(e):
+        return True
+    if isinstance(e, dict):
+        return isinstance(v, dict) and ("..." in e or e.keys() == v.keys()) and all(
+            k in v and shown(x, v[k]) for k, x in e.items() if k != "...")
+    if isinstance(e, list):
+        n = len(e) - 1 if e and elided(e[-1]) else len(e)
+        return isinstance(v, list) and (len(v) >= n if n < len(e) else len(v) == n) and all(map(shown, e[:n], v))
+    return type(e) is type(v) and e == v
+
+
+@pytest.mark.parametrize("name, path, text", quoted(SPEC.read_text()))
+def test_spec_example(name, path, text):
+    """Each example SPEC.md ties to a vector shows that vector's value: a string as written, `...` for text left out;
+    anything else as JSON."""
+    value = at(name, path)
+    if isinstance(value, str):
+        assert re.fullmatch(".*".join(map(re.escape, text.split("..."))), value, re.S), (text, value)
+    else:
+        assert shown(json.loads(text), value), (text, value)
+
+
+def test_spec_ties_every_run_value_to_a_vector():
+    """Ids and nonces (32 hex digits) change whenever the vectors are made again: SPEC.md holds each only inside an
+    example tied to a vector, which test_spec_example checks."""
+    assert re.findall(r"\b[0-9a-f]{32}\b", QUOTED.sub("", SPEC.read_text())) == []
+
+
 # ---------------------------------------------------------------------------------------------------- hostile input
 # A log of our own, so a test can sign what it needs: one egress observer's record that the run reached a host, its
 # checkpoint and a message citing it.
@@ -238,17 +297,27 @@ def test_no_verdict_depends_on_the_urlsplit_release(emu, host, url, result, monk
 def test_only_printable_ascii_is_read(host, url):
     """SPEC 6.7 step 1: a URL with any character outside U+0021 to U+007E won't parse: IDNA 2003, UTS 46 and the
     readers of each Unicode version name some hosts apart, and URL readers drop spaces, tabs and controls differently,
-    even inside a percent-escape."""
-    assert pcm_verify.reached_host({"host": host}, fetched(url))[0] == "unproven"
+    even inside a percent-escape. The detail says what the sender can do (SPEC 6.6)."""
+    assert pcm_verify.reached_host({"host": host}, fetched(url)) == (
+        "unproven", f"the verifier can't tell whether call c reached {host}: its URL is not printable ASCII: send the "
+        "URL with the host in xn-- form and the path and query percent-encoded")
 
 
 @pytest.mark.parametrize("host, url", [
     ("a.example", "http://%61.example/"), ("a.example", "http:\\\\%61.example/"),
-    ("a.example", "http://a.example\\@%61.example/"), ("h.com", "http://%5bh.com%5d/"),
-    ("h.com.evil", "http://h.com%00.evil/"), ("::1", "http://[::1%25eth0]/")])
+    ("a.example", "http://a.example\\@%61.example/"), ("b.example", "http://a.example\\@%62.example/"),
+    ("h.com", "http://%5bh.com%5d/"), ("h.com.evil", "http://h.com%00.evil/"), ("::1", "http://[::1%25eth0]/")])
 def test_a_host_with_a_percent_is_unproven(host, url):
-    """SPEC 6.7 step 5: a host is never percent-decoded, in the browser's reading or the generic one."""
-    assert pcm_verify.reached_host({"host": host}, fetched(url))[0] == "unproven"
+    """SPEC 6.7 step 5: a host is never percent-decoded, in the browser's reading or the generic one. The detail says
+    what the sender can do (SPEC 6.6)."""
+    assert pcm_verify.reached_host({"host": host}, fetched(url)) == (
+        "unproven", f"the verifier can't tell whether call c reached {host}: its host has a %: send the URL with the "
+        "host as plain ASCII, not percent-encoded")
+
+
+def test_no_advice_for_another_cause():
+    assert pcm_verify.reached_host({"host": "b.example"}, fetched("http://a.example\\@b.example/")) == (
+        "unproven", "the verifier can't tell whether call c reached b.example")
 
 
 @pytest.mark.parametrize("old", [False, True], ids=["this-release", "lenient-ipaddress"])
