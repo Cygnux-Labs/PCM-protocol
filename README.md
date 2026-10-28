@@ -3,14 +3,14 @@
 ![PCM-detected lies](https://img.shields.io/badge/PCM--detected%20lies-702%20of%20712-2a78d6)
 ![benchmark](https://img.shields.io/badge/benchmark-pre--registered-2a78d6)
 ![vectors](https://img.shields.io/badge/test%20vectors-187-2a78d6)
-![verifier](https://img.shields.io/badge/independent%20verifier-553%20tests-1baf7a)
-![spec](https://img.shields.io/badge/PCM-0.1%20%C2%B7%20draft-52514e)
+![verifier](https://img.shields.io/badge/independent%20verifier-556%20tests-1baf7a)
+![spec](https://img.shields.io/badge/PCM-0.1-52514e)
 ![licence](https://img.shields.io/badge/licence-MIT-52514e)
 
 PCM is a protocol for messages between AI agents in which each claim about what happened can carry evidence that the
 receiver checks offline: records from a log the sending agent can't write, with Merkle inclusion proofs.
 
-PCM 0.1, a draft. Numbers in parentheses below are sections of the specification, [`SPEC.md`](SPEC.md).
+PCM 0.1. Numbers in parentheses below are sections of the specification, [`SPEC.md`](SPEC.md).
 
 **In one paragraph.** When one AI agent tells another "the tests passed" or "a person approved this", the receiver
 today has only its word. PCM lets each such claim carry signed records from a log the sending agent can't write, and
@@ -228,7 +228,9 @@ The schema lists `approved_by`, so without `covers` the same proven claim would 
 
 The lie benchmark is a pre-registered test of false claims between agents, in [`bench/lies/`](bench/lies); its full
 results are in [`bench/lies/RESULTS.md`](bench/lies/RESULTS.md). It asks how often a receiving agent accepts a false claim
-from a sending agent.
+from a sending agent. The design, [`PREREGISTRATION.md`](bench/lies/PREREGISTRATION.md), was written before the run,
+but it has no public timestamp before the results: it was a local note, committed with them, under a header that says
+where the run departed from it.
 
 **Threat model.** The sender controls its own process, its messages, its T1 reports and any file it can write, but
 not the signer, its keys, its log or T2 results, and the receiver has only the message and its trust.json.
@@ -251,12 +253,15 @@ only. After the pre-registration, models of six real agent protocols were added 
 
 The baselines and the cost (message size, p50 and p99 verify time) are reported without a pass bar.
 
-**Results**, on 926 messages from Tracekit `7d843e6377` and this repository at `0f26c38`:
+**Results**, on 926 messages, pinned to Tracekit v1.5.0 (`510566193e`). Dataset 2 was first produced at Tracekit
+`7d843e6377` and this repository at `73a287c` (main `0f26c38` merged, with PCM's fixes for F1, F3 and F5); its
+verdicts reproduce unchanged on Tracekit v1.5.0:
 
 | | result |
 |---|---|
 | H1 lies accepted, each verifier | **fail**, 10 of 712 (1.4%, 95% CI 0.8–2.6%), all stale evidence |
-| H2 honest claims proven | **fail**, 81 of 83 (97.6%), both misses the 404 limit |
+| PCM's verdicts on the 712 lies | 626 rejected, 76 accept-unproven (the claim is flagged as not proven), 10 accepted |
+| H2 honest claims proven | **fail**, 81 of 83 honest messages (76 of 78 claims, 97.4%), both misses the 404 limit |
 | H3 T1-only claims unproven | **pass**, 72 of 72 |
 | H4 the two verifiers agree | **pass**, 926 of 926 |
 | plain A2A, lies accepted | 712 of 712 |
@@ -264,9 +269,9 @@ The baselines and the cost (message size, p50 and p99 verify time) are reported 
 | six real protocols as receivers (added later), lies accepted | 504 to 712 of 712 (below) |
 | verify time p50 (p99), Tracekit / standalone | 1.2 (2.4) / 0.8 (1.8) ms |
 
-The benchmark earned its keep before these numbers: an earlier run found three bugs (a leading-zero IPv4 host, an
-approval of a different call, and a number read two ways), each fixed in the spec and both verifiers with vectors
-that pin it. That run is in [`RESULTS.md`](bench/lies/RESULTS.md).
+The benchmark earned its keep before these numbers: an earlier run found three bugs (F1, a leading-zero IPv4 host;
+F3, an approval of a different call; F5, a number read two ways), each fixed in the spec and both verifiers with
+vectors that pin it. That run is in [`RESULTS.md`](bench/lies/RESULTS.md).
 
 What is left:
 
@@ -276,11 +281,12 @@ What is left:
   since. This is a documented 0.1 limit (14.13), and Appendix B question 5 designs evidence of the run since the call
   for a later draft. Every other lie, 702 of 712, is not accepted, in every scope: claim, evidence, authority,
   delivery, encoding and message.
-- **H2 is 81/83 because of the 404 limit.** Two honest fetches were answered with a 404 (`honest.H.15`, `.16`). The
-  host was reached, but the executor records a status of 400 or more as an error, and 0.1's `reached_host` needs a T2
-  result that is ok, so the claim is `failed` and the honest message is rejected. SPEC 6.6 states this limit, and
-  Appendix B question 6 designs `reached_host` on any response for PCM 0.2. Of the 83 honest messages, 69 get
-  `accept`: besides the two 404s, 12 cite an `approved_by` without `covers` under a schema that lists it: their
+- **H2: 81 of 83 honest messages (76 of 78 claims, 97.4%), because of the 404 limit.** Two honest fetches were
+  answered with a 404 (`honest.H.15`, `.16`). The host was reached, but the executor records a status of 400 or more
+  as an error, and 0.1's `reached_host` needs a T2 result that is ok, so the claim is `failed` and the honest message
+  is rejected. SPEC 6.6 states this limit, and Appendix B question 6 designs `reached_host` on any response for PCM
+  0.2. As pre-registered, the pass bar is on claims; 13 of the 83 messages carry a grant and no claim. Of the 83, 69
+  get `accept`: besides the two 404s, 12 cite an `approved_by` without `covers` under a schema that lists it: their
   claims are proven, but their verdict is `accept-unproven`, by design.
 - **H3 and H4 pass.** All 72 T1-only claims are `unproven`, and the two verifiers agree on all 926 messages,
   including each verifier's own strict loader for messages sent as raw text.
@@ -301,6 +307,7 @@ receipts carry a signature the sender can't make.
 | SCITT receipts (RFC 9943, 9942) | 550 (77.2%) | 83 |
 | Mastercard Verifiable Intent 0.1 | 509 (71.5%) | 67 |
 | AP2 0.2 mandates | 504 (70.8%) | 67 |
+| AP2, SCITT and RFC 9421 stacked: accepts only what all three accept | 365 (51.3%) | 67 |
 
 - The signed card catches nothing, and the envelope and the HTTP signature catch only replays (10 and 30 of 50).
   SCITT receipts catch evidence that isn't in a pinned log (162 lies), but no rule ties a claim to its records, so
@@ -310,10 +317,17 @@ receipts carry a signature the sender can't make.
   approved values the dataset doesn't disclose. The same gaps in the dataset decide 63 approval lies the models
   reject (64 for VI); counted as accepted, AP2 and VI would accept at most 567 and 573.
   [`RESULTS.md`](bench/lies/RESULTS.md) has the per-class results and what couldn't be modelled faithfully.
+- AP2 is modelled with its Trusted Agent Provider model: the receiver trusts the agent's platform, here one whose log
+  it pins, to sign a mandate only after a person consents. Verifiable Intent stands for AP2's other model, User
+  Credential, with a person's key an issuer certifies. Signatures are real Ed25519 over the models' own byte layouts,
+  not literal JWS, SD-JWT or COSE; no check depends on that syntax.
 - A receiver that runs the AP2, SCITT and RFC 9421 checks and accepts only what all three accept still accepts 365
   lies (51.3%).
 
-**Cost.** Median size of the honest messages, by claim type, against plain A2A messages (0.4 to 0.7 KB at p50):
+**Cost.** Median size of the honest messages, by claim type, against the same messages as plain A2A would carry
+them, 0.4 to 0.7 KB at p50. A size is the UTF-8 bytes of the message as compact JSON with sorted keys (1 KB = 1000
+bytes). The plain A2A message is the same message without `sig`, `grants` and each claim's `evidence`, and "vs plain
+A2A" is the median of the per-message ratios.
 
 | claims | PCM p50 | vs plain A2A |
 |---|---|---|
@@ -324,21 +338,31 @@ receipts carry a signature the sender can't make.
 | a grant only | 1.9 KB | 4.5x |
 | three claims | 11.7 KB | 16.2x |
 
-The `approved_by` p99 comes from the root-grant `covers` evidence, which carries four records. Verifying a message
-takes 1.2 ms at p50 (2.4 ms at p99) with Tracekit's verifier and 0.8 ms (1.8 ms) with the standalone one, over 876
-timed messages.
+Each p99 is over 4 to 22 messages of one type, so it is the largest of them. The `approved_by` p99 comes from the
+root-grant `covers` evidence, which carries four records. Verifying a message takes 1.2 ms at p50 (2.4 ms at p99) with
+Tracekit's verifier and 0.8 ms (1.8 ms) with the standalone one, timing the verify call alone, over 876 messages; the
+other 50 are raw texts the verifier's own loader refused, so no check ran.
 
 **Limits.** One machine (macOS 26.3 arm64, Python 3.11.15), and the leading-zero IPv4 finding depended on the
 platform. The signer and executor run in-process: the executor is Tracekit's custody code with an in-process client,
 not the HTTP executor service. There is no real DNS: names are served by the local server. Dataset 2 was generated
 once; dataset 1, generated three times, gave the same counts in every cell, apart from one relabelled message.
 
-**Re-run it.** From this repository's root, with a Tracekit checkout:
+**Re-run it.** From this repository's root. To reproduce the published numbers from the committed dataset, run
+`run` and then `report`, with a Tracekit checkout at v1.5.0 (`run` also needs the standalone verifier's `rfc8785` and
+`cryptography`). Every verdict and count reproduces; timings differ from run to run.
+
+```sh
+PYTHONPATH=<tracekit> python -m bench.lies run --verifier all   # results/{tracekit,standalone,baselines}.jsonl
+python -m bench.lies report                                     # results/results.json, findings/, the tables
+```
+
+To make a new dataset, run `gen` first. It overwrites the committed `data/dataset.jsonl` and `data/meta.json`, and
+needs Tracekit's dependencies plus pytest, IPv6 loopback (`::1`), and a resolver that reads IPv4 spellings as macOS
+does: each host's label is what this machine's `getaddrinfo` reads, so on Linux some L16 labels differ.
 
 ```sh
 PYTHONPATH=<tracekit> python -m bench.lies gen                  # data/dataset.jsonl, data/meta.json (~1 min)
-PYTHONPATH=<tracekit> python -m bench.lies run --verifier all   # results/{tracekit,standalone,baselines}.jsonl
-python -m bench.lies report                                     # results/results.json, findings/, the tables
 ```
 
 The seed (20261028) fixes the keys and every choice; run ids, nonces, timestamps and signatures change each time the
@@ -362,6 +386,34 @@ dataset is generated.
 - **in-toto** (Torres-Arias et al., USENIX Security 2019) and **SLSA** (v1.0, 2023) sign statements about software
   supply-chain steps. PCM's T2 rule is close to SLSA's view that provenance should come from the build platform, not
   the build's own steps; PCM applies it per claim in a message, with a third result for what can't be checked.
+- **SCITT** (RFC 9943, 2026, with COSE Receipts, RFC 9942) checks that a signed statement is intact and in a
+  transparency log, by a receipt of its inclusion; individual drafts without IETF standing profile it for agent
+  actions (`draft-emirdag-scitt-ai-agent-execution`, `draft-noa-scitt-ai-agent-receipt`). It has no rule that ties a
+  claim to a record, no T1/T2 distinction, no replay rule and no grants; PCM adds those over the same kind of evidence.
+- **AP2** (Agent Payments Protocol 0.2, 2026, now at the FIDO Alliance) checks a chain of SD-JWT mandates: who
+  authorized a payment, under which constraints, until when, bound to the agent's key. It says nothing about what an
+  agent did, and agent-to-agent delegation is outside its scope; PCM adds claims about actions, backed by records,
+  and grant chains that only narrow.
+- **Mastercard Verifiable Intent** (0.1, a draft) adds a layer to AP2's model: a credential provider certifies the
+  user's device key, and that key signs the mandates. Like AP2, it checks a purchase's authority; PCM adds what the
+  agent did besides.
+- **ANP** (Agent Network Protocol 1.2, 2026) checks the sender: an RFC 9421 signature by its DID key, a time window
+  and a (keyid, nonce) replay cache. Its spec says authentication alone does not imply business authority, and its
+  authorization profile (ANP-05) is a draft. The sender signs with its own key, so a liar signs its lie; in PCM the
+  attesting signer signs, and each claim carries records.
+- **Notarized Agents** (Figuera, arXiv 2606.04193, 2026): the called service signs a receipt of the action, encrypts
+  it to the agent's owner and publishes it to a witness-cosigned Merkle log. PCM needs no service to cooperate: the
+  sender's attesting signer and executor record the call, and any receiver checks the records offline.
+- **NabaOS** (Basu, "Tool Receipts, Not Zero-Knowledge Proofs", arXiv 2603.10060, 2026) cross-checks a model's claims
+  against HMAC-signed tool-execution receipts. An HMAC is checked with the key that made it; PCM's records are signed
+  with public keys any receiver checks offline.
+- **South et al.** ("Authenticated Delegation and Authorized AI Agents", arXiv 2501.09674, 2025) extend OAuth 2.0 and
+  OpenID Connect with agent credentials and scoped delegation: who an agent acts for, and with what scope. PCM adds
+  claims about actions, and grants rooted in a person's recorded approval that a receiver checks offline.
+- **A2ABreak** (Lotfi, Rahman, Karim and Bertino, arXiv 2609.10871, 2026) builds a 37-state machine of the A2A spec
+  and finds 11 new vulnerabilities, among them context injection through unprotected context ids and identity lost
+  across multi-hop delegation. PCM signs its whole message, and each delegation step is a signed grant naming
+  its issuer and subject; parts of an A2A message outside the PCM part stay unsigned (11.1).
 
 ## Status and scope
 
@@ -369,7 +421,8 @@ PCM 0.1 is experimental: every 0.x draft uses `"pcm": 0` and may change incompat
 marked **[Implemented]** (the reference implementation does it and produced the vectors) or **[Draft]**. No transport
 binding verifies PCM yet: the A2A, MCP and HTTP bindings (11) are drafts, and Tracekit's A2A gateway forwards a PCM
 part like any other part, without checking it. The transfer-record extension for latent model-to-model transfers (12)
-is a draft. The TypeScript verifier is a plan, [`docs/ts-verifier-plan.md`](docs/ts-verifier-plan.md), not code.
+is a draft: Tracekit records a transfer (12.2), and nothing checks the transfer payload yet. The TypeScript verifier
+is a plan, [`docs/ts-verifier-plan.md`](docs/ts-verifier-plan.md), not code.
 
 **What PCM does not prove.**
 
@@ -403,16 +456,17 @@ python -m pcm_verify MESSAGE --trust T --schema S [--me ID] [--strict] [--json]
 Ed25519 key per log, `{"logs": ["<vkey>"]}`; for a Tracekit signer, `tracekit signer trust --config <signer.yaml> -o
 pcm-trust.json` writes one. `--me` is the receiver's identity, `--strict` requires a proven claim of every type the
 schema lists, and `--json` prints the whole result. It exits 0 for `accept`, 3 for `accept-unproven`, 1 for `reject`
-and 2 for bad input (text that does not parse strictly, 3.3) or a usage error. It keeps no replay state, so it prints
-`not checked: replay`, and its result is for audit (9). It prints a proven `approved_by`'s `approved`, and after a
-proven `tests_passed` or `file_written`, how long before the message the oldest evidence record is, for the
-receiver's age check (14.13); `tracekit pcm verify` prints the age too (C.3).
+and 2 when it can't check: bad input (text that does not parse strictly, 3.3), a configuration error (a schema or
+trust document it refuses, 5.2, 10.1) or a usage error. It keeps no replay state, so it prints `not checked: replay`,
+and its result is for audit (9). It prints a proven `approved_by`'s `approved`, and after a proven `tests_passed` or
+`file_written`, how long before the message the oldest evidence record is, for the receiver's age check (14.13);
+`tracekit pcm verify` prints the age too (C.3).
 
 A verifier conforms on a vector when these fields equal the vector's `expected` (13.2): `verdict`, `signature.ok`,
 `replay.ok`, `schema.ok`, `grants.result`, each `claims[i].result`, each `claims[i].approved` and `skipped`. The
 `detail`, `reasons` and `problems` strings are for people and need not match. On a `bad-input` vector it conforms
-when it refuses the text as a parse error before any check. The verifier's tests check it on every vector and every
-SPEC example tied to one:
+when it refuses the text as a parse error before any check. The verifier's tests check it on every vector and on
+every example SPEC.md and this README tie to one:
 
 ```sh
 pip install ./verifier/python pytest
@@ -429,8 +483,9 @@ cd verifier/python && python -m pytest tests
 | [`registry/tracekit.event.v2.json`](registry/tracekit.event.v2.json) | the event schema of the evidence profile `tracekit.event.v2` (6.4) |
 | [`vectors/`](vectors) | 187 vectors: 30 `accept`, 46 `accept-unproven`, 110 `reject`, 1 `bad-input`. Level 1 (no claim carries evidence): 49, of which 11 `accept`, 2 `accept-unproven`, 35 `reject` and 1 `bad-input`. Level 2: 138, of which 19 `accept`, 44 `accept-unproven` and 75 `reject`. Format: [`vectors/README.md`](vectors/README.md) |
 | [`verifier/python`](verifier/python) | `pcm-verify` 0.1.0, the standalone verifier, and its tests |
-| [`tools/`](tools) | `gen_schemas.py` and `gen_vectors.py`, which regenerate the schemas and vectors from a Tracekit checkout |
-| [`bench/lies/`](bench/lies) | the lie benchmark: the dataset generator, the runner, the report and `RESULTS.md` |
+| [`tools/`](tools) | `gen_schemas.py` and `gen_vectors.py`, which regenerate the schemas and vectors from a Tracekit checkout; `gen_chart.py` and `gen_diagrams.py`, which draw the README's chart and diagrams |
+| [`docs/img/`](docs/img) | the README's chart and diagrams, as light and dark SVGs |
+| [`bench/lies/`](bench/lies) | the lie benchmark: `PREREGISTRATION.md`, the dataset generator, the runner, the six protocol receivers (`protocols.py`), the report and `RESULTS.md` |
 | [`docs/ts-verifier-plan.md`](docs/ts-verifier-plan.md) | the plan for a TypeScript verifier |
 
 ## Reference implementation
@@ -439,8 +494,9 @@ cd verifier/python && python -m pytest tests
 RPC contract 20. Its signer signs messages and grants (`pcm_sign`, `pcm_grant`, `pcm_delegate`) and hands out
 evidence (`pcm_evidence`); its `tracekit.pcm.verify` gave the expected result of every vector; `tracekit pcm demo`
 runs the refund example with a real signer. Appendix C maps each rule to Tracekit's code and lists where it does less
-than the spec asks: replay state is per process, and a consumed approval can mint more than one root grant until its
-`pcm.grant` call has a result (C.4). Where this repository and Tracekit disagree, one of them has a bug: open an issue.
+than the spec asks: replay state is per process (C.4). A consumed approval can also mint more than one root grant
+until its `pcm.grant` call has a result, which the spec allows (7.4, 14.8). Where this repository and Tracekit
+disagree, one of them has a bug: open an issue.
 
 ## Citing
 
@@ -451,7 +507,7 @@ The paper is forthcoming. **Placeholder entry**, to be replaced when it is publi
   title        = {{PCM}: Proof-Carrying Messages for {AI} Agents},
   author       = {{Cygnux Labs}},
   year         = {2026},
-  howpublished = {\url{https://github.com/Cygnux-Labs/pcm-protocol}},
+  howpublished = {\url{https://github.com/Cygnux-Labs/PCM-protocol}},
   note         = {Draft 0.1 specification. Placeholder: replace with the paper's entry}
 }
 ```
