@@ -338,7 +338,7 @@ python -m bench.lies report                          # results/results.json, fin
 ```
 
 <!-- auto:begin -->
-_926 messages; verifiers: tracekit, standalone, a2a, sigonly._
+_926 messages; verifiers: tracekit, standalone, a2a, sigonly, a2a-card, uagents, rfc9421, ap2, vi, scitt._
 
 ### Pass/fail
 
@@ -359,6 +359,12 @@ H5 baselines (lies accepted): a2a 712/712 (100.0%); sigonly 643/712 (90.3%).
 | standalone | 10/712 | 1.4% | [0.76%, 2.57%] | authority 0/90; claim 0/192; delivery 0/50; encoding 0/96; evidence 0/265; freshness 10/10; message 0/9 | in 10/701; signer-bug 0/11 |
 | a2a | 712/712 | 100.0% | [99.46%, 100.00%] | authority 90/90; claim 192/192; delivery 50/50; encoding 96/96; evidence 265/265; freshness 10/10; message 9/9 | in 701/701; signer-bug 11/11 |
 | sigonly | 643/712 | 90.3% | [87.91%, 92.27%] | authority 82/90; claim 192/192; delivery 50/50; encoding 71/96; evidence 229/265; freshness 10/10; message 9/9 | in 632/701; signer-bug 11/11 |
+| a2a-card | 712/712 | 100.0% | [99.46%, 100.00%] | authority 90/90; claim 192/192; delivery 50/50; encoding 96/96; evidence 265/265; freshness 10/10; message 9/9 | in 701/701; signer-bug 11/11 |
+| uagents | 702/712 | 98.6% | [97.43%, 99.24%] | authority 90/90; claim 192/192; delivery 40/50; encoding 96/96; evidence 265/265; freshness 10/10; message 9/9 | in 691/701; signer-bug 11/11 |
+| rfc9421 | 682/712 | 95.8% | [94.05%, 97.03%] | authority 90/90; claim 192/192; delivery 20/50; encoding 96/96; evidence 265/265; freshness 10/10; message 9/9 | in 671/701; signer-bug 11/11 |
+| ap2 | 504/712 | 70.8% | [67.34%, 74.01%] | authority 21/90; claim 146/192; delivery 36/50; encoding 83/96; evidence 208/265; freshness 10/10; message 0/9 | in 501/701; signer-bug 3/11 |
+| vi | 509/712 | 71.5% | [68.06%, 74.68%] | authority 26/90; claim 146/192; delivery 36/50; encoding 83/96; evidence 208/265; freshness 10/10; message 0/9 | in 507/701; signer-bug 2/11 |
+| scitt | 550/712 | 77.2% | [74.03%, 80.18%] | authority 90/90; claim 182/192; delivery 50/50; encoding 96/96; evidence 113/265; freshness 10/10; message 9/9 | in 539/701; signer-bug 11/11 |
 
 ### Dataset
 
@@ -502,6 +508,40 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 | L15 | 13/13 rejected, 13 not accepted | 13/13 rejected, 13 not accepted | 0/13 rejected, 0 not accepted | 0/13 rejected, 0 not accepted |
 | L16 | 80/96 rejected, 96 not accepted | 80/96 rejected, 96 not accepted | 0/96 rejected, 0 not accepted | 25/96 rejected, 25 not accepted |
 
+### Real protocols as receivers (added after pre-registration)
+
+| receiver | lies accepted | rate | Wilson 95% CI | honest accepted |
+|---|---|---|---|---|
+| a2a | 712/712 | 100.0% | [99.46%, 100.00%] | 83/83 |
+| sigonly | 643/712 | 90.3% | [87.91%, 92.27%] | 83/83 |
+| a2a-card | 712/712 | 100.0% | [99.46%, 100.00%] | 83/83 |
+| uagents | 702/712 | 98.6% | [97.43%, 99.24%] | 83/83 |
+| rfc9421 | 682/712 | 95.8% | [94.05%, 97.03%] | 83/83 |
+| ap2 | 504/712 | 70.8% | [67.34%, 74.01%] | 67/83 |
+| vi | 509/712 | 71.5% | [68.06%, 74.68%] | 67/83 |
+| scitt | 550/712 | 77.2% | [74.03%, 80.18%] | 83/83 |
+
+Lies accepted per class:
+
+| class | a2a | sigonly | a2a-card | uagents | rfc9421 | ap2 | vi | scitt | tracekit |
+|---|---|---|---|---|---|---|---|---|---|
+| L1 | 48/48 | 48/48 | 48/48 | 48/48 | 48/48 | 36/48 | 36/48 | 38/48 | 0/48 |
+| L2 | 48/48 | 48/48 | 48/48 | 48/48 | 48/48 | 36/48 | 36/48 | 48/48 | 0/48 |
+| L3 | 59/59 | 59/59 | 59/59 | 59/59 | 59/59 | 38/59 | 38/59 | 59/59 | 0/59 |
+| L4 | 36/36 | 36/36 | 36/36 | 36/36 | 36/36 | 36/36 | 36/36 | 36/36 | 0/36 |
+| L5 | 66/66 | 66/66 | 66/66 | 66/66 | 66/66 | 42/66 | 42/66 | 21/66 | 0/66 |
+| L6 | 60/60 | 16/60 | 60/60 | 60/60 | 60/60 | 52/60 | 52/60 | 48/60 | 0/60 |
+| L7 | 42/42 | 42/42 | 42/42 | 42/42 | 42/42 | 32/42 | 32/42 | 42/42 | 0/42 |
+| L8 | 55/55 | 55/55 | 55/55 | 55/55 | 55/55 | 39/55 | 45/55 | 38/55 | 0/55 |
+| L9 | 48/48 | 48/48 | 48/48 | 48/48 | 48/48 | 36/48 | 36/48 | 0/48 | 0/48 |
+| L10 | 40/40 | 40/40 | 40/40 | 40/40 | 40/40 | 30/40 | 30/40 | 10/40 | 10/40 |
+| L11 | 50/50 | 50/50 | 50/50 | 40/50 | 20/50 | 36/50 | 36/50 | 50/50 | 0/50 |
+| L12 | 18/18 | 18/18 | 18/18 | 18/18 | 18/18 | 0/18 | 0/18 | 18/18 | 0/18 |
+| L13 | 10/10 | 10/10 | 10/10 | 10/10 | 10/10 | 0/10 | 0/10 | 10/10 | 0/10 |
+| L14 | 23/23 | 23/23 | 23/23 | 23/23 | 23/23 | 7/23 | 6/23 | 23/23 | 0/23 |
+| L15 | 13/13 | 13/13 | 13/13 | 13/13 | 13/13 | 1/13 | 1/13 | 13/13 | 0/13 |
+| L16 | 96/96 | 71/96 | 96/96 | 96/96 | 96/96 | 83/96 | 83/96 | 96/96 | 0/96 |
+
 ### approved_by with the receiver's SPEC 6.6 scope check
 
 | verifier | messages | n | verdict | verdict after the scope check |
@@ -537,10 +577,22 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 | AB-strip | standalone | {"accept-unproven": 60} |
 | AB-strip | a2a | {"accept": 60} |
 | AB-strip | sigonly | {"accept": 60} |
+| AB-strip | a2a-card | {"accept": 60} |
+| AB-strip | uagents | {"accept": 60} |
+| AB-strip | rfc9421 | {"accept": 60} |
+| AB-strip | ap2 | {"accept": 48, "reject": 12} |
+| AB-strip | vi | {"accept": 48, "reject": 12} |
+| AB-strip | scitt | {"reject": 60} |
 | AB-t1 | tracekit | {"accept-unproven": 36} |
 | AB-t1 | standalone | {"accept-unproven": 36} |
 | AB-t1 | a2a | {"accept": 36} |
 | AB-t1 | sigonly | {"accept": 36} |
+| AB-t1 | a2a-card | {"accept": 36} |
+| AB-t1 | uagents | {"accept": 36} |
+| AB-t1 | rfc9421 | {"accept": 36} |
+| AB-t1 | ap2 | {"accept": 36} |
+| AB-t1 | vi | {"accept": 36} |
+| AB-t1 | scitt | {"accept": 36} |
 
 ### Every failure
 
