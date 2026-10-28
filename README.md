@@ -1,5 +1,12 @@
 # PCM: Proof-Carrying Messages
 
+![spec](https://img.shields.io/badge/spec-draft%200.1-4a3aa7)
+![status](https://img.shields.io/badge/status-experimental-eb6834)
+![vectors](https://img.shields.io/badge/test%20vectors-187-2a78d6)
+![verifier](https://img.shields.io/badge/standalone%20verifier-553%20tests-1baf7a)
+![benchmark](https://img.shields.io/badge/PCM--Lies-926%20messages-2a78d6)
+![licence](https://img.shields.io/badge/licence-MIT-52514e)
+
 PCM is a protocol for messages between AI agents in which each claim about what happened can carry evidence that the
 receiver checks offline: records from a log the sending agent can't write, with Merkle inclusion proofs.
 
@@ -10,6 +17,11 @@ today has only its word. PCM lets each such claim carry signed records from a lo
 the receiver checks them offline. In a pre-registered benchmark of 926 messages, 712 of them lies, PCM accepted 10
 lies, all of one kind it states as a limit (stale evidence); plain A2A accepted all 712, and a check of the sender's
 signature alone accepted 643. Checking a message takes about 1 ms ([Evaluation](#evaluation)).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/lies-accepted-dark.svg">
+  <img alt="Lies a receiver accepts: plain A2A 712 of 712, a sender-signature check 643 of 712, PCM 0.1 before the fixes 23 of 687, PCM 0.1 10 of 712, all stale evidence" src="docs/img/lies-accepted-light.svg" width="760">
+</picture>
 
 **Try it** (with [Tracekit](https://github.com/Cygnux-Labs/Tracekit), the reference implementation):
 
@@ -42,6 +54,21 @@ In three steps:
 3. The receiver checks the signature, the proofs and the records offline, against keys it pins, and gets `proven`,
    `unproven` or `failed` for each claim.
 
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as Agent A (sender)
+    participant S as Attesting signer<br/>(keys + Merkle log)
+    participant B as Agent B (receiver)
+    A->>S: tool calls: run tests, fetch, ask a person
+    S->>S: decide, record and sign every event<br/>(the agent never holds a key)
+    A->>S: pcm_evidence + pcm_sign (intent, claims, grants)
+    S-->>A: signed message + records + inclusion proofs
+    A->>B: PCM message (an A2A part, an MCP resource or HTTP)
+    B->>B: verify offline against the pinned log key
+    Note over B: each claim: proven / unproven / failed<br/>the message: accept / accept-unproven / reject
+```
+
 In detail, a PCM message is a JSON envelope signed by an **attesting signer**: a service that holds the keys, records the run's
 events in an append-only Merkle log, and signs only as the identity of the run that calls it. The agent never holds a
 key (4.4). The message carries a typed **intent**, checked against a schema document both sides pin by its hash (5);
@@ -64,6 +91,28 @@ before any check (3.3, 13.2). A claim that rests on the agent's word alone is `u
    the agent's word or of less than the claim (an attempt to connect, not a connection), or a record the verifier
    can't match with certainty (6.1). A Level 1 verifier, which skips evidence, never gives `proven` (13.1). A result
    names the checks its caller skipped, and a receiver must not act on such a result (8).
+   How a verifier judges one claim (6.1):
+
+   ```mermaid
+   flowchart LR
+       C([claim]) --> E{evidence?}
+       E -- no --> U[unproven]
+       E -- yes --> V{records and proofs verify<br/>under the pinned log key?}
+       V -- no --> F[failed]
+       V -- yes --> W{written by the signer<br/>or a T2 gateway?}
+       W -- "no: the agent's own report (T1)" --> U
+       W -- yes --> M{records say what<br/>the claim says?}
+       M -- no --> F
+       M -- "less, or can't tell" --> U
+       M -- yes --> P[proven]
+       classDef ok fill:#1baf7a,color:#fff,stroke:#1baf7a
+       classDef bad fill:#e34948,color:#fff,stroke:#e34948
+       classDef maybe fill:#eda100,color:#000,stroke:#eda100
+       class P ok
+       class F bad
+       class U maybe
+   ```
+
 3. **Claims bind to what was done, not to names the agent chose.** An agent names its own calls, so an approval of
    call `refund-81-approved` says nothing of what the call was. `approved_by` is proven only with the approval, the
    request it answers and the decision that request names, and the result carries `approved`: the tool and args the
@@ -76,6 +125,17 @@ before any check (3.3, 13.2). A claim that rests on the agent's word alone is `u
    self-approved, not the grant's subject (7.4). A child only narrows its parent, by a fixed implication table over
    typed caveats (7.3). No agent holds a key: the signer signs each child after checking it (7.5), and the verifier
    checks the chain again, bound to the sender's tenant and to the log that signed the message (7.6, 14.18).
+   A chain of grants (7.3–7.6):
+
+   ```mermaid
+   flowchart LR
+       P([alice approves<br/>a pcm.grant call]) --> R[root grant<br/>refund.request<br/>amount ≤ 20000 · order 81 · 1 h]
+       R -- "narrows" --> C[child grant<br/>amount ≤ 5000]
+       R -. "widens: rejected" .-> X[amount ≤ 50000]
+       classDef bad fill:#e34948,color:#fff,stroke:#e34948
+       class X bad
+   ```
+
 5. **Replay rules that survive a restart in bounded memory.** A sender is the pair (log key, agent). A receiver
    refuses a message outside its clock window, signed before the receiver started (so it restarts with no saved
    state), with a nonce it has seen, or at or below the sender's floor, which eviction raises. A nonce is spent only
