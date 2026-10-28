@@ -709,8 +709,8 @@ QUAD = re.compile(rf"{_OCTET}(\.{_OCTET}){{3}}")   # the one form of an IPv4 add
 PEELED = re.compile(r"(?i)(view-source|blob):")   # SPEC 6.7 step 4: a browser reads the URL inside, WHATWG URL no host
 _BAD = object()   # looks like an address and is none
 # SPEC 6.6: what a call's detail tells the sender when its URL's host won't parse for a cause the sender can fix
-NOT_ASCII = ("its URL is not printable ASCII: send the URL with the host in xn-- form and the path and query "
-             "percent-encoded")
+NOT_ASCII = ("its URL is not printable ASCII: send it without spaces or control characters, with the host in xn-- "
+             "form and anything else percent-encoded")
 PERCENT = "its host has a %: send the URL with the host as plain ASCII, not percent-encoded"
 NOT_QUAD = ("its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255 without "
             "leading zeros")

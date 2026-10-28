@@ -285,7 +285,7 @@ The agent never holds a signing key. It sends the message body to the signer, an
   credential was delegated to, such as a reader of the run's log or an observer).
 - The signer MUST set `pcm`, `id`, `ts` and `nonce` itself, from its own clock and randomness. A body that holds
   them, or `sig` or `t`, is refused.
-- The signer MUST refuse to sign while the run is held or quarantined (section 14.9).
+- The signer MUST refuse to sign while the run is held or quarantined (14.9).
 - The signer SHOULD record each message it signs as a record in the sender's run, holding the message hash, id,
   receiver and intent reference, never the args. An auditor of the run then sees every message the agent had signed,
   in order among its tool calls.
@@ -442,7 +442,7 @@ A verifier checks an evidence item in this order. The first failure makes the cl
    - The Ed25519 log key trust pins under the origin's name (one at most, 10.1) MUST have a valid line. When trust
      pins a hybrid key named after the origin, its line MUST be present and valid (10.1).
 2. **Same log.** The note's origin equals the key name in the message's `sig.key` (the part before the last `+`).
-   Evidence from another log fails, even if that log is pinned too (section 14.1).
+   Evidence from another log fails, even if that log is pinned too (14.1).
 3. **Witnesses.** The note carries at least `witnesses_required` valid cosignatures from pinned witness keys
    (vectors `accept-witnessed`, `reject-claim-witnesses-required-unmet`).
 4. For each record, numbered from 1:
@@ -519,7 +519,7 @@ The fields each checker reads:
 | Record type | Fields read |
 |---|---|
 | every record | `seq` (log index), `tenant`, `run_id`, `type`, `data` |
-| `policy.decision` | `data.tool`, `data.decision` (`allow`, `ask`, `deny`), `data.decision_id`, `data.tool_use_id`, `data.args_commitment` |
+| `policy.decision` | `data.tool`, `data.decision` (`allow`, `flag`, `ask`, `deny`; `flag` lets the call run as `allow` does and marks it), `data.decision_id`, `data.tool_use_id`, `data.args_commitment` |
 | `tool.result` | top-level `source` and `tier`; `data.decision_id`, `data.tool_use_id`, `data.ok`; `data.via` (detail text only) |
 | `approval` | `data.decision`, `data.tool_use_id`, `data.approval_id`, `data.person`, `data.approver_kind` (absent means `person`), `data.self_approved` |
 | `approval.request` | `data.approval_id`, `data.decision_id` |
@@ -803,8 +803,8 @@ Hosts are compared in the form of 6.7.
 
    **What the sender can do (decided, 0.1).** When a URL's host won't parse for one of three causes the sender can
    fix, the can't-tell detail SHOULD end with `: ` and that cause's sentence, exactly:
-   - the URL is not printable ASCII (6.7 step 1): `its URL is not printable ASCII: send the URL with the host in xn--
-     form and the path and query percent-encoded`;
+   - the URL is not printable ASCII (6.7 step 1): `its URL is not printable ASCII: send it without spaces or control
+     characters, with the host in xn-- form and anything else percent-encoded`;
    - else, the URL passes the bracket rule (6.7 step 3) and a reading of its host holds a `%` (6.7 steps 4 and 5;
      step 4 makes no reading of a `view-source:` or `blob:` URL):
      `its host has a %: send the URL with the host as plain ASCII, not percent-encoded`;
@@ -816,7 +816,7 @@ Hosts are compared in the form of 6.7.
    a URL library reads from it. So vector `accept-unproven-reached-host-idn` (`http://bücher.example/`) gives
    <!-- vector accept-unproven-reached-host-idn expected.claims.0.detail -->
    `the verifier can't tell whether call call-337 reached xn--bcher-kva.example: its URL is not printable ASCII: send
-   the URL with the host in xn-- form and the path and query percent-encoded`,
+   it without spaces or control characters, with the host in xn-- form and anything else percent-encoded`,
    `accept-unproven-reached-host-percent` (`http://%61pi.example.com/`)
    <!-- vector accept-unproven-reached-host-percent expected.claims.0.detail -->
    `the verifier can't tell whether call call-409 reached api.example.com: its host has a %: send the URL with the
@@ -830,7 +830,7 @@ Hosts are compared in the form of 6.7.
    **A response is not a failure, but the record doesn't say so.** A call that got any answer from the host reached
    it, but `Ran` needs a result with `data.ok == true`, and the evidence profile (6.4) records no protocol status
    that tells an error answer from a failure to connect. So a call the host answered with an error, which an attesting
-   party may record as not ok, gives `failed` (Appendix C.3; Appendix B question 5). An `effect.observed` of the
+   party may record as not ok, gives `failed` (Appendix C.3; Appendix B question 6). An `effect.observed` of the
    connection (step 2) proves the claim whatever the answer.
 
 Vectors: `accept-reached-host-http` (`https://API.Example.COM:8443/v1` is `api.example.com`),
@@ -1213,7 +1213,7 @@ signer MUST refuse to issue a root grant unless all of these hold **[Implemented
 - the approvals configuration maps the approving identity to a person's name: an identity it lets answer but names
   no person for (an OIDC subject included) can't approve a root grant;
 - `expires_at` is after now and at most 24 hours from now;
-- the `pcm.grant` call has no result yet (one grant per approval: section 14.8);
+- the `pcm.grant` call has no result yet (one grant per approval: 14.8);
 - the run is not held or quarantined.
 
 The grant's `issuer` is `{"kind": "person", "id": <approver identity>, "person": <the name the approvals configuration
@@ -1448,6 +1448,10 @@ the Ed25519 line's). Messages and grants stay Ed25519 only (4.3). **[Implemented
 implement SLH-DSA MUST fail evidence whose origin has a pinned hybrid key, and evidence whose note carries a line of
 any pinned hybrid key.
 
+Note: `tracekit/slh-dsa-sha2-128s` is a fixed byte string of this protocol, compared as bytes. Its `tracekit/` comes
+from the reference implementation, whose hybrid keys carried it first (Appendix C); it names no product a verifier
+needs.
+
 ### 10.2 The tool placement table
 
 The verifier places tools with a fixed table, `{tool name: class}`.
@@ -1525,8 +1529,9 @@ payload bytes. The signer records a `policy.decision` whose committed args are:
 
 1. The evidence verifies as in 6.2, against the sender's run.
 2. Exactly one record has an opening, and it is a `policy.decision` with `data.tool == "a2a:transfer"`.
-3. The decision is `allow`, or `ask` with an `approval` record in the same evidence that approves its
-   `data.tool_use_id` (`data.decision == "approve"`).
+3. The decision is `allow` or `flag`, or `ask` with an `approval` record in the same evidence that approves its
+   `data.tool_use_id` (`data.decision == "approve"`). A `flag` is a decision to proceed: the call runs as under
+   `allow`, and the record marks it (6.4).
 4. The opened args have `sender`, `receiver`, `modality`, `size` (integer) and `digest` (DIGEST).
 
 If any check fails, the verdict is `reject`. The verifier reports the opened `sender`, `receiver`, `projector`,
@@ -1591,7 +1596,10 @@ has no result to compare. Those rules are covered by the standalone verifier's t
 bad-input vector when it refuses its `message_text` as a parse error, before any check.
 
 A vector is a Level 2 vector when any claim of its message carries `evidence`; otherwise it is a Level 1 vector. A
-verifier conforms to a level when it conforms on every vector of that level.
+verifier conforms to a level when it conforms on every vector of that level. Level 1 vectors pin `accept-unproven` with
+a claim that has no evidence (`accept-unproven-claim-without-evidence`) and with a claim type the schema lists and no
+claim proves (`accept-unproven-required-claim-missing`). No vector pins a Level 1 verifier's `unproven` for a claim
+with evidence (13.1): a vector whose claim carries evidence is a Level 2 vector.
 
 ## 14. Security considerations
 
@@ -1677,9 +1685,39 @@ assumption PCM rests on, with the rule that closes or bounds it.
     `reject-claim-decision-without-id`, `reject-replay-no-real-time`. Non-object args, non-object events and deep values
     are covered by the standalone verifier's tests, not by vectors: a signer never makes them, and a value past the
     recursion limit is no portable JSON.
-13. **Evidence is not freshness.** Evidence proves a call happened in the sender's run, not that it is the latest
-    state. Tests that passed at 10:00 prove nothing about code changed at 10:05. **Rule:** a receiver that needs
-    freshness SHOULD read the record's `ts` and ask for a fresh claim; a sender SHOULD claim right after the call.
+13. **Evidence is not freshness.** Evidence proves that a call happened in the sender's run, not that nothing
+    happened after it: the sender chooses which records to send, and none of the run's later records need be among
+    them. A suite passed, the code changed and the suite failed: the record of the pass still proves `tests_passed`.
+    A file was written, then written again: the record of the first write still proves `file_written`. Both claims
+    are `proven`, since every claim type says that something happened, not that it still holds. PCM 0.1 has no
+    evidence that shows what came later; Appendix B question 5 designs one. **Rule:** a sender SHOULD get its
+    evidence and send its message right after the call. A receiver MUST NOT read `proven` as saying that what the
+    claim describes still holds, and a receiver that acts on the current state SHOULD apply the checks below. Only
+    the digest check rules a later change out, and only for the file the receiver holds; the others shorten the time
+    in which a later change can hide.
+    - **Age.** Take the oldest `ts` among a claim's evidence records and refuse to act when the message's `ts` is more
+      than a maximum age after it. The oldest, because the sender chooses the records: one it adds can't make the
+      evidence look newer, and for `tests_passed` it is no later than the decision's, made before the runner ran. The
+      verifier's result carries no time; the receiver reads `event.ts` of each record in the message. Set the age per
+      intent, in seconds or minutes, not hours: an honest sender waits only for a checkpoint that covers the call's
+      records, and a suite can pass, the code change and the suite fail within a minute. Both times are the signing
+      log's, so the receiver's clock plays no part, but only where the log sets a record's `ts` from its own clock
+      when it appends the record. The evidence profile's event schema describes `ts` as client-reported and does not
+      require that; the reference implementation's signer does it (Appendix C.3).
+    - **After the last change the receiver knows of.** A receiver that knows when what it acts on last changed (the
+      commit it will merge was pushed, it sent the request that asked for the check) SHOULD refuse evidence whose
+      oldest `ts` is earlier, allowing for the clock difference section 9 allows. The call then ran after that change.
+    - **`tests_passed`.** The receiver names the suite it needs (and compares `suite` with it, 6.6) and has the sender
+      run it after the request, which the check above then binds. The claim still says nothing of the code the suite
+      ran on: the agent can change the code after the run, run the suite again in another run, or run it until it
+      passes, and claim the pass. Where that matters, the receiver runs the suite itself on the code it acts on.
+    - **`file_written`.** `digest` is SHA-256 of the UTF-8 content the call wrote (6.6). The receiver computes
+      `"sha256:" + hex(SHA-256(bytes))` over the file as it receives or reads it, once, and uses those same bytes.
+      When the two differ, the file it holds is not the one the claim proves was written: it was written again since,
+      or it is another file. When they are equal, the claim proves a call wrote the very bytes the receiver holds,
+      whatever happened to the path later.
+    - **`approved_by`, `reached_host`.** The age check is what PCM 0.1 offers. For authority that must lapse, a
+      receiver requires a grant, whose expiry the verifier checks (7.6).
 14. **Replay.** **Rule:** replay state is per receiver: nonce, plus the time window, plus a per-sender floor raised by
     eviction (section 9). Messages signed before the receiver started are refused. A message replayed to another
     replica of the same receiver must not pass there: each (sender, nonce) is accepted at most once per receiver
@@ -1998,13 +2036,15 @@ A review of the previous draft found an attack on its verifier rules: a `tests_p
 `&` or a file named like a runner was proven though its exit status was not the tests' (14.10, 14.19, 14.23). This
 draft closes those; it has no other known open attack on its verifier rules. What `tests_passed` proves still rests
 on the receiver reading `suite` (6.6), and what a T2 result proves rests on how the deployment names its tools (6.4,
-14.26). Questions earlier drafts left open are now decided rules, each marked "(decided, 0.1)": canonical base64
-(4.3), the signing key (4.5), only a configured person for `approved_by`, what it names and covers (6.6),
-connections, not attempts, for `reached_host` (6.6), records that disagree on what was approved (6.6), absolute paths and path rules
-for `file_written` (6.6), host comparison in ASCII only and the bracket rule (6.7), test commands and plain words
-(6.8), skipped checks (8), the sender pair, one acceptance per receiver and which messages spend their nonce (9), one
-key per log (10.1) and the frozen tool table (10.2). Where the reference implementation does less than this document asks,
-Appendix C.4 says so. What remains are questions for a later draft:
+14.26). Questions earlier drafts left open are now decided rules, each marked "(decided, 0.1)": numbers past the
+double range (3.3), canonical base64 (4.3), the signing key (4.5), only a configured person for `approved_by`, what
+it names and covers (6.6), connections, not attempts, for `reached_host` (6.6), what the sender can do for a URL whose
+host won't parse (6.6), records that disagree on what was approved (6.6), absolute paths and path rules for
+`file_written` (6.6), host comparison in ASCII only, the bracket rule, `view-source:` and `blob:` URLs and IPv4
+addresses as dotted quads (6.7), test commands and plain words (6.8), skipped checks (8), the sender pair, one
+acceptance per receiver and which messages spend their nonce (9), one key per log (10.1) and the frozen tool table
+(10.2). Where the reference implementation does less than this document asks, Appendix C.4 says so. What remains
+are questions for a later draft:
 
 1. **Unicode hosts** (6.7). PCM 0.1 compares hosts in printable ASCII only: a URL or host with any other character
    gives `unproven`, so a sender fetches and claims a name in another script in its A-label form, and a URL with a
@@ -2024,7 +2064,71 @@ Appendix C.4 says so. What remains are questions for a later draft:
    executor of a pinned log to record a tool only under a name of its class. A trust member that pins which
    attesting parties (`data.via`) may attest each class would let a receiver trust one executor's `shell` calls
    without trusting every action of another.
-5. **A response with an error status** (6.6, `reached_host`). A call the host answered with an HTTP error, such as
+5. **Fresh evidence** (14.13). A PCM 0.1 claim says that a call happened, and its evidence can't show that nothing
+   later undid it. A later draft could add two things, which work alone and better together.
+
+   **The run since the call.** The evidence profile already chains each run: beside `seq` and `prev_hash`, which
+   chain the whole log, every record carries `run_seq`, its place in its run, and `run_prev_hash`, the `hash` of the
+   run's record before it (`sha256:` and 64 zeros at `run_seq` 0), both set by the log (a trust assumption 6.4 would
+   then state). The design adds:
+   - a signer-set envelope member `head`, `{"run_seq": n, "hash": DIGEST}`: the last record the log had appended to
+     the sender's run when the signer took the message to sign, set like `ts` and `nonce`, so the agent can't choose
+     it. The message's own record (4.4) holds the message's hash, so it comes after `head`;
+   - an evidence item marked `"since": true`, whose `records` are the claim's records and every record of the run
+     after the first of them, up to the one `head` names, in `run_seq` order.
+
+   The verifier checks, besides 6.2: each record after the first has a `run_seq` one more than the record before it
+   and a `run_prev_hash` equal to that record's `hash`; the last record's `run_seq` and `hash` are `head`'s. The run
+   chain binds each record to the next and the message's signature binds `head`, so every record of the item rests
+   on that signature, and no record of the run from the call to `head` is missing; what the log appends after `head`
+   is after the message. The records that prove the claim still carry inclusion proofs as in 6.2, so they stay under
+   a checkpoint and its witnesses; the others need none. The checkers then read the later records; a denied decision
+   counts for nothing (6.5):
+   - `tests_passed`: a later call of a `shell` tool whose opened command is `suite` fails the claim when its result's
+     `ok` is not `true` ("the suite failed after it passed"), and makes it `unproven` when it has no result yet. A
+     later `shell` call whose decision is not opened, and that has no result or one that is not `ok`, makes the claim
+     `unproven` ("a later shell call failed: open it to show it ran another command"). A sender clears an unrelated
+     failure by opening it; a later call that succeeded needs no opening. A later result the agent reported itself
+     (T1) is its word, so it shows a failure only when the agent reports one: only calls an attesting executor ran
+     show a later failure the agent would hide.
+   - `file_written`: a later call of a tool that writes files, to the claim's path with other content, fails the
+     claim; one whose path the evidence does not show makes it `unproven`. This needs the placement table to tell
+     writing tools from reading ones: its `fs` class holds both `Read` and `Write` (10.2).
+
+   Costs: the message carries every later record, about 1 KB each, so a cap in place of 6.2's 16 bounds how long
+   after the call a sender can claim; the receiver sees each later record's type, tool name, time and observed hosts,
+   though no unopened args (15); the verifier hashes each record once. Limits: the later records rest on the
+   message's signature, not on a cosigned checkpoint, unless the sender waits for a checkpoint that covers `head`
+   (14.24). The run is the sender's own, so a run of the suite in another run of the same agent does not show, nor
+   does a write by a shell command or another process (the receiver's digest check of 14.13 does), nor the runs
+   before the claimed one (a flaky suite run until it passed) unless the sender sends its run from `run_seq` 0.
+   Without a bound claim, the form shows that no later recorded run of the suite failed, not that the code is
+   unchanged: a later call that succeeded, of a shell or of a tool that writes files, may have changed it, though the
+   receiver sees its tool name.
+
+   **Bound claims.** The attesting executor records what a call ran on, in a new member of its `tool.result` record's
+   `data` (the profile's event schema closes `data` today, so the profile changes), and the claim names it:
+   - `tests_passed {suite, tree}`: the agent names a git commit, and the executor checks its tree out into a fresh
+     directory the agent can't write, runs the suite there and records the tree's id (in the repository's object
+     format: SHA-1 with collision detection, or SHA-256) as the result's `data.tree`. The claim is proven only by a
+     result whose `data.tree` is `tree`, and a receiver that merges commit C compares `tree` with
+     `git rev-parse C^{tree}`: a later run on other code no longer matters, and with the run since the call, a later
+     failure on the same tree shows. Hashing the agent's own working directory instead would not do: a file git
+     ignores (a `conftest.py` that marks every test passed, listed in `.git/info/exclude`) changes the result and not
+     the id, and the agent can change files while the runner runs. Installed dependencies, `PATH` and the environment
+     stay outside the tree. Cost: a checkout per run (seconds on a large tree), dependencies the executor provides
+     outside it, and the agent commits its changes before it asks for a run.
+   - `file_written {path, digest}`: the executor reads the file back after it writes it and records `data.file`,
+     `{"path", "digest"}`: the absolute path it wrote and SHA-256 of the bytes on disk. That record alone proves the
+     claim, so the decision need not be opened and the content stays with the sender; a relative path is resolved
+     where the call ran; and in the run since the call, later writes show their paths without openings. Cost: a
+     read-back and a hash per write, and the path is in clear in the log, where PCM 0.1 keeps every arg behind a
+     commitment (6.3).
+
+   A signer statement, "the last run of this suite in the run is seq N", was considered instead. It is smaller, but
+   a signer that commits to args (6.3) has none in clear to match commands with, and the receiver would take its
+   matching on trust instead of checking it.
+6. **A response with an error status** (6.6, `reached_host`). A call the host answered with an HTTP error, such as
    a 404, reached the host, but the evidence profile records only whether the result was ok, and an attesting party
    may record such a call as not ok (Appendix C.3), so it proves nothing. For PCM 0.2: the evidence profile could
    record whether a call got a response, such as its protocol status, so that `reached_host` rests on any response
@@ -2078,6 +2182,7 @@ with the normative text, that is a bug in one of them: open an issue.
 | 8 verification | `tracekit.pcm.verify` (an invalid envelope lists up to 8 reasons) |
 | 9 replay | `tracekit.pcm.Replay`; `Replay.check(record=False)` checks without recording |
 | 10.1 one key per log | `tracekit.pcm.verify`, which raises `ValueError` |
+| 10.1 hybrid keys | `tracekit.format.checkpoint.SLH_DSA`, the prefix of a hybrid key's bytes |
 | 10.2 tool placement | `tracekit.pcm.claims.placed()`, reading `tracekit/pcm/tools.json` |
 
 ### C.3 Behaviour beyond the protocol
@@ -2086,6 +2191,11 @@ with the normative text, that is a bug in one of them: open an issue.
   the calling run's own agent (uid:990101, run …, tenant default)`, and refuses a caller that holds the run token but
   is not the run's owner, such as a tailer or an observer (4.4). It writes an `ext` record with `name: pcm.sent` for
   each message it signs (4.4) and one with `name: pcm.grant` for each grant (7.4).
+- **Record times.** The signer sets every record's `ts` from its own clock when it appends the record, and a message's
+  `ts` from the same clock when it signs it; nothing a client sends sets either, though the event schema's description
+  of `ts` still says client-reported (14.13). `pcm_evidence` returns records with proofs under the latest checkpoint.
+  The SDK asks for a new checkpoint until one covers them, and the signer writes at most one a second on request (one
+  every 10 s while the log grows), so an honest sender has its evidence about a second after the call.
 - **Root grants.** The signer refuses a root grant whose approver `approvals.persons` in `signer.yaml` maps to no
   person, with `forbidden: a root grant needs the approval of a person signer.yaml's approvals.persons names: <id>
   maps to none`; an OIDC approver that `approvals.persons` does not map is one (7.4). It refuses a child whose
@@ -2120,7 +2230,9 @@ with the normative text, that is a bug in one of them: open an issue.
   is built. Tracekit's A2A gateway (`tracekit/a2a_gateway.py`) forwards a PCM part like any other part, without
   verifying it. The SDK call `RunHandle.transfer` records the transfer of 12.2: it takes the payload bytes, the model
   ids, the modality, an optional projector and the options `measured` and `keep`, and decides the tool
-  `a2a:transfer`. Nothing in Tracekit makes or checks the transfer payload of 12.3.
+  `a2a:transfer`. It goes ahead on an `allow` or a `flag` decision, or on an `ask` approved within 5 minutes; for a
+  flagged transfer the `decide` answer says `allow`, and only the signed `policy.decision` says `flag` (12.3 step 3).
+  Nothing in Tracekit makes or checks the transfer payload of 12.3.
 - **The demo.** `tracekit pcm demo` runs the refund example of section 1 with a real signer (a separate run from the
   vectors):
 

@@ -33,7 +33,8 @@ def conformance(out):
     part = lambda name, key: None if out[name] is None else out[name][key]   # noqa: E731
     return {"verdict": out["verdict"], "signature": part("signature", "ok"), "replay": part("replay", "ok"),
             "schema": part("schema", "ok"), "grants": part("grants", "result"),
-            "claims": None if out["claims"] is None else [(c["result"], c.get("approved")) for c in out["claims"]],
+            "claims": None if out["claims"] is None else [(c["result"], "approved" in c, c.get("approved"))
+                                                          for c in out["claims"]],
             "skipped": out["skipped"]}
 
 
@@ -64,6 +65,14 @@ def test_the_vectors_were_made_with_the_frozen_table():
     assert pcm_verify.TOOLS == json.loads(raw)
     for v in INDEX:
         assert json.loads((VECTORS / v["file"]).read_text())["input"]["tools"] == pcm_verify.TOOLS, v["name"]
+
+
+def test_conformance_tells_an_approved_null_from_none():
+    """SPEC 13.2: `approved` is present exactly when `expected` has it."""
+    out = {"verdict": "accept-unproven", "signature": None, "replay": None, "schema": None, "grants": None,
+           "skipped": [], "claims": [{"type": "tests_passed", "result": "unproven", "detail": "no evidence"}]}
+    extra = dict(out, claims=[dict(out["claims"][0], approved=None)])
+    assert conformance(extra) != conformance(out)
 
 
 @pytest.mark.parametrize("name", [v["name"] for v in INDEX])
@@ -133,6 +142,19 @@ def test_spec_ties_every_run_value_to_a_vector():
     """Ids and nonces (32 hex digits) change whenever the vectors are made again: SPEC.md holds each only inside an
     example tied to a vector, which test_spec_example checks."""
     assert re.findall(r"\b[0-9a-f]{32}\b", QUOTED.sub("", SPEC.read_text())) == []
+
+
+def unread(text):
+    """The comments in `text` that QUOTED does not tie to an example, but for one quoted as inline code (SPEC 3.4)."""
+    read = {m.start() for m in QUOTED.finditer(text)}
+    return [text[m.start():text.index("-->", m.start()) + 3] for m in re.finditer(r"(?<!`)<!--", text)
+            if m.start() not in read]
+
+
+def test_spec_ties_every_marker_to_its_example():
+    """A mistyped marker, or a word between a marker and its example, would leave the example unchecked."""
+    assert unread(SPEC.read_text()) == []
+    assert unread("<!-- vectr a b -->\n`x`\n<!-- vector a b --> see `x`") == ["<!-- vectr a b -->", "<!-- vector a b -->"]
 
 
 # ---------------------------------------------------------------------------------------------------- hostile input
@@ -313,8 +335,8 @@ def test_only_printable_ascii_is_read(host, url):
     readers of each Unicode version name some hosts apart, and URL readers drop spaces, tabs and controls differently,
     even inside a percent-escape. The detail says what the sender can do (SPEC 6.6)."""
     assert pcm_verify.reached_host({"host": host}, fetched(url)) == (
-        "unproven", f"the verifier can't tell whether call c reached {host}: its URL is not printable ASCII: send the "
-        "URL with the host in xn-- form and the path and query percent-encoded")
+        "unproven", f"the verifier can't tell whether call c reached {host}: its URL is not printable ASCII: send it "
+        "without spaces or control characters, with the host in xn-- form and anything else percent-encoded")
 
 
 @pytest.mark.parametrize("host, url", [

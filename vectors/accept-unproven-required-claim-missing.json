@@ -1,0 +1,190 @@
+{
+  "name": "accept-unproven-required-claim-missing",
+  "description": "A refund request under alice's root grant with no claim, though the schema lists approved_by; not strict.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "002bb52d09ad04bb8d580ce3525471a1",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "grants": [
+        {
+          "pcm_grant": 0,
+          "ts": "2026-10-28T01:47:46.486234Z",
+          "issuer": {
+            "kind": "person",
+            "id": "uid:990001",
+            "run": "002bb52d09ad04bb8d580ce3525471a1",
+            "tenant": "default",
+            "approval_id": "apr-190b1886a42863cf7e093710cbb415cf",
+            "person": "alice"
+          },
+          "subject": "uid:990101",
+          "intent": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
+          "caveats": [
+            {
+              "field": "amount",
+              "op": "<=",
+              "value": 20000
+            },
+            {
+              "field": "order",
+              "op": "==",
+              "value": 81
+            }
+          ],
+          "expires_at": "2026-10-28T02:47:46.484254Z",
+          "delegable": false,
+          "parent": null,
+          "sig": {
+            "key": "example.com/pcm-test-log+0bb91e66",
+            "sig": "j5V7Ve8do7c0FsXzXQvEE7RA/Tro5+iVvvh1PttQbvtuHuSckco2Q+uDmFzuIKwArrDCbK92Gugb2kKQzysoCQ=="
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "53924c4a7e13b24889f046c058587d0b",
+      "ts": "2026-10-28T01:47:50.338601Z",
+      "nonce": "ad2f622afefa23af7e1426f1847336c1",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "bgIRvnrD2P/mM50i6IUOPfwd29XZi23hVPBAmqUhWFYE9EcXpzWeVlTyQZ7U1PYKuZe63RbtUj3c1JDl1nlABg=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.request",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        },
+        "claims": [
+          "approved_by"
+        ],
+        "grant": true
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "Edit": "fs",
+      "Glob": "fs",
+      "Grep": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "Write": "fs",
+      "bash": "shell",
+      "container.exec": "shell",
+      "create_charge": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_refund": "payment",
+      "create_transfer": "payment",
+      "execute_query": "sql",
+      "execute_sql": "sql",
+      "fetch": "http",
+      "get_balance": "payment",
+      "get_transaction": "payment",
+      "gmail_send_message": "email",
+      "http_get": "http",
+      "http_post": "http",
+      "http_request": "http",
+      "list_payments": "payment",
+      "list_transactions": "payment",
+      "local_shell": "shell",
+      "mcp:fetch/fetch": "http",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "pay_invoice": "payment",
+      "query_database": "sql",
+      "requests_delete": "http",
+      "requests_get": "http",
+      "requests_patch": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "run_shell_command": "shell",
+      "run_sql": "sql",
+      "run_terminal_cmd": "shell",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "send_payment": "payment",
+      "shell": "shell",
+      "sql_db_query": "sql",
+      "srt:request": "http",
+      "terminal": "shell",
+      "transfer_funds": "payment",
+      "web_fetch": "http"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-28T01:47:51.338601Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
+      "errors": []
+    },
+    "grants": {
+      "result": "ok",
+      "steps": 1,
+      "root": {
+        "kind": "person",
+        "id": "uid:990001",
+        "person": "alice"
+      },
+      "problems": []
+    },
+    "claims": [],
+    "verdict": "accept-unproven",
+    "reasons": [
+      "approved_by: required, not proven"
+    ],
+    "skipped": [
+      "replay"
+    ]
+  }
+}

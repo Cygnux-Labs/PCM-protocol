@@ -44,8 +44,8 @@ QUOTE = {"pcm_schema": 0, "name": "refund.quote", "fields": FIELDS}   # no grant
 PASSED = {"pcm_schema": 0, "name": "refund.passed", "fields": FIELDS, "grant": True}   # for delegated grants
 ARGS = {"amount": 12000, "order": 81}
 # SPEC 6.6: what a call's detail tells the sender when its URL's host won't parse for a cause the sender can fix
-NOT_ASCII = "its URL is not printable ASCII: send the URL with the host in xn-- form and the path and query " \
-            "percent-encoded"
+NOT_ASCII = "its URL is not printable ASCII: send it without spaces or control characters, with the host in xn-- " \
+            "form and anything else percent-encoded"
 PERCENT = "its host has a %: send the URL with the host as plain ASCII, not percent-encoded"
 NOT_QUAD = "its host is an IPv4 address not written as a dotted quad: send it as four decimal numbers 0-255 without " \
            "leading zeros"
@@ -977,6 +977,13 @@ def cases(s, s2):
         vector(f"reject-grant-{name}-widened-child", f"A's child to B has {widened} instead; {edited}.",
                b.send(C, sref, sargs, grants=[sroot, resign(kid, "pcm-grant", caveats=scoped_caveats(*wide))]),
                [scoped], "dropped or widened", me=C)
+
+    # accept-unproven at Level 1, where no claim carries evidence (SPEC 13.2)
+    vector("accept-unproven-claim-without-evidence", "A refund.quote with a tests_passed claim and no evidence.",
+           a.send("uid:990102", qref, claims=[tp]), [QUOTE], "tests_passed: unproven (no evidence)")
+    vector("accept-unproven-required-claim-missing", "A refund request under alice's root grant with no claim, though "
+           "the schema lists approved_by; not strict.", a.send("uid:990102", ref, grants=[root]), [DOC],
+           "approved_by: required, not proven")
     return out
 
 

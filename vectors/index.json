@@ -1096,5 +1096,17 @@
     "file": "reject-grant-time-bound-widened-child.json",
     "description": "A's child to B has due <= 2027-01-31, a later bound instead; the signer refuses it, so it is the real child edited and re-signed with the test log key.",
     "verdict": "reject"
+  },
+  {
+    "name": "accept-unproven-claim-without-evidence",
+    "file": "accept-unproven-claim-without-evidence.json",
+    "description": "A refund.quote with a tests_passed claim and no evidence.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-required-claim-missing",
+    "file": "accept-unproven-required-claim-missing.json",
+    "description": "A refund request under alice's root grant with no claim, though the schema lists approved_by; not strict.",
+    "verdict": "accept-unproven"
   }
 ]

@@ -1,0 +1,161 @@
+{
+  "name": "accept-unproven-claim-without-evidence",
+  "description": "A refund.quote with a tests_passed claim and no evidence.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "002bb52d09ad04bb8d580ce3525471a1",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "claims": [
+        {
+          "type": "tests_passed",
+          "args": {
+            "suite": "pytest -q tests/test_refund.py"
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "3fe26e0d39a7a321902c52c54f3afa32",
+      "ts": "2026-10-28T01:47:50.338370Z",
+      "nonce": "49cccac54f85aa6cc94baa81cd2697ba",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "ioZUMkD5Uog7kOdmVw+ATnsoCmARXygMvX78ysD74pYOM41YSfkNfU3ku1O68x/gaIOgR6T6TCedRWMsfKx/Aw=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.quote",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        }
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "Edit": "fs",
+      "Glob": "fs",
+      "Grep": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "Write": "fs",
+      "bash": "shell",
+      "container.exec": "shell",
+      "create_charge": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_refund": "payment",
+      "create_transfer": "payment",
+      "execute_query": "sql",
+      "execute_sql": "sql",
+      "fetch": "http",
+      "get_balance": "payment",
+      "get_transaction": "payment",
+      "gmail_send_message": "email",
+      "http_get": "http",
+      "http_post": "http",
+      "http_request": "http",
+      "list_payments": "payment",
+      "list_transactions": "payment",
+      "local_shell": "shell",
+      "mcp:fetch/fetch": "http",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "pay_invoice": "payment",
+      "query_database": "sql",
+      "requests_delete": "http",
+      "requests_get": "http",
+      "requests_patch": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "run_shell_command": "shell",
+      "run_sql": "sql",
+      "run_terminal_cmd": "shell",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "send_payment": "payment",
+      "shell": "shell",
+      "sql_db_query": "sql",
+      "srt:request": "http",
+      "terminal": "shell",
+      "transfer_funds": "payment",
+      "web_fetch": "http"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-28T01:47:51.338370Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.quote@sha256:96647e7394c901f9f551b9a4eaaa50ad145e75c9b47a2ab6f28e9de59e1e6593",
+      "errors": []
+    },
+    "grants": {
+      "result": "none",
+      "steps": 0,
+      "root": null,
+      "problems": []
+    },
+    "claims": [
+      {
+        "type": "tests_passed",
+        "result": "unproven",
+        "detail": "no evidence"
+      }
+    ],
+    "verdict": "accept-unproven",
+    "reasons": [
+      "tests_passed: unproven (no evidence)"
+    ],
+    "skipped": [
+      "replay"
+    ]
+  }
+}
