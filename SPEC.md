@@ -1362,7 +1362,8 @@ claim `reject-claim-changed-record-hash`, and `strict` `reject-strict-required-u
 
 Replay state is per receiver. A receiver keeps one replay state for its whole life and passes every message through
 it. **[Implemented]** Parameters: `window_s` (default 300 seconds; `null` for an auditor reading a saved
-conversation), `per_sender` (default 4096), and `started`, the time the state was created.
+conversation), `per_sender` (default 4096), and `started`, the time the state was created, in whole
+microseconds as a TS is.
 
 **The sender (decided, 0.1).** A sender is the pair (`sig.key`, `from.agent`), never `from.agent` alone. Rationale:
 an identity is a name inside one signer, so `uid:990101` of one log and `uid:990101` of another are two senders, and
@@ -1572,7 +1573,7 @@ are the ones that ran.
   verifier MUST give every claim that has evidence the result
   `unproven` ("evidence not checked"). It never gives `proven`.
 - **Level 2**: Level 1, plus evidence (6.2, 6.3), the evidence profile (6.4) and the four claim checkers (6.5, 6.6).
-- The transfer extension (12) is separate and **[Draft]**.
+- The transfer extension (12) is separate and **[Draft]**, except 12.2 (recording only).
 
 ### 13.2 Test vectors
 

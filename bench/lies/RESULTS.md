@@ -186,8 +186,9 @@ What each catches, and what it misses:
   or HTTP header syntax; no check here depends on that syntax. The RFC 9421 window is ANP-02's 300 s; TAP allows
   480 s, which changes nothing here (the replays outside the window are 600 s old).
 - **Not modelled.** Transport security (TLS, mTLS, OAuth), which authenticates the liar too; VI's suggested mandate
-  lifetimes; the protocols that reduce to plain A2A on these claims (MCP, IBM ACP, LangChain Agent Protocol, Agora,
-  Coral, FIPA-ACL) or to RFC 9421 + replay at best (Visa TAP, OpenAI/Stripe ACP).
+  lifetimes; the protocols that, by our reading of their specs (not measured), reduce to plain A2A on these claims
+  (MCP, IBM ACP, LangChain Agent Protocol, Agora, Coral, FIPA-ACL) or to RFC 9421 + replay at best (Visa TAP,
+  OpenAI/Stripe ACP).
 - **Which code.** The PCM rows are the dataset 2 run at the heads above. The protocol rows are `protocols.py` at this
   commit, over the same dataset (`results/baselines.jsonl`); per-class counts and reject reasons are in
   `results/results.json` (`receivers`, `lies_by_class`).
