@@ -1,16 +1,15 @@
 # PCM: Proof-Carrying Messages
 
-![spec](https://img.shields.io/badge/spec-draft%200.1-4a3aa7)
-![status](https://img.shields.io/badge/status-experimental-eb6834)
+![benchmark](https://img.shields.io/badge/PCM--Lies-926%20messages%2C%20pre--registered-2a78d6)
 ![vectors](https://img.shields.io/badge/test%20vectors-187-2a78d6)
-![verifier](https://img.shields.io/badge/standalone%20verifier-553%20tests-1baf7a)
-![benchmark](https://img.shields.io/badge/PCM--Lies-926%20messages-2a78d6)
+![verifier](https://img.shields.io/badge/independent%20verifier-553%20tests-1baf7a)
+![spec](https://img.shields.io/badge/PCM-0.1%20%C2%B7%20draft-52514e)
 ![licence](https://img.shields.io/badge/licence-MIT-52514e)
 
 PCM is a protocol for messages between AI agents in which each claim about what happened can carry evidence that the
 receiver checks offline: records from a log the sending agent can't write, with Merkle inclusion proofs.
 
-Draft 0.1, experimental. Numbers in parentheses below are sections of the specification, [`SPEC.md`](SPEC.md).
+PCM 0.1, a draft. Numbers in parentheses below are sections of the specification, [`SPEC.md`](SPEC.md).
 
 **In one paragraph.** When one AI agent tells another "the tests passed" or "a person approved this", the receiver
 today has only its word. PCM lets each such claim carry signed records from a log the sending agent can't write, and
