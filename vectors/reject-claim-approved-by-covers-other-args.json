@@ -1,0 +1,318 @@
+{
+  "name": "reject-claim-approved-by-covers-other-args",
+  "description": "A refund.pay request of 12000, whose schema needs approved_by and names the tool pay, with an approved_by claim citing alice's approval of a pay of 500, opened, cited for a pay of 12000.",
+  "input": {
+    "message": {
+      "from": {
+        "agent": "uid:990101",
+        "run": "583adcec7efc28ba23dc979d477777ff",
+        "tenant": "default"
+      },
+      "to": {
+        "agent": "uid:990102"
+      },
+      "intent": {
+        "type": "refund.pay@sha256:8fb3730df6c1a7b0f5697fc57f0b9283a7e8597a467c5b8ae03e040c0e9b0aa9",
+        "args": {
+          "amount": 12000,
+          "order": 81
+        }
+      },
+      "claims": [
+        {
+          "type": "approved_by",
+          "args": {
+            "person": "alice",
+            "call": "pay-6",
+            "covers": true
+          },
+          "evidence": {
+            "checkpoint": "example.com/pcm-test-log\n141\ngpVO1rzbC+TvIG9qFhW0ZT7YeLoq0tFqbPn9z6f/X5E=\n\n— example.com/pcm-test-log C7keZslh9Je/mQQruiGEEI+PR8QioCp44szl+XvnBpkinWWxhUcclTtwNcxIRxb8zU41O0s0pijYiqhvY+9VuN2meAw=\n",
+            "records": [
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "af51b550bf2803bb28844cfd0e5a2415",
+                  "seq": 138,
+                  "prev_hash": "sha256:583e7f9229d1f1fe16c3a76e300257a75d46feedbaf39eb54495209bbcdeead6",
+                  "ts": "2026-10-28T01:45:52.839011Z",
+                  "run_id": "583adcec7efc28ba23dc979d477777ff",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "sdk",
+                  "type": "policy.decision",
+                  "data": {
+                    "tool_use_id": "pay-6",
+                    "tool": "pay",
+                    "policy_hash": "sha256:3f3eddde6b59a08711e0fa1b50510e76102e81e7797b02ec8da424c82ff2bd47",
+                    "engine": "re2@1.1.20251105",
+                    "expires_at": "2026-10-28T01:50:52.838954Z",
+                    "decision_id": "dec-0259a95a6dd94bd81b51136e3763a629",
+                    "nonce": "a808f8ff8184061d99b6ed1466dd40dd",
+                    "decision": "ask",
+                    "rule_ids": [
+                      "PAY"
+                    ],
+                    "args_commitment": "hmac-sha256:bce8b24f4025b68874020e43da66d8133e45679f155d2ee0a314a8ad4626d91a"
+                  },
+                  "tenant": "default",
+                  "log_id": "f212ce306d8778f6832cc0d512429c56",
+                  "run_seq": 113,
+                  "run_prev_hash": "sha256:583e7f9229d1f1fe16c3a76e300257a75d46feedbaf39eb54495209bbcdeead6",
+                  "request_id": "r141",
+                  "stream": "s",
+                  "client_seq": 23,
+                  "tool_call_id": "pay-6",
+                  "attempt": 0,
+                  "args_source": "parsed"
+                },
+                "hash": "sha256:b6f5ff461fec47ead5a36f3400052beadb3e015f453d3ea3859b17d564e649d9",
+                "proof": [
+                  "i9bc+Mw3TaaQl9P0dMTV7V2HkR6GRgyvw4lS/wUuJNg=",
+                  "TE5GFxYHUkBdhgc9PeSDln7b0cUK1IproqIf5mKJlVA=",
+                  "B7XGToIZ4SzzsmFWpOHqo3vcICF8SW15YChpx4UMASk=",
+                  "V7sa7YZPQmtJpQ3vZnqLxzsM0yQpMoZSQ0WRyhpQ4F0=",
+                  "2SX9lxZ6OLW2EvLPvsin1gv0fhSmmq+49Lgh/nUbZAU="
+                ],
+                "salt": "64675b8c6ff9be138299cf3c07b869e5ac537f1fc0f59bbee48ebf1aa538ee58",
+                "args": {
+                  "amount": 500,
+                  "order": 81
+                }
+              },
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "cd013a9f8dc88ef5a70df2d9f6a843f0",
+                  "seq": 139,
+                  "prev_hash": "sha256:b6f5ff461fec47ead5a36f3400052beadb3e015f453d3ea3859b17d564e649d9",
+                  "ts": "2026-10-28T01:45:52.839743Z",
+                  "run_id": "583adcec7efc28ba23dc979d477777ff",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "sdk",
+                  "type": "approval.request",
+                  "data": {
+                    "approval_id": "apr-c719977b9aec4c6d869f2a23d070a992",
+                    "decision_id": "dec-0259a95a6dd94bd81b51136e3763a629",
+                    "policy_hash": "sha256:3f3eddde6b59a08711e0fa1b50510e76102e81e7797b02ec8da424c82ff2bd47",
+                    "rule_ids": [
+                      "PAY"
+                    ],
+                    "expires_at": "2026-10-28T02:45:52.839221Z",
+                    "requester": "uid:990101",
+                    "binding": {
+                      "v": 1,
+                      "approval_id": "apr-c719977b9aec4c6d869f2a23d070a992",
+                      "tenant": "default",
+                      "run_id": "583adcec7efc28ba23dc979d477777ff",
+                      "tool_call_id": "pay-6",
+                      "attempt": 0,
+                      "tool": "pay",
+                      "args_commitment": "hmac-sha256:80a4df99cc7c6d889561f40767367d6aa15bb474299b2fbdea62d27b14d21944",
+                      "args_source": "parsed",
+                      "policy_hash": "sha256:3f3eddde6b59a08711e0fa1b50510e76102e81e7797b02ec8da424c82ff2bd47",
+                      "nonce": "bd9ba2ae82dc242d1f37320a9958dd6e",
+                      "expires_at": "2026-10-28T02:45:52.839221Z"
+                    },
+                    "binding_digest": "sha256:80897f8d4c55ee4cf9a65b25fc6d3fdc34517aabad8c3b6f32d7e540359aeaa3",
+                    "salt_id": "be35e8b681ffb45746970ed5eb33fb4b"
+                  },
+                  "tenant": "default",
+                  "log_id": "f212ce306d8778f6832cc0d512429c56",
+                  "run_seq": 114,
+                  "run_prev_hash": "sha256:b6f5ff461fec47ead5a36f3400052beadb3e015f453d3ea3859b17d564e649d9",
+                  "request_id": "r142",
+                  "tool_call_id": "pay-6",
+                  "attempt": 0
+                },
+                "hash": "sha256:6b4bb37ad0488d1b4f7c916e4f4636554b38081169a120095d598901d40b1397",
+                "proof": [
+                  "rpMRtC3gr2/yJvZfgxfc82rjiIi/dFQ8CWT8mWcY86c=",
+                  "TE5GFxYHUkBdhgc9PeSDln7b0cUK1IproqIf5mKJlVA=",
+                  "B7XGToIZ4SzzsmFWpOHqo3vcICF8SW15YChpx4UMASk=",
+                  "V7sa7YZPQmtJpQ3vZnqLxzsM0yQpMoZSQ0WRyhpQ4F0=",
+                  "2SX9lxZ6OLW2EvLPvsin1gv0fhSmmq+49Lgh/nUbZAU="
+                ]
+              },
+              {
+                "event": {
+                  "schema_version": "tracekit.event.v2",
+                  "id": "73bceee36f1c3018c07695286855d6ba",
+                  "seq": 140,
+                  "prev_hash": "sha256:6b4bb37ad0488d1b4f7c916e4f4636554b38081169a120095d598901d40b1397",
+                  "ts": "2026-10-28T01:45:52.839931Z",
+                  "run_id": "583adcec7efc28ba23dc979d477777ff",
+                  "agent_id": "main",
+                  "parent_id": null,
+                  "source": "sdk",
+                  "type": "approval",
+                  "data": {
+                    "tool_use_id": "pay-6",
+                    "approval_id": "apr-c719977b9aec4c6d869f2a23d070a992",
+                    "decision": "approve",
+                    "approver": "uid:990001",
+                    "approver_identity": {
+                      "scheme": "uid",
+                      "subject": "990001",
+                      "attested": true
+                    },
+                    "channel": "rpc",
+                    "self_approved": false,
+                    "person": "alice"
+                  },
+                  "tenant": "default",
+                  "log_id": "f212ce306d8778f6832cc0d512429c56",
+                  "run_seq": 115,
+                  "run_prev_hash": "sha256:6b4bb37ad0488d1b4f7c916e4f4636554b38081169a120095d598901d40b1397",
+                  "request_id": "r143",
+                  "tool_call_id": "pay-6"
+                },
+                "hash": "sha256:fb94b598e7b5c864676c08e80d4a8357209f5c2c8113d494972c3bc3d6ecba8d",
+                "proof": [
+                  "b8mGtjD7GQrgmYglRD2CqKdY6tjIvx9T5WtF3IMFep8=",
+                  "V7sa7YZPQmtJpQ3vZnqLxzsM0yQpMoZSQ0WRyhpQ4F0=",
+                  "2SX9lxZ6OLW2EvLPvsin1gv0fhSmmq+49Lgh/nUbZAU="
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "pcm": 0,
+      "id": "ee7b5b90023a28c529266d90733005b3",
+      "ts": "2026-10-28T01:45:52.863134Z",
+      "nonce": "e4894d67ada2174813e4ba112f497421",
+      "sig": {
+        "key": "example.com/pcm-test-log+0bb91e66",
+        "sig": "2emGIilFS+yEgF1PGwZupsfSnkiS3iNrfMcEr61VJgKL4jnyLq03MeC8nUNjdKVm+jRC5q8rW3Yrd6d9N2xADA=="
+      }
+    },
+    "schemas": [
+      {
+        "pcm_schema": 0,
+        "name": "refund.pay",
+        "fields": {
+          "amount": {
+            "type": "money",
+            "currency": "USD",
+            "max": 1000000
+          },
+          "order": {
+            "type": "int",
+            "min": 1,
+            "max": 999999999
+          }
+        },
+        "claims": [
+          "approved_by"
+        ],
+        "tool": "pay"
+      }
+    ],
+    "trust": {
+      "logs": [
+        "example.com/pcm-test-log+0bb91e66+ASiESUZlr4+aYnGbR8MnqhEfMelvE25+EAPkEwgpZl6C"
+      ],
+      "witnesses": [],
+      "witnesses_required": 0
+    },
+    "tools": {
+      "Bash": "shell",
+      "Edit": "fs",
+      "Glob": "fs",
+      "Grep": "fs",
+      "MultiEdit": "fs",
+      "NotebookEdit": "fs",
+      "Read": "fs",
+      "WebFetch": "http",
+      "WebSearch": "http",
+      "Write": "fs",
+      "bash": "shell",
+      "container.exec": "shell",
+      "create_charge": "payment",
+      "create_payment": "payment",
+      "create_payout": "payment",
+      "create_refund": "payment",
+      "create_transfer": "payment",
+      "execute_query": "sql",
+      "execute_sql": "sql",
+      "fetch": "http",
+      "get_balance": "payment",
+      "get_transaction": "payment",
+      "gmail_send_message": "email",
+      "http_get": "http",
+      "http_post": "http",
+      "http_request": "http",
+      "list_payments": "payment",
+      "list_transactions": "payment",
+      "local_shell": "shell",
+      "mcp:fetch/fetch": "http",
+      "mcp:mysql/execute_sql": "sql",
+      "mcp:postgres/query": "sql",
+      "mcp:sqlite/read_query": "sql",
+      "mcp:sqlite/write_query": "sql",
+      "mcp:supabase/execute_sql": "sql",
+      "pay_invoice": "payment",
+      "query_database": "sql",
+      "requests_delete": "http",
+      "requests_get": "http",
+      "requests_patch": "http",
+      "requests_post": "http",
+      "requests_put": "http",
+      "run_shell_command": "shell",
+      "run_sql": "sql",
+      "run_terminal_cmd": "shell",
+      "send_email": "email",
+      "send_gmail_message": "email",
+      "send_payment": "payment",
+      "shell": "shell",
+      "sql_db_query": "sql",
+      "srt:request": "http",
+      "terminal": "shell",
+      "transfer_funds": "payment",
+      "web_fetch": "http"
+    },
+    "options": {
+      "me": "uid:990102",
+      "strict": false,
+      "now": "2026-10-28T01:45:53.863134Z",
+      "replay": null
+    }
+  },
+  "expected": {
+    "signature": {
+      "ok": true,
+      "key": "example.com/pcm-test-log+0bb91e66"
+    },
+    "replay": {
+      "ok": null,
+      "detail": "not checked"
+    },
+    "schema": {
+      "ok": true,
+      "ref": "refund.pay@sha256:8fb3730df6c1a7b0f5697fc57f0b9283a7e8597a467c5b8ae03e040c0e9b0aa9",
+      "errors": []
+    },
+    "grants": {
+      "result": "none",
+      "steps": 0,
+      "root": null,
+      "problems": []
+    },
+    "claims": [
+      {
+        "type": "approved_by",
+        "result": "failed",
+        "detail": "approval seq 140 by alice of \"pay\" call pay-6 with args {\"amount\":500,\"order\":81}: not this request's args {\"amount\":12000,\"order\":81}, so it does not cover this request"
+      }
+    ],
+    "verdict": "reject",
+    "reasons": [
+      "approved_by: failed (approval seq 140 by alice of \"pay\" call pay-6 with args {\"amount\":500,\"order\":81}: not this request's args {\"amount\":12000,\"order\":81}, so it does not cover this request)"
+    ],
+    "skipped": [
+      "replay"
+    ]
+  }
+}

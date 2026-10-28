@@ -247,6 +247,8 @@ def cases(s, s2):
     root, seqs = a.grant("grant-1", ref)
     ev = a.evidence(seqs)   # the pcm.grant decision, the approval.request that names it, alice's approval
     approved = {"type": "approved_by", "args": {"person": "alice", "call": "grant-1"}, "evidence": ev}
+    # SPEC 6.6: alice's approval issued the root grant, so it covers the requests under it, as the schema's need asks
+    covered = dict(approved, args={**approved["args"], "covers": True})
     tp = {"type": "tests_passed", "args": {"suite": SUITE}}
 
     def call(tool, args, t2=True, status="ok"):
@@ -259,23 +261,24 @@ def cases(s, s2):
                 "evidence": call(tool, {"command": command}, t2, status)}
 
     # accept and accept-unproven
-    m = a.send("uid:990102", ref, claims=[approved], grants=[root])
-    vector("accept-approved-by", "A refund request under alice's root grant, with an approved_by claim proven by her "
-           "approval, the approval.request it answers and the pcm.grant decision that request names; replay "
-           "checked.", m, [DOC], replay=fresh(m))
-    m = a.send("uid:990102", ref, claims=[approved, ran("Bash", SUITE)], grants=[root])
+    m = a.send("uid:990102", ref, claims=[covered], grants=[root])
+    vector("accept-approved-by", "A refund request under alice's root grant, with an approved_by claim with covers "
+           "proven by her approval, the approval.request it answers and the pcm.grant decision that request names: "
+           "the approval issued the message's root grant, so it covers the request; replay checked.", m, [DOC],
+           replay=fresh(m))
+    m = a.send("uid:990102", ref, claims=[covered, ran("Bash", SUITE)], grants=[root])
     vector("accept-tests-passed-t2", "The accept message plus tests_passed proven by a result the tool executor wrote "
            "(T2).", m, [DOC])
-    m = a.send("uid:990102", ref, claims=[approved, tp], grants=[root])
+    m = a.send("uid:990102", ref, claims=[covered, tp], grants=[root])
     vector("accept-unproven-no-evidence", "The accept message plus a tests_passed claim with no evidence.", m, [DOC],
            "tests_passed: unproven (no evidence)")
-    m = a.send("uid:990102", ref, claims=[approved, ran("Bash", SUITE, t2=False)], grants=[root])
+    m = a.send("uid:990102", ref, claims=[covered, ran("Bash", SUITE, t2=False)], grants=[root])
     vector("accept-unproven-t1-result", "tests_passed whose only result is the agent's own report (T1).", m, [DOC],
            "the agent's own report (T1)")
-    m = a.send("uid:990102", ref, claims=[approved, ran("mcp:ci/run", SUITE)], grants=[root])
+    m = a.send("uid:990102", ref, claims=[covered, ran("mcp:ci/run", SUITE)], grants=[root])
     vector("accept-unproven-unplaced-tool", "tests_passed run by the executor through mcp:ci/run, a tool the "
            "placement table does not list as shell.", m, [DOC], "can't place as a shell tool")
-    m = a.send("uid:990102", ref, claims=[{"type": "approved_by", "args": approved["args"]}], grants=[root])
+    m = a.send("uid:990102", ref, claims=[{"type": "approved_by", "args": covered["args"]}], grants=[root])
     vector("reject-strict-required-unproven", "strict: the schema requires approved_by and the claim has no "
            "evidence.", m, [DOC], "approved_by: required, not proven", strict=True)
 
@@ -426,11 +429,12 @@ def cases(s, s2):
            decision="approve")
     pdec, preq, papp = a.approval("pay-1")
     motd = a.evidence([pdec, preq, papp], {pdec: {"path": "/etc/motd"}})
-    vector("accept-approved-by-opened-args", "approved_by of call pay-1, which the agent decided twice: a pay of 50000, "
-           "then a read_file of /etc/motd. alice approved the read_file, and the evidence opens its decision: the "
-           "result's approved names the read_file and its args, which the receiver reads, whatever the call id says.",
-           a.send("uid:990102", ref, claims=[{"type": "approved_by", "args": {"person": "alice", "call": "pay-1"},
-                                              "evidence": motd}], grants=[root]), [DOC])
+    vector("accept-approved-by-opened-args", "approved_by of call pay-1, without covers, on a refund.quote, which needs "
+           "no claim. The agent decided pay-1 twice: a pay of 50000, then a read_file of /etc/motd. alice approved the "
+           "read_file, and the evidence opens its decision: the result's approved names the read_file and its args, "
+           "whatever the call id says.",
+           a.send("uid:990102", qref, claims=[{"type": "approved_by", "args": {"person": "alice", "call": "pay-1"},
+                                               "evidence": motd}]), [QUOTE])
     failed("record-listed-twice", "approved_by whose evidence lists the opened read_file decision of pay-1 twice: "
            "evidence that lists a record twice fails, so a decision listed opened and unopened can't make what was "
            "approved depend on the order of the records.",
@@ -462,7 +466,7 @@ def cases(s, s2):
     note = ev["checkpoint"]
     text = note[:note.find("\n\n") + 1]
     vector("accept-witnessed", "approved_by under a note cosigned by the pinned witness; trust requires one witness.",
-           a.send("uid:990102", ref, claims=[dict(approved, evidence=dict(ev, checkpoint=note + checkpoint.cosign(
+           a.send("uid:990102", ref, claims=[dict(covered, evidence=dict(ev, checkpoint=note + checkpoint.cosign(
                text, WITNESS["name"], seed("witness"), int(time.time()))))], grants=[root]), [DOC],
            trust=dict(trust, witnesses=[WITNESS], witnesses_required=1))
     failed("malformed-unpinned-note-line", "approved_by under a note with an extra signature line of a key trust does "
@@ -552,6 +556,58 @@ def cases(s, s2):
            "the claim is malformed, so it fails without evidence too.",
            {"type": "file_written", "args": {"path": "work/report.txt", "digest": "sha256:" + "0" * 64}},
            "is relative")
+
+    # approved_by with covers (SPEC 6.6): refund.pay needs alice's approval of the pay call it stands for, no grant
+    pay_doc = {"pcm_schema": 0, "name": "refund.pay", "fields": FIELDS, "claims": ["approved_by"], "tool": "pay"}
+    granted = dict(DOC, name="refund.pay-granted", tool="pay")   # a grant, and a tool the grant path doesn't read
+    no_tool = {k: v for k, v in pay_doc.items() if k != "tool"}
+    payref, gref, nref = (pcm.schema_ref(d) for d in (pay_doc, granted, no_tool))
+
+    def approved_call(tcid, tool, args, covers=True, opened=True):
+        """An approved_by claim citing alice's approval of a `tool` call of `args`, its decision opened or not."""
+        a.call("decide", stream="s", client_seq=next(a.seqs), tool_call_id=tcid, tool=tool, args_source="parsed",
+               args=args)
+        s.call(ALICE, "approval_decide", approval_id=a.call("approval_request", tool_call_id=tcid)["approval_id"],
+               decision="approve")
+        seqs = a.approval(tcid)
+        return {"type": "approved_by", "args": {"person": "alice", "call": tcid, **({"covers": True} if covers else {})},
+                "evidence": a.evidence(seqs, {seqs[0]: args} if opened else None)}
+    small = {**ARGS, "amount": 500}
+    for name, doc, claim, want, what in (
+            ("accept-approved-by-covers-direct", pay_doc, approved_call("pay-3", "pay", ARGS), "",
+             "of a pay of the request's args, opened: the tool the schema names, and the intent's args"),
+            ("accept-unproven-approved-by-covers-not-opened", pay_doc, approved_call("pay-4", "pay", ARGS, opened=False),
+             "open the decision", "of a pay whose decision the evidence does not open, so the verifier can't tell "
+             "whether its args are the request's"),
+            ("accept-unproven-approved-by-covers-schema-without-tool", no_tool, approved_call("pay-5", "pay", ARGS),
+             "name the tool in the schema document", "of a pay of the request's args, opened: the schema names no "
+             "tool, so the verifier can't tell whether the approval covers the request"),
+            ("reject-claim-approved-by-covers-other-args", pay_doc, approved_call("pay-6", "pay", small),
+             "not this request's args", "of a pay of 500, opened, cited for a pay of 12000"),
+            ("reject-claim-approved-by-covers-other-tool", pay_doc,
+             approved_call("read-1", "read_file", {"path": "/etc/motd"}, opened=False), 'not of "pay"',
+             "of a read_file, not opened: the decision's tool is in the record, so it fails unopened too"),
+            ("accept-unproven-approved-by-required-without-covers", pay_doc,
+             approved_call("pay-7", "pay", small, covers=False), "approved_by: required, not proven to cover this "
+             "request", "of a pay of 500, opened, cited for a pay of 12000 without covers: the claim is proven, as alice "
+             "approved that call, but meets the schema's need only with covers")):
+        named = "names the tool pay" if doc is pay_doc else "names no tool"
+        vector(name, f"A refund.pay request of 12000, whose schema needs approved_by and {named}, with an approved_by "
+               f"claim citing alice's approval {what}.", a.send("uid:990102", payref if doc is pay_doc else nref,
+                                                                 claims=[claim]), [doc], want)
+    groot, gseqs = a.grant("grant-pg", gref)
+    vector("accept-approved-by-covers-grant", "A refund under alice's root grant, whose schema names the tool pay, with "
+           "an approved_by claim with covers citing her approval of the pcm.grant call that issued the root grant: "
+           "the grant path holds whatever tool the schema names.",
+           a.send("uid:990102", gref, claims=[{"type": "approved_by", "args": {
+               "person": "alice", "call": "grant-pg", "covers": True}, "evidence": a.evidence(gseqs)}], grants=[groot]),
+           [granted])
+    vector("reject-claim-approved-by-covers-grant-not-root", "A refund request under alice's root grant of call "
+           "grant-1, with an approved_by claim with covers citing her approval of call grant-b, a pcm.grant call that "
+           "issued another grant: a pcm.grant approval covers only the requests under the grant it issued.",
+           a.send("uid:990102", ref, claims=[{"type": "approved_by", "args": {
+               "person": "alice", "call": "grant-b", "covers": True}, "evidence": a.evidence(a.approval("grant-b"))}],
+               grants=[root]), [DOC], "did not issue this message's root grant")
 
     # claims on a refund.quote, which needs no grant or claim, so the claim is the one cause
     def claimed(name, description, claim, want=""):
@@ -851,7 +907,7 @@ def cases(s, s2):
                a.send("uid:990102", ref, claims=[approved], grants=[resign(root, "pcm-grant", **change)]), [DOC], want)
     vector("accept-grant-expires-at-ts", "A message whose ts is its root grant's expires_at, re-signed with the test log "
            "key (the signer takes ts from its clock): a grant still holds at its expires_at.",
-           resign(a.send("uid:990102", ref, claims=[approved], grants=[root]), "pcm", ts=root["expires_at"]), [DOC])
+           resign(a.send("uid:990102", ref, claims=[covered], grants=[root]), "pcm", ts=root["expires_at"]), [DOC])
     for name, caveat, args, what in (
             ("string-for-int", cv("order", "==", "81"), ARGS, 'order == "81", the string "81" for the int field order'),
             ("bool-for-int", cv("order", "==", True), {**ARGS, "order": 1},

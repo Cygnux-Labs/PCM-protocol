@@ -33,7 +33,8 @@ FILES = {
                  "signed checkpoint note. A record's salt and args open a policy.decision's args commitment; a record "
                  "with only one of them fails its claim. " + PATTERNS),
     "schema-document": (SCHEMA_DOC, "PCM 0.1 schema document", "The typed fields of an intent, the claim types it "
-                        "needs and whether it needs a grant. Its name on the wire is name@sha256:<hex of SHA-256 of "
+                        "needs, whether it needs a grant and the tool it stands for, which approved_by's covers "
+                        "reads. Its name on the wire is name@sha256:<hex of SHA-256 of "
                         "its JCS>. Beyond this schema a verifier also rejects an int field whose min is above its "
                         "max, and an id field whose pattern does not compile. " + PATTERNS),
 }

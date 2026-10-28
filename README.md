@@ -38,7 +38,7 @@ This is what `tracekit pcm demo` does, with a real signer:
 $ tracekit pcm demo
   alice approves agent A's grant: refund.request, amount <= $200.00, order == 81, until 18:00Z, can be passed on: no
   A -> B  refund.request {amount $120.00, order 81} + approved_by(alice)
-      B: ACCEPT           signature ok · replay ok · schema ok · grant ok (alice, 1 step) · approved_by proven (approval seq 4 by alice of "pcm.grant" call grant-1)
+      B: ACCEPT           signature ok · replay ok · schema ok · grant ok (alice, 1 step) · approved_by proven (approval seq 4 by alice of "pcm.grant" call grant-1, which issued this message's root grant)
   A -> B  same request + tests_passed(pytest tests/test_refund.py), no evidence
       B: ACCEPT-UNPROVEN  tests_passed: unproven (no evidence)
   A -> B  approved_by with one record hash changed

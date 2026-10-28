@@ -2,7 +2,7 @@
   {
     "name": "accept-approved-by",
     "file": "accept-approved-by.json",
-    "description": "A refund request under alice's root grant, with an approved_by claim proven by her approval, the approval.request it answers and the pcm.grant decision that request names; replay checked.",
+    "description": "A refund request under alice's root grant, with an approved_by claim with covers proven by her approval, the approval.request it answers and the pcm.grant decision that request names: the approval issued the message's root grant, so it covers the request; replay checked.",
     "verdict": "accept"
   },
   {
@@ -284,7 +284,7 @@
   {
     "name": "accept-approved-by-opened-args",
     "file": "accept-approved-by-opened-args.json",
-    "description": "approved_by of call pay-1, which the agent decided twice: a pay of 50000, then a read_file of /etc/motd. alice approved the read_file, and the evidence opens its decision: the result's approved names the read_file and its args, which the receiver reads, whatever the call id says.",
+    "description": "approved_by of call pay-1, without covers, on a refund.quote, which needs no claim. The agent decided pay-1 twice: a pay of 50000, then a read_file of /etc/motd. alice approved the read_file, and the evidence opens its decision: the result's approved names the read_file and its args, whatever the call id says.",
     "verdict": "accept"
   },
   {
@@ -393,6 +393,54 @@
     "name": "reject-claim-file-written-relative-no-evidence",
     "file": "reject-claim-file-written-relative-no-evidence.json",
     "description": "file_written of the relative path work/report.txt with no evidence: the claim is malformed, so it fails without evidence too.",
+    "verdict": "reject"
+  },
+  {
+    "name": "accept-approved-by-covers-direct",
+    "file": "accept-approved-by-covers-direct.json",
+    "description": "A refund.pay request of 12000, whose schema needs approved_by and names the tool pay, with an approved_by claim citing alice's approval of a pay of the request's args, opened: the tool the schema names, and the intent's args.",
+    "verdict": "accept"
+  },
+  {
+    "name": "accept-unproven-approved-by-covers-not-opened",
+    "file": "accept-unproven-approved-by-covers-not-opened.json",
+    "description": "A refund.pay request of 12000, whose schema needs approved_by and names the tool pay, with an approved_by claim citing alice's approval of a pay whose decision the evidence does not open, so the verifier can't tell whether its args are the request's.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-unproven-approved-by-covers-schema-without-tool",
+    "file": "accept-unproven-approved-by-covers-schema-without-tool.json",
+    "description": "A refund.pay request of 12000, whose schema needs approved_by and names no tool, with an approved_by claim citing alice's approval of a pay of the request's args, opened: the schema names no tool, so the verifier can't tell whether the approval covers the request.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "reject-claim-approved-by-covers-other-args",
+    "file": "reject-claim-approved-by-covers-other-args.json",
+    "description": "A refund.pay request of 12000, whose schema needs approved_by and names the tool pay, with an approved_by claim citing alice's approval of a pay of 500, opened, cited for a pay of 12000.",
+    "verdict": "reject"
+  },
+  {
+    "name": "reject-claim-approved-by-covers-other-tool",
+    "file": "reject-claim-approved-by-covers-other-tool.json",
+    "description": "A refund.pay request of 12000, whose schema needs approved_by and names the tool pay, with an approved_by claim citing alice's approval of a read_file, not opened: the decision's tool is in the record, so it fails unopened too.",
+    "verdict": "reject"
+  },
+  {
+    "name": "accept-unproven-approved-by-required-without-covers",
+    "file": "accept-unproven-approved-by-required-without-covers.json",
+    "description": "A refund.pay request of 12000, whose schema needs approved_by and names the tool pay, with an approved_by claim citing alice's approval of a pay of 500, opened, cited for a pay of 12000 without covers: the claim is proven, as alice approved that call, but meets the schema's need only with covers.",
+    "verdict": "accept-unproven"
+  },
+  {
+    "name": "accept-approved-by-covers-grant",
+    "file": "accept-approved-by-covers-grant.json",
+    "description": "A refund under alice's root grant, whose schema names the tool pay, with an approved_by claim with covers citing her approval of the pcm.grant call that issued the root grant: the grant path holds whatever tool the schema names.",
+    "verdict": "accept"
+  },
+  {
+    "name": "reject-claim-approved-by-covers-grant-not-root",
+    "file": "reject-claim-approved-by-covers-grant-not-root.json",
+    "description": "A refund request under alice's root grant of call grant-1, with an approved_by claim with covers citing her approval of call grant-b, a pcm.grant call that issued another grant: a pcm.grant approval covers only the requests under the grant it issued.",
     "verdict": "reject"
   },
   {

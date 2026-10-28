@@ -5,7 +5,7 @@
     "message": {
       "from": {
         "agent": "uid:990101",
-        "run": "8d0a3180da60ac56d555e03a6440a81e",
+        "run": "583adcec7efc28ba23dc979d477777ff",
         "tenant": "default"
       },
       "to": {
@@ -23,20 +23,21 @@
           "type": "approved_by",
           "args": {
             "person": "alice",
-            "call": "grant-1"
+            "call": "grant-1",
+            "covers": true
           }
         }
       ],
       "grants": [
         {
           "pcm_grant": 0,
-          "ts": "2026-10-27T23:28:26.871463Z",
+          "ts": "2026-10-28T01:45:49.442804Z",
           "issuer": {
             "kind": "person",
             "id": "uid:990001",
-            "run": "8d0a3180da60ac56d555e03a6440a81e",
+            "run": "583adcec7efc28ba23dc979d477777ff",
             "tenant": "default",
-            "approval_id": "apr-32a3f5bd8ea8787c464c217bdb3d3769",
+            "approval_id": "apr-810cbe1c06f65d65121fd9634a43bcce",
             "person": "alice"
           },
           "subject": "uid:990101",
@@ -53,22 +54,22 @@
               "value": 81
             }
           ],
-          "expires_at": "2026-10-28T00:28:26.869425Z",
+          "expires_at": "2026-10-28T02:45:49.440955Z",
           "delegable": false,
           "parent": null,
           "sig": {
             "key": "example.com/pcm-test-log+0bb91e66",
-            "sig": "Tl6IZLqoKTsJ12b7Oz2LZ04F5VQt27d8Xi9xjepiRAKAggi7+AT654DnMvrvf1GYaGnzVCHBxwSuLxfyf697AA=="
+            "sig": "BipME88wJ6s0dSHtA57oRIraRbGJMTGJXyRNUe3Xwo39Y92mIMQN0D+IjLwMxD65xdYfk4wehwRZPHnunhinCw=="
           }
         }
       ],
       "pcm": 0,
-      "id": "ae0ab3e401f0b8124f333b4eedaca2bb",
-      "ts": "2026-10-27T23:28:26.905610Z",
-      "nonce": "87bec75cd74876d5f8fdcb948ed87257",
+      "id": "024af037ef6cc5adebad79c859830313",
+      "ts": "2026-10-28T01:45:49.480001Z",
+      "nonce": "afa5e4e8eeb30bdbf347dd868bbcfb03",
       "sig": {
         "key": "example.com/pcm-test-log+0bb91e66",
-        "sig": "ZqPrK/RuYMvyTJeX7848RXwWLHRZ4Rr0uPt3iu3c6YgRZMEt4cyTZXRPQGTjuJ67+OYHMeTXd59fhbJA+bz/Bg=="
+        "sig": "RoBVqFOAUEnj45VwZ5Vp0XBQ8nupJenhA1wE6GWlIZtzs8ggSRruK4dxSxovbgW4kPJzbGV++oV1TiYEcCxQDQ=="
       }
     },
     "schemas": [
@@ -159,7 +160,7 @@
     "options": {
       "me": "uid:990102",
       "strict": true,
-      "now": "2026-10-27T23:28:27.905610Z",
+      "now": "2026-10-28T01:45:50.480001Z",
       "replay": null
     }
   },

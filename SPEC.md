@@ -172,18 +172,18 @@ The message, with its claim and grant shown in sections 6.6 and 7.1:
 <!-- vector accept-approved-by input.message -->
 ```json
 {
- "from": {"agent": "uid:990101", "run": "8d0a3180da60ac56d555e03a6440a81e", "tenant": "default"},
+ "from": {"agent": "uid:990101", "run": "583adcec7efc28ba23dc979d477777ff", "tenant": "default"},
  "to": {"agent": "uid:990102"},
  "intent": {"type": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
             "args": {"amount": 12000, "order": 81}},
  "claims": ["... one approved_by claim, section 6.6 ..."],
  "grants": ["... alice's root grant, section 7.1 ..."],
  "pcm": 0,
- "id": "8efe060740cdfd4ae030913d87a6cdd4",
- "ts": "2026-10-27T23:28:26.887875Z",
- "nonce": "88fe06457feb32542fb6470482a3a00f",
+ "id": "011b69cb1d991ab040b38139337ea47a",
+ "ts": "2026-10-28T01:45:49.459956Z",
+ "nonce": "334f201fc7a637c7ee8d02c25bd89d0e",
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "+X/3WttTyGFafxdpe8JY5wxvWVcXZznoGKs4qkZ4emwESR3iKqHfpBr/vypisbSjCDOfaHtzJanBe7OsG92VBA=="}
+         "sig": "2EYjvbcKiSOJXc1JKqdTlyol4OIYnFJtCDTjmhXU2RcXABrvvkAlm2hzgwt9tWV3o1DMW20LeIwjBKFRcQK+Bg=="}
 }
 ```
 
@@ -216,14 +216,14 @@ The bytes signed for the message in 3.4 start:
 
 <!-- vector accept-approved-by input.message.@signed -->
 ```
-{"claims":[{"args":{"call":"grant-1","person":"alice"},"evidence":{"checkpoint":"example.com/pcm-test-log\n9\n...
+{"claims":[{"args":{"call":"grant-1","covers":true,"person":"alice"},"evidence":{"checkpoint":"example.com/pcm-test-log\n9\n...
 ```
 
 and further on, in JCS key order:
 
 <!-- vector accept-approved-by input.message.@signed -->
 ```
-..."nonce":"88fe06457feb32542fb6470482a3a00f","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
+..."nonce":"334f201fc7a637c7ee8d02c25bd89d0e","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
 ```
 
 The note's line breaks appear as the two characters `\n`: JCS escapes them.
@@ -313,6 +313,7 @@ An intent's args are typed by a schema document. Both sides keep a copy. Example
 | `fields` | yes | an object; each name `^[a-z][a-z0-9_]{0,63}$`, each value a field spec |
 | `claims` | no | the claim types the intent needs, distinct, from the claim registry (section 17.2) |
 | `grant` | no | `true`: a message without a grant chain is rejected |
+| `tool` | no | the tool the intent stands for, a string of 1 to 256 characters: an `approved_by` claim with `covers` is checked against it (6.6) |
 
 The document is closed. The JSON Schema is `schemas/schema-document.schema.json`. **[Implemented]**
 
@@ -375,7 +376,7 @@ A claim is `{"type", "args", "evidence"?}`, closed. `type` is one of the registe
 | Claim type | Args |
 |---|---|
 | `tests_passed` | `suite`: string, at most 4096 |
-| `approved_by` | `person`: string, at most 256; `call`: id matching ID |
+| `approved_by` | `person`: string, at most 256; `call`: id matching ID; `covers`: bool, optional (6.6) |
 | `reached_host` | `host`: id, `^[a-z0-9._:-]+$`, at most 128 (the cap of every `id` value, 5.2; vector `reject-claim-reached-host-too-long`) |
 | `file_written` | `path`: string, at most 4096; `digest`: id matching DIGEST |
 
@@ -522,15 +523,15 @@ A real `approval` record, as evidence carries it:
 
 <!-- vector accept-approved-by input.message.claims.0.evidence.records.2.event -->
 ```json
-{"schema_version": "tracekit.event.v2", "id": "eec7eb9187d3a0c34acbfb24c9d273bf", "seq": 5,
- "prev_hash": "sha256:1564e8d44e8ee3949eed187996febf15ad8a91d7706302ab65240fedad9f99a7",
- "ts": "2026-10-27T23:28:26.870740Z", "run_id": "8d0a3180da60ac56d555e03a6440a81e", "agent_id": "main",
+{"schema_version": "tracekit.event.v2", "id": "c9aea42056dd7f536d8d313d06f5d9d3", "seq": 5,
+ "prev_hash": "sha256:fa039acdef31054cb8c4644aea398f1c5dfac6bab03bffcc7e113b3c1512d1c2",
+ "ts": "2026-10-28T01:45:49.442020Z", "run_id": "583adcec7efc28ba23dc979d477777ff", "agent_id": "main",
  "parent_id": null, "source": "sdk", "type": "approval",
- "data": {"tool_use_id": "grant-1", "approval_id": "apr-32a3f5bd8ea8787c464c217bdb3d3769", "decision": "approve",
+ "data": {"tool_use_id": "grant-1", "approval_id": "apr-810cbe1c06f65d65121fd9634a43bcce", "decision": "approve",
           "approver": "uid:990001", "approver_identity": {"scheme": "uid", "subject": "990001", "attested": true},
           "channel": "rpc", "self_approved": false, "person": "alice"},
- "tenant": "default", "log_id": "e1917370ece98dc3a3d986ffd93f940a", "run_seq": 3,
- "run_prev_hash": "sha256:1564e8d44e8ee3949eed187996febf15ad8a91d7706302ab65240fedad9f99a7",
+ "tenant": "default", "log_id": "f212ce306d8778f6832cc0d512429c56", "run_seq": 3,
+ "run_prev_hash": "sha256:fa039acdef31054cb8c4644aea398f1c5dfac6bab03bffcc7e113b3c1512d1c2",
  "request_id": "r4", "tool_call_id": "grant-1"}
 ```
 
@@ -569,13 +570,13 @@ holds an opened decision and its result, both recorded through an attesting exec
 ```json
 [{"event": {"type": "policy.decision", "seq": 10, "source": "gateway", "tier": "T2", "...": "...",
             "data": {"tool_use_id": "call-9", "tool": "Bash", "decision": "allow",
-                     "decision_id": "dec-23b503a2a0588fcac364ba595d845e41", "via": "mtls:spiffe://example/executor",
-                     "args_commitment": "hmac-sha256:754270005d913d54c8b48a7d15880cf59c4f1cbb9845c9f7702f0049a26c2174",
+                     "decision_id": "dec-82f121827146808e9815989f186cf303", "via": "mtls:spiffe://example/executor",
+                     "args_commitment": "hmac-sha256:327ae9098d7268910fe6f9b8979e7e94ea8c0d77ba221f5df4faee9291ef09ef",
                      "...": "..."}},
-  "salt": "8cefd72ba99ae14eb6cd570204ceadbc42a984dbfdf7fd131edc8513ab041c5c",
+  "salt": "5b7148658d56135f8048874fe307f62e43d0c68c627ee38877b203a2a92da00e",
   "args": {"command": "pytest -q tests/test_refund.py"}, "hash": "...", "proof": ["..."]},
  {"event": {"type": "tool.result", "seq": 11, "source": "gateway", "tier": "T2", "...": "...",
-            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-23b503a2a0588fcac364ba595d845e41",
+            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-82f121827146808e9815989f186cf303",
                      "via": "mtls:spiffe://example/executor", "...": "..."}},
   "hash": "...", "proof": ["..."]}]
 ```
@@ -620,10 +621,11 @@ real test run from another. Vectors: `accept-tests-passed-t2`, `accept-tests-pas
 `reject-claim-tests-passed-wrapper`, `reject-claim-tests-passed-malformed-no-evidence`, `reject-claim-tests-failed`
 (the T2 result is an error).
 
-**`approved_by {person, call}`** **[Implemented]**
+**`approved_by {person, call, covers?}`** **[Implemented]**
 
 `call` is the agent's own name for a call (a `tool_use_id`), so an approval alone says nothing of what was approved.
-The claim is `proven` when the records of one evidence item hold all three of:
+The claim is `proven` when the records of one evidence item hold all three of the following, and, with `covers`, when
+the approval covers the message's request (below):
 
 1. an `approval` record with `data.decision == "approve"`, `data.tool_use_id == call`, `data.person == person`,
    `data.approver_kind` absent or `"person"`, and `data.self_approved` not `true`;
@@ -664,14 +666,14 @@ took the first approval and decision in the order the sender listed them, so evi
 call id, or one decision once opened and once not, proved whichever the sender put first.
 
 **What was approved (decided, 0.1).** The result of a proven claim MUST carry the member `approved`:
-`{"tool": <the decision's data.tool>, "args": <its args as the evidence opens them (6.3), or null>}`. A receiver MUST
-read `approved`, not only `result`. Its `detail` names the same, with the tool as a JSON string and the args in full
-as JCS: <!-- vector accept-approved-by expected.claims.0.detail -->
-`approval seq 5 by alice of "pcm.grant" call grant-1`, or
+`{"tool": <the decision's data.tool>, "args": <its args as the evidence opens them (6.3), or null>}`. A receiver that
+acts on a proven claim without `covers` MUST read `approved`, not only `result`. Its `detail` names the same, with the
+tool as a JSON string and the args in full as JCS:
 <!-- vector accept-approved-by-opened-args expected.claims.0.detail -->
 `approval seq 99 by alice of "read_file" call pay-1 with args {"path":"/etc/motd"}` (vector
-`accept-approved-by-opened-args`: the agent decided two calls under the call id `pay-1`, a pay and then a `read_file`
-of `/etc/motd`; alice approved the `read_file`, and the evidence opens it). Only a proven
+`accept-approved-by-opened-args`, without `covers`: the agent decided two calls under the call id `pay-1`, a pay and
+then a `read_file` of `/etc/motd`; alice approved the `read_file`, and the evidence opens it). With `covers` the
+detail goes on to say how the approval covers the request. Only a proven
 `approved_by` result has `approved`. Rationale: the agent names its calls, so a claim that alice approved
 `refund-81-approved` can be proven by her approval of a `read_file` call the agent named so; only the decision says
 what she saw. `approved` is a conformance field (13.2), so every verifier gives a receiver the same answer;
@@ -686,40 +688,84 @@ Rationale: without an approvals configuration any identity of the tenant may ans
 human looked. **[Implemented]** (vector `reject-claim-approved-by-unmapped-identity`: `uid:990009` answers and no person
 maps to it.)
 
+**What the approval covers (decided, 0.1).** `covers` is the sender's word that the approval covers the message's
+request. Without it, or with `false`, the checks above are all, and `approved` says what call `call` was. With
+`"covers": true`, a claim that passes them is `proven` only by one of two paths:
+
+1. **Grant path.** The approval issued the message's root grant (7.4): the decision's `data.tool` is `pcm.grant`, and
+   the root grant's `issuer.approval_id`, `issuer.run` and `issuer.tenant` are the `data.approval_id`, `run_id` and
+   `tenant` of an approval that leads to the decision (vectors `accept-approved-by`, and
+   `accept-approved-by-covers-grant`, whose schema names another tool: the grant path does not read it).
+2. **Direct path.** The intent's schema document names a `tool` (5.1) equal to the decision's `data.tool`, the
+   evidence opens the decision (6.3), and its args are equal to `intent.args` in JCS (vector
+   `accept-approved-by-covers-direct`).
+
+Else, taking the first that applies:
+
+- a decision of `pcm.grant` that did not issue the message's root grant, or a message without grants: `failed`
+  (vector `reject-claim-approved-by-covers-grant-not-root`);
+- the schema names no `tool`: `unproven`, as the verifier can't tell what the request is
+  (<!-- vector accept-unproven-approved-by-covers-schema-without-tool expected.claims.0.detail -->
+  `approval seq 137 by alice of "pay" call pay-5 with args {"amount":12000,"order":81}: the intent's schema names no
+  tool, so the verifier can't tell whether it covers this request: name the tool in the schema document, or cite the
+  approval that issued the message's root grant`);
+- a decision of another tool than the schema names: `failed`, whether the evidence opens it or not, since its tool is
+  in the record (<!-- vector reject-claim-approved-by-covers-other-tool expected.claims.0.detail -->
+  `approval seq 143 by alice of "read_file" call read-1: not of "pay", the tool the intent's schema names, so it does
+  not cover this request`);
+- a decision the evidence does not open: `unproven` (vector `accept-unproven-approved-by-covers-not-opened`: "… its
+  args are not opened, so the verifier can't tell whether they are this request's: open the decision");
+- opened args that differ from `intent.args`: `failed`
+  (<!-- vector reject-claim-approved-by-covers-other-args expected.claims.0.detail -->
+  `approval seq 140 by alice of "pay" call pay-6 with args {"amount":500,"order":81}: not this request's args
+  {"amount":12000,"order":81}, so it does not cover this request`).
+
+A schema that lists `approved_by` in `claims` is met only by a `proven` `approved_by` with `"covers": true` (8 step
+7). A proven claim without it meets no need, so the verdict is `accept-unproven`, or `reject` under `strict`, with the
+reason <!-- vector accept-unproven-approved-by-required-without-covers expected.reasons.0 -->
+`approved_by: required, not proven to cover this request: claim it with covers true` (vector
+`accept-unproven-approved-by-required-without-covers`: alice's approval of a pay of 500, cited for a pay of 12000).
+Rationale: the call id is the agent's own name, so a sender could cite a person's approval of a smaller refund, or of
+a `read_file`, for a larger refund, and a receiver that acted on the verdict alone was fooled; the sender says which
+approval stands for the request, and the verifier checks it.
+
 What `proven` means: the person the signer's approvals configuration names `person` answered "approve" when the
-signer asked about the decision `approved` names: a call `call` of that tool, with those args when opened.
+signer asked about the decision `approved` names: a call `call` of that tool, with those args when opened. With
+`covers`, also that this approval covers the message's request: it issued the message's root grant, or it is of the
+tool the intent's schema names, with the intent's args. Without `covers`, nothing ties the approval to the request.
 
 The claim of `accept-approved-by`, with its evidence (the decision, the request and the approval of 6.4; events
 shortened to the fields the checker reads):
 
 <!-- vector accept-approved-by input.message.claims.0 -->
 ```json
-{"type": "approved_by", "args": {"person": "alice", "call": "grant-1"},
+{"type": "approved_by", "args": {"person": "alice", "call": "grant-1", "covers": true},
  "evidence": {
-  "checkpoint": "example.com/pcm-test-log\n9\noZGXC7BGncnzjGU+QMPESJqz7rX+fM6hz+irPdaGJz4=\n\n— example.com/pcm-test-log C7keZmuK7FDOcAXOXXWQ6bLykiqilRDqyPG63evZyV+6RrU/Y3OepADlEYNy4F0o2im63ofIDUStc2BI9Cvulxwe8AM=\n",
+  "checkpoint": "example.com/pcm-test-log\n9\nHlGqpbCIpHjnbtOA5b8L+9bhzZ7dF1f2mocuQERJj5M=\n\n— example.com/pcm-test-log C7keZqJRZ/hUYOcFm71nmBMOHbwCRYJzEFpOqZW7hWx/rAEMXsWC8UUbgDEFMIL5HMajB62OX96W4jyennzO2Qtq2gU=\n",
   "records": [
    {"event": {"type": "policy.decision", "seq": 3, "...": "...",
               "data": {"tool_use_id": "grant-1", "tool": "pcm.grant", "decision": "ask",
-                       "decision_id": "dec-c510b59a441653d9d46817fda8ee59af", "...": "..."}},
-    "hash": "sha256:d1b4ae27c3efc41560236d86c0a67a328e53e011374cdc7122b6dab2e44d7841",
-    "proof": ["N61i1Ly7Hi7f/mPDfvLPouCSgpjBad5ApkyB1e+E6IE=", "GER0Sg3UjxPke0zRAaHnGvQtbF3ksmk0u0VYqM9x1S0=",
-              "alDoFKVG5hXzpAPmu4kQitezIa9+2uNxT6t7fUsjkqI=", "brCm/Er+TskRLSwr1boi3+LG1v1d9By3mvVjJ55pzWg="]},
+                       "decision_id": "dec-ef1f7dd94c4054688c9eb42e371c3d66", "...": "..."}},
+    "hash": "sha256:a0a008982a38abf02df437f436073a5aaace98fb2c09f33b6b5d14f1868c5214",
+    "proof": ["hgnLjgHa9UvLvjEiddW4uR6BfNNJoGoobId/GUqbht8=", "PMIaob/dhkPa81xJQyPYc9kNFntVR/C2mjrD60/siRA=",
+              "xpxgodfp4rKOmjcqmDe2AxDzBTuzV5qEi9oZj0wQE5U=", "CXxo7+FhbOiWFEcLz8lSi1xbKOjJfb9vujBlJNxa5sM="]},
    {"event": {"type": "approval.request", "seq": 4, "...": "...",
-              "data": {"approval_id": "apr-32a3f5bd8ea8787c464c217bdb3d3769",
-                       "decision_id": "dec-c510b59a441653d9d46817fda8ee59af", "...": "..."}},
-    "hash": "sha256:1564e8d44e8ee3949eed187996febf15ad8a91d7706302ab65240fedad9f99a7",
-    "proof": ["CCtnBriIclbk/rMBc8VdYUT4TOmFXPypQxg+QRKeUNo=", "9NhD5Ji9eR4lsuH1rV5J4PfDDvuGU1o+YrnCnGDDu+8=",
-              "o5C/NAi3g1iwF8XuBoxwzcIXGk2z3PlJslI6WP1EGnE=", "brCm/Er+TskRLSwr1boi3+LG1v1d9By3mvVjJ55pzWg="]},
+              "data": {"approval_id": "apr-810cbe1c06f65d65121fd9634a43bcce",
+                       "decision_id": "dec-ef1f7dd94c4054688c9eb42e371c3d66", "...": "..."}},
+    "hash": "sha256:fa039acdef31054cb8c4644aea398f1c5dfac6bab03bffcc7e113b3c1512d1c2",
+    "proof": ["OcC1XkuyBn8uMVHRg+4QGfTmRxDTNhQQ4e2+AJxs1wg=", "d32VCJAvGU7ZbTuCo8fgtaGy1x4+TIAk+UKtf2T1WoE=",
+              "V62iabaPS70Ac6Zzpe6HlEoAeKXY6ESNQPHS8QEanJQ=", "CXxo7+FhbOiWFEcLz8lSi1xbKOjJfb9vujBlJNxa5sM="]},
    {"event": {"...": "the approval record of 6.4"},
-    "hash": "sha256:a1d73c2d401726bd05dc92296936b434c347aeecc44669ee61b35564ac8eb6b5",
-    "proof": ["S1ZSwgAT4oTUmsuKspLjuPgC7m3Fv7QX8f3dIgVEdmo=", "9NhD5Ji9eR4lsuH1rV5J4PfDDvuGU1o+YrnCnGDDu+8=",
-              "o5C/NAi3g1iwF8XuBoxwzcIXGk2z3PlJslI6WP1EGnE=", "brCm/Er+TskRLSwr1boi3+LG1v1d9By3mvVjJ55pzWg="]}]}}
+    "hash": "sha256:6aa387efc788e08d3aa6f18dfb5e273744317e269b2aa1f6770c3f971b4ccfb4",
+    "proof": ["szLAHrUw3Gpg1XguhXQmpzAdOvW1KXGafgBuUhtnz7o=", "d32VCJAvGU7ZbTuCo8fgtaGy1x4+TIAk+UKtf2T1WoE=",
+              "V62iabaPS70Ac6Zzpe6HlEoAeKXY6ESNQPHS8QEanJQ=", "CXxo7+FhbOiWFEcLz8lSi1xbKOjJfb9vujBlJNxa5sM="]}]}}
 ```
 
 Result: <!-- vector accept-approved-by expected.claims.0 -->
-`{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of \"pcm.grant\" call grant-1",
-"approved": {"tool": "pcm.grant", "args": null}}`: alice approved the `pcm.grant` call that asked for the grant of 7.1
-(the evidence does not open its args). The vectors
+`{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of \"pcm.grant\" call grant-1, which
+issued this message's root grant", "approved": {"tool": "pcm.grant", "args": null}}`: alice approved the `pcm.grant`
+call that asked for the grant of 7.1 (the evidence does not open its args), and that grant is the message's root
+grant. The vectors
 show the other outcomes: one hex digit of `hash` changed (`reject-claim-changed-record-hash`:
 <!-- vector reject-claim-changed-record-hash expected.claims.0.detail -->
 `record 1: hash does not match the event`), the proof's last hash cut (`reject-claim-cut-proof`), another person named
@@ -756,11 +802,11 @@ Hosts are compared in the form of 6.7.
 
    Any other cause adds nothing. So vector `accept-unproven-reached-host-idn` (`http://bücher.example/`) gives
    <!-- vector accept-unproven-reached-host-idn expected.claims.0.detail -->
-   `the verifier can't tell whether call call-305 reached xn--bcher-kva.example: its URL is not printable ASCII: send
+   `the verifier can't tell whether call call-337 reached xn--bcher-kva.example: its URL is not printable ASCII: send
    the URL with the host in xn-- form and the path and query percent-encoded`, and
    `accept-unproven-reached-host-percent` (`http://%61pi.example.com/`)
    <!-- vector accept-unproven-reached-host-percent expected.claims.0.detail -->
-   `the verifier can't tell whether call call-377 reached api.example.com: its host has a %: send the URL with the
+   `the verifier can't tell whether call call-409 reached api.example.com: its host has a %: send the URL with the
    host as plain ASCII, not percent-encoded`. The detail is for people (13.2); an effect's host that won't parse gets
    no sentence, since the sender did not write it.
 
@@ -1038,15 +1084,15 @@ The root grant of `accept-approved-by`, signed after alice approved it:
 
 <!-- vector accept-approved-by input.message.grants.0 -->
 ```json
-{"pcm_grant": 0, "ts": "2026-10-27T23:28:26.871463Z",
- "issuer": {"kind": "person", "id": "uid:990001", "run": "8d0a3180da60ac56d555e03a6440a81e", "tenant": "default",
-            "approval_id": "apr-32a3f5bd8ea8787c464c217bdb3d3769", "person": "alice"},
+{"pcm_grant": 0, "ts": "2026-10-28T01:45:49.442804Z",
+ "issuer": {"kind": "person", "id": "uid:990001", "run": "583adcec7efc28ba23dc979d477777ff", "tenant": "default",
+            "approval_id": "apr-810cbe1c06f65d65121fd9634a43bcce", "person": "alice"},
  "subject": "uid:990101",
  "intent": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
  "caveats": [{"field": "amount", "op": "<=", "value": 20000}, {"field": "order", "op": "==", "value": 81}],
- "expires_at": "2026-10-28T00:28:26.869425Z", "delegable": false, "parent": null,
+ "expires_at": "2026-10-28T02:45:49.440955Z", "delegable": false, "parent": null,
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "Tl6IZLqoKTsJ12b7Oz2LZ04F5VQt27d8Xi9xjepiRAKAggi7+AT654DnMvrvf1GYaGnzVCHBxwSuLxfyf697AA=="}}
+         "sig": "BipME88wJ6s0dSHtA57oRIraRbGJMTGJXyRNUe3Xwo39Y92mIMQN0D+IjLwMxD65xdYfk4wehwRZPHnunhinCw=="}}
 ```
 
 ### 7.2 Caveats
@@ -1226,6 +1272,8 @@ Steps, in this order:
    - Else **`accept-unproven`** when a claim is `unproven`, or a claim type the document lists has no `proven` claim.
    - Else **`accept`**.
 
+   For `approved_by`, only a `proven` claim with `"covers": true` counts here (6.6).
+
    `reasons` holds one line per cause, in this order: replay, schema errors, grant problems, failed claims, then (for
    `strict`) missing required claims; for `accept-unproven`, the unproven claims, then missing required claims.
 
@@ -1240,7 +1288,8 @@ The expected result of `accept-approved-by` (receiver `uid:990102`, a fresh repl
  "replay": {"ok": true, "detail": "fresh"},
  "schema": {"ok": true, "ref": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c", "errors": []},
  "grants": {"result": "ok", "steps": 1, "root": {"kind": "person", "id": "uid:990001", "person": "alice"}, "problems": []},
- "claims": [{"type": "approved_by", "result": "proven", "detail": "approval seq 5 by alice of \"pcm.grant\" call grant-1",
+ "claims": [{"type": "approved_by", "result": "proven",
+             "detail": "approval seq 5 by alice of \"pcm.grant\" call grant-1, which issued this message's root grant",
              "approved": {"tool": "pcm.grant", "args": null}}],
  "verdict": "accept", "reasons": [], "skipped": []}
 ```
@@ -1698,7 +1747,12 @@ assumption PCM rests on, with the rule that closes or bounds it.
     `reject-claim-approved-by-without-decision`, `reject-claim-approved-by-other-decision`,
     `accept-approved-by-opened-args`, `reject-claim-approved-by-request-names-two-decisions`,
     `reject-claim-approved-by-two-decisions`, `reject-claim-approved-by-args-true-and-1`,
-    `reject-claim-record-listed-twice`.
+    `reject-claim-record-listed-twice`. A receiver that acted on the verdict alone still took a person's approval of
+    a smaller refund, or of another tool, as authority for the request. **Rule:** a claim meets a schema's need for
+    `approved_by` only with `covers`, which the verifier checks against the root grant, or against the schema's
+    `tool` and the intent's args (6.6). Vectors: `reject-claim-approved-by-covers-other-args`,
+    `reject-claim-approved-by-covers-other-tool`, `reject-claim-approved-by-covers-grant-not-root`,
+    `accept-unproven-approved-by-required-without-covers`.
 28. **An attempt is not a connection.** A kernel sensor reports a process's call to connect, and an egress observer
     records a minute with no connection when its connect upstream failed; an earlier draft took either as proof that
     the run reached the host. **Rule:** only an egress observer's `net` record with `data.connections` above 0
@@ -1770,7 +1824,7 @@ Change controller: Cygnux Labs
 | Name | Args | Defined in | Status |
 |---|---|---|---|
 | `tests_passed` | `suite` | 6.6 | [Implemented] |
-| `approved_by` | `person`, `call` | 6.6 | [Implemented] |
+| `approved_by` | `person`, `call`, `covers` | 6.6 | [Implemented] |
 | `reached_host` | `host` | 6.6 | [Implemented] |
 | `file_written` | `path`, `digest` | 6.6 | [Implemented] |
 
@@ -1873,6 +1927,8 @@ built from an earlier design changes to match.
   exceptions where IDNA versions disagree.
 - **`approved_by` records.** Records that disagree on what was approved fail the claim (6.6), not the first in the
   order the sender listed them.
+- **What an approval covers.** The sender says with `covers` which approval stands for the request, and the verifier
+  checks it against the root grant or the schema's `tool` (6.6), not a receiver comparing `approved` with the intent.
 - **`reached_host`.** Only by a connection an egress observer saw opened (6.6, 14.28), not by an attempt.
 - **`file_written` paths.** By POSIX or Windows rules, picked by the claim's path (6.6), not with every `\` read as
   `/`.
@@ -1894,8 +1950,8 @@ A review of the previous draft found an attack on its verifier rules: a `tests_p
 draft closes those; it has no other known open attack on its verifier rules. What `tests_passed` proves still rests
 on the receiver reading `suite` (6.6), and what a T2 result proves rests on how the deployment names its tools (6.4,
 14.26). Questions earlier drafts left open are now decided rules, each marked "(decided, 0.1)": canonical base64
-(4.3), the signing key (4.5), only a configured person for `approved_by` and what it names (6.6), connections, not
-attempts, for `reached_host` (6.6), records that disagree on what was approved (6.6), absolute paths and path rules
+(4.3), the signing key (4.5), only a configured person for `approved_by`, what it names and covers (6.6),
+connections, not attempts, for `reached_host` (6.6), records that disagree on what was approved (6.6), absolute paths and path rules
 for `file_written` (6.6), host comparison in ASCII only and the bracket rule (6.7), test commands and plain words
 (6.8), skipped checks (8), the sender pair, one acceptance per receiver and which messages spend their nonce (9), one
 key per log (10.1) and the frozen tool table (10.2). Where the reference implementation does less than this document asks,
@@ -2016,7 +2072,7 @@ with the normative text, that is a bug in one of them: open an issue.
   ```text
   alice approves agent A's grant: refund.request, amount <= $200.00, order == 81, until 18:00Z, can be passed on: no
   A -> B  refund.request {amount $120.00, order 81} + approved_by(alice)
-      B: ACCEPT           signature ok · replay ok · schema ok · grant ok (alice, 1 step) · approved_by proven (approval seq 4 by alice of "pcm.grant" call grant-1)
+      B: ACCEPT           signature ok · replay ok · schema ok · grant ok (alice, 1 step) · approved_by proven (approval seq 4 by alice of "pcm.grant" call grant-1, which issued this message's root grant)
   A -> B  same request + tests_passed(pytest tests/test_refund.py), no evidence
       B: ACCEPT-UNPROVEN  tests_passed: unproven (no evidence)
   A -> B  approved_by with one record hash changed

@@ -349,19 +349,95 @@ def approval(tool="pay", **edit):
     return [(dict(r, data={**r["data"], **edit.get(r["type"].replace(".", "_"), {})}), None) for r in recs]
 
 
+def asking(args, *grants):
+    """A message of run r1 in tenant default asking for `args` under `grants`: what approved_by's covers reads."""
+    return {"from": {"agent": "uid:990101", "run": "r1", "tenant": "default"}, "intent": {"args": args},
+            "grants": list(grants)}
+
+
+ASKED = asking({"amount": 12000, "order": 81})
+
+
 def test_approved_by_names_what_was_approved():
     """SPEC 6.6: `approved` carries the decision's tool and args; the detail writes the agent's tool name as JSON, so
     it can't spell opened args."""
     tool = 'pay call c1 with args {"amount":20000,"to":"acct-9"} and read_file'
-    assert pcm_verify.approved_by({"person": "alice", "call": "c1"}, approval(tool)) == (
+    assert pcm_verify.approved_by({"person": "alice", "call": "c1"}, approval(tool), ASKED, None) == (
         "proven", f"approval seq 3 by alice of {rfc8785.dumps(tool).decode()} call c1", {"tool": tool, "args": None})
+
+
+ASK, SMALL, MOTD = {"amount": 5000, "order": 81}, {"amount": 500, "order": 81}, {"path": "/etc/motd"}
+ROOT = {"issuer": {"kind": "person", "id": "uid:990001", "approval_id": "a1", "run": "r1", "tenant": "default"}}
+SAID, GRANTED = 'approval seq 3 by alice of "refund" call c1', 'approval seq 3 by alice of "pcm.grant" call c1'
+NOT_OF = 'approval seq 3 by alice of "read_file" call c1{}: not of "refund", the tool the intent\'s schema names, so ' \
+    "it does not cover this request"
+OTHER = f"{GRANTED}: a pcm.grant approval covers only the requests under the grant it issued, and it did not issue " \
+    "this message's root grant"
+
+
+def opened(recs, args):
+    return [(recs[0][0], args), *recs[1:]]
+
+
+@pytest.mark.parametrize("recs, msg, doc, result, detail", [
+    (opened(approval("refund"), ASK), asking(ASK), {"tool": "refund"}, "proven",
+     f'{SAID} with args {{"amount":5000,"order":81}}: this request\'s tool and args'),
+    # PCM-Lies L3.A.07 and .09: alice approved a refund of 500, the message asks for 5000
+    (opened(approval("refund"), SMALL), asking(ASK), {"tool": "refund"}, "failed",
+     f'{SAID} with args {{"amount":500,"order":81}}: not this request\'s args {{"amount":5000,"order":81}}, so it '
+     "does not cover this request"),
+    # L3.A.08 and .10: the same, unopened
+    (approval("refund"), asking(ASK), {"tool": "refund"}, "unproven",
+     f"{SAID}: its args are not opened, so the verifier can't tell whether they are this request's: open the "
+     "decision"),
+    # L3.A.11 and .12: alice approved a read_file, the message asks for a refund, opened or not
+    (opened(approval("read_file"), MOTD), asking(ASK), {"tool": "refund"}, "failed",
+     NOT_OF.format(' with args {"path":"/etc/motd"}')),
+    (approval("read_file"), asking(ASK), {"tool": "refund"}, "failed", NOT_OF.format("")),
+    (opened(approval("refund"), ASK), asking(ASK), None, "unproven",
+     f'{SAID} with args {{"amount":5000,"order":81}}: the intent\'s schema names no tool, so the verifier can\'t tell '
+     "whether it covers this request: name the tool in the schema document, or cite the approval that issued the "
+     "message's root grant"),
+    (approval("pcm.grant"), asking(ASK, ROOT), None, "proven", f"{GRANTED}, which issued this message's root grant"),
+    (approval("pcm.grant"), asking(ASK, ROOT), {"tool": "refund"}, "proven",
+     f"{GRANTED}, which issued this message's root grant"),
+    (approval("pcm.grant"), asking(ASK), {"tool": "refund"}, "failed", OTHER),
+    *[(approval("pcm.grant"), asking(ASK, {"issuer": {**ROOT["issuer"], k: v}}), None, "failed", OTHER)
+      for k, v in (("approval_id", "a2"), ("run", "r2"), ("tenant", "acme"))]])
+def test_approved_by_covers_only_this_request(recs, msg, doc, result, detail):
+    """SPEC 6.6: with covers the approval covers the message's request by its tool and args, under a schema that names
+    the tool, or as the approval that issued the message's root grant. Without covers the claim only says what alice
+    approved."""
+    got = pcm_verify.approved_by({"person": "alice", "call": "c1", "covers": True}, recs, msg, doc)
+    assert got[:2] == (result, detail) and len(got) == (3 if result == "proven" else 2), got
+    assert pcm_verify.approved_by({"person": "alice", "call": "c1"}, recs, msg, doc)[0] == "proven"
+
+
+def test_a_required_approved_by_must_say_it_covers_the_request():
+    """SPEC 8 step 7: a proven approved_by without covers meets no need the schema lists, so a sender that cites an
+    approval of another call is not accepted on it; under strict it is rejected."""
+    out = {"replay": {"ok": True}, "schema": {"errors": []}, "grants": None,
+           "claims": [{"type": "approved_by", "result": "proven", "detail": "d"}]}
+    need = {"claims": ["approved_by"]}
+    for covers, strict, verdict in ((True, False, "accept"), (True, True, "accept"), (False, False, "accept-unproven"),
+                                    (False, True, "reject")):
+        sent = [{"type": "approved_by", "args": {"person": "alice", "call": "c1", "covers": covers}}]
+        assert pcm_verify._verdict(out, need, strict, sent) == (verdict, [] if covers else [
+            "approved_by: required, not proven to cover this request: claim it with covers true"])
+    assert pcm_verify._verdict(out, {}, True, sent) == ("accept", [])
+
+
+@pytest.mark.parametrize("tool, ok", [("refund", True), ("x" * 256, True), ("", False), ("x" * 257, False),
+                                      (1, False), (None, False), (["refund"], False)])
+def test_a_schema_document_may_name_its_tool(tool, ok):
+    assert (pcm_verify.check_schema({**DOC, "tool": tool}) == []) is ok
 
 
 @pytest.mark.parametrize("edit", [{"approval": {"approver_kind": "agent"}}, {"approval": {"self_approved": True}},
                                   {"approval": {"decision": "reject"}}, {"approval_request": {"approval_id": "a2"}},
                                   {"policy_decision": {"tool_use_id": "c2"}}, {"policy_decision": {"tool": ""}}])
 def test_approved_by_needs_a_persons_own_approval_of_the_decision_its_request_names(edit):
-    assert pcm_verify.approved_by({"person": "alice", "call": "c1"}, approval(**edit))[0] == "failed"
+    assert pcm_verify.approved_by({"person": "alice", "call": "c1"}, approval(**edit), ASKED, None)[0] == "failed"
 
 
 def test_approved_by_does_not_depend_on_record_order():
@@ -385,13 +461,13 @@ def test_approved_by_does_not_depend_on_record_order():
                       ([(dec[0], {"x": True}), req, app, one, request("a2", "d2"), again],
                        "2 different decisions approved as")):
         for order in (recs, recs[::-1]):
-            got = pcm_verify.approved_by(claim, order)
+            got = pcm_verify.approved_by(claim, order, ASKED, None)
             assert got[0] == "failed" and why in got[1], (order, got)
     for recs, want in (([dec, req, app, request("a2", "d1"), again], {"tool": "read_file", "args": None}),
                        ([(dec[0], motd), req, app], {"tool": "read_file", "args": motd})):
         end = "" if want["args"] is None else ' with args {"path":"/etc/motd"}'
         for order in (recs, recs[::-1]):
-            assert pcm_verify.approved_by(claim, order) == (
+            assert pcm_verify.approved_by(claim, order, ASKED, None) == (
                 "proven", f'approval seq 3 by alice of "read_file" call c1{end}', want), order
 
 
@@ -463,7 +539,7 @@ def test_no_test_command(suite):
                                    {"type": "file_written", "args": {"path": "work/x", "digest": ZERO}},
                                    {"type": "file_written", "args": {"path": "/a/../x", "digest": ZERO}}])
 def test_a_malformed_claim_fails_without_evidence(claim):
-    assert pcm_verify.check_claim(claim, message(), TRUST)["result"] == "failed"
+    assert pcm_verify.check_claim(claim, message(), TRUST, None)["result"] == "failed"
 
 
 @pytest.mark.parametrize("bad", ["not a vkey", VKEY + "="])

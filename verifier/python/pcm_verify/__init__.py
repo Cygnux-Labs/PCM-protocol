@@ -107,7 +107,8 @@ FIELD = {"oneOf": [
 SCHEMA_DOC = _obj(["pcm_schema", "name", "fields"], pcm_schema=ZERO, name=_str(64, pattern=r"[a-z][a-z0-9_.-]*"),
                   fields={"type": "object", "additionalProperties": FIELD,
                           "propertyNames": {"type": "string", "pattern": r"[a-z][a-z0-9_]{0,63}"}},
-                  claims={"type": "array", "maxItems": len(CLAIM_TYPES), "items": {"enum": CLAIM_TYPES}}, grant=BOOL)
+                  claims={"type": "array", "maxItems": len(CLAIM_TYPES), "items": {"enum": CLAIM_TYPES}}, grant=BOOL,
+                  tool=_str(256, minLength=1))   # SPEC 5.1: the tool the intent stands for, read by covers (6.6)
 
 _TYPES = {"object": dict, "array": list, "string": str, "boolean": bool, "null": type(None)}
 
@@ -191,7 +192,8 @@ OPS = {"int": "== <= >= < >", "money": "== <= >= < >", "time": "== <= >=", "stri
        "enum": "== in", "bool": "=="}
 CLAIM_ARGS = {"tests_passed": {"suite": {"type": "string", "max": 4096}},
               "approved_by": {"person": {"type": "string", "max": 256},
-                              "call": {"type": "id", "pattern": ID["pattern"]}},
+                              "call": {"type": "id", "pattern": ID["pattern"]},
+                              "covers": {"type": "bool", "optional": True}},
               "reached_host": {"host": {"type": "id", "pattern": r"[a-z0-9._:-]+"}},
               "file_written": {"path": {"type": "string", "max": 4096},
                                "digest": {"type": "id", "pattern": DIGEST["pattern"]}}}
@@ -630,12 +632,15 @@ def tests_passed(a, recs):
                 f"ran {a['suite'][:64]!r}", "shell")
 
 
-def approved_by(a, recs):
+def approved_by(a, recs, msg, doc):
     """SPEC 6.6: the person's approval of call `call`, with the approval.request it answers and the policy.decision
     that request names. The call id is the agent's own name for the call, so only the decision says what was approved:
     a proven claim adds its {tool, args} (args None unless the evidence opens them), and the detail names them too,
     the agent's tool name as JSON so it can't spell args. Records that disagree on what was approved fail it, whatever
-    their order: requests of one approval that name two decisions, or approvals of the call that name two."""
+    their order: requests of one approval that name two decisions, or approvals of the call that name two.
+
+    With `covers` the sender also says the approval covers message `msg`'s request: it issued the message's root
+    grant, or it is of the tool the intent's schema document `doc` names, with the intent's args."""
     mine = []
     for e, _ in recs:
         d = _data(e)
@@ -645,7 +650,7 @@ def approved_by(a, recs):
             mine.append(e)
     if not mine:
         return "failed", f"no approval of {a['call']} by the person {a['person']}"
-    found = {}   # {JCS of [tool, args]: (the first approval of it, tool, args)}
+    found, aids = {}, set()   # {JCS of [tool, args]: (the first approval of it, tool, args)}, the approvals' ids
     for e in sorted(mine, key=lambda e: e["seq"]):
         asked = {_data(x).get("decision_id") for x, _ in recs
                  if x.get("type") == "approval.request" and _data(x).get("approval_id") == _data(e).get("approval_id")}
@@ -656,6 +661,7 @@ def approved_by(a, recs):
             if x.get("type") == "policy.decision" and c.get("decision_id") in asked \
                     and c.get("tool_use_id") == a["call"] and c.get("tool"):
                 found.setdefault(jcs([c["tool"], args]), (e, c["tool"], args))
+                aids.add(_data(e).get("approval_id"))
     if len(found) > 1:
         return "failed", (f"the evidence holds {len(found)} different decisions approved as call {a['call']} by "
                           f"{a['person']}: send the records of one approval")
@@ -664,8 +670,33 @@ def approved_by(a, recs):
                           "evidence holds no decision of the call it approved: add the approval.request it answers "
                           "and the policy.decision that request names")
     [(e, tool, args)] = found.values()
-    return "proven", (f"approval seq {e['seq']} by {a['person']} of {jcs(tool).decode()} call {a['call']}"
-                      + ("" if args is None else f" with args {jcs(args).decode()}")), {"tool": tool, "args": args}
+    said = (f"approval seq {e['seq']} by {a['person']} of {jcs(tool).decode()} call {a['call']}"
+            + ("" if args is None else f" with args {jcs(args).decode()}"))
+    approved = {"tool": tool, "args": args}
+    if a.get("covers") is not True:
+        return "proven", said, approved
+    # SPEC 6.6, covers: the approval that issued the root grant, else one of the schema's tool with the intent's args
+    root, want = (msg.get("grants") or [{}])[0].get("issuer", {}), (doc or {}).get("tool")
+    if tool == "pcm.grant":
+        if root.get("approval_id") in aids and (root["run"], root["tenant"]) == (msg["from"]["run"],
+                                                                                  msg["from"]["tenant"]):
+            return "proven", f"{said}, which issued this message's root grant", approved
+        return "failed", (f"{said}: a pcm.grant approval covers only the requests under the grant it issued, and it "
+                          "did not issue this message's root grant")
+    if want is None:
+        return "unproven", (f"{said}: the intent's schema names no tool, so the verifier can't tell whether it covers "
+                            "this request: name the tool in the schema document, or cite the approval that issued the "
+                            "message's root grant")
+    if tool != want:
+        return "failed", (f"{said}: not of {jcs(want).decode()}, the tool the intent's schema names, so it does not "
+                          "cover this request")
+    if args is None:
+        return "unproven", (f"{said}: its args are not opened, so the verifier can't tell whether they are this "
+                            "request's: open the decision")
+    if jcs(args) != jcs(msg["intent"]["args"]):
+        return "failed", (f"{said}: not this request's args {jcs(msg['intent']['args']).decode()}, so it does not "
+                          "cover this request")
+    return "proven", f"{said}: this request's tool and args", approved
 
 
 # SPEC 6.7: hosts, read in printable ASCII only (U+0021 to U+007E)
@@ -881,12 +912,12 @@ def file_written(a, recs):
     return _ran(recs, match, f"wrote {a['path'][:64]} with {a['digest']}")
 
 
-CHECKERS = {"tests_passed": tests_passed, "approved_by": approved_by, "reached_host": reached_host,
-            "file_written": file_written}
+CHECKERS = {"tests_passed": tests_passed, "reached_host": reached_host, "file_written": file_written}
 
 
-def check_claim(c, msg, trust):
-    """{type, result, detail} of a claim, and for a proven approved_by `approved`: {tool, args} (SPEC 6.6)."""
+def check_claim(c, msg, trust, doc):
+    """{type, result, detail} of a claim of a message whose intent's schema document is `doc` (None when the receiver
+    has none), and for a proven approved_by `approved`: {tool, args} (SPEC 6.6)."""
     errs = check_args(CLAIM_ARGS[c["type"]], c["args"])
     bad = "; ".join(errs) if errs else malformed(c["type"], c["args"])   # with or without evidence (SPEC 6.1)
     approved = []
@@ -896,7 +927,9 @@ def check_claim(c, msg, trust):
         result, detail = "unproven", "no evidence"
     else:
         try:
-            result, detail, *approved = CHECKERS[c["type"]](c["args"], evidence(c["evidence"], msg, trust))
+            recs = evidence(c["evidence"], msg, trust)
+            result, detail, *approved = approved_by(c["args"], recs, msg, doc) if c["type"] == "approved_by" \
+                else CHECKERS[c["type"]](c["args"], recs)
         except EvidenceError as e:
             result, detail = "failed", str(e)
     return {"type": c["type"], "result": result, "detail": detail, **({"approved": approved[0]} if approved else {})}
@@ -1003,14 +1036,19 @@ class Replay:
 
 
 # ---------------------------------------------------------------------------------------------------- verify
-def _verdict(out, doc, strict):
+def _verdict(out, doc, strict, sent):
+    """The verdict and its reasons from the parts of `out`, for a message whose claims are `sent`."""
     claims = out["claims"] or []
     bad = [f"replay: {out['replay']['detail']}"] if out["replay"]["ok"] is False else []
     bad += [f"schema: {e}" for e in out["schema"]["errors"]]
     bad += [f"grant: {p}" for p in (out["grants"] or {}).get("problems", [])]
     bad += [f"{c['type']}: failed ({c['detail']})" for c in claims if c["result"] == "failed"]
     proven = {c["type"] for c in claims if c["result"] == "proven"}
-    missing = [f"{t}: required, not proven" for t in (doc or {}).get("claims", []) if t not in proven]
+    # SPEC 8 step 7: an approved_by meets the schema's need only when it says it covers this request (6.6)
+    met = {c["type"] for c, s in zip(claims, sent) if c["result"] == "proven"
+           and (c["type"] != "approved_by" or s["args"].get("covers") is True)}
+    missing = [f"{t}: required, not proven" + " to cover this request: claim it with covers true" * (t in proven)
+               for t in (doc or {}).get("claims", []) if t not in met]
     if bad or strict and missing:
         return "reject", bad + (missing if strict else [])
     soft = [f"{c['type']}: unproven ({c['detail']})" for c in claims if c["result"] == "unproven"] + missing
@@ -1062,6 +1100,6 @@ def verify(message, trust, schemas, me=None, strict=False, now=None, replay=None
     out["schema"] = {"ok": not errs, "ref": ref, "errors": errs}
     if doc is not None:
         out["grants"] = verify_grants(message, doc, trust)
-    out["claims"] = [check_claim(c, message, trust) for c in message.get("claims", [])]
-    out["verdict"], out["reasons"] = _verdict(out, doc, strict)
+    out["claims"] = [check_claim(c, message, trust, doc) for c in message.get("claims", [])]
+    out["verdict"], out["reasons"] = _verdict(out, doc, strict, message.get("claims", []))
     return out
