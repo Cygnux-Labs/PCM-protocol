@@ -95,7 +95,7 @@ def build(data=None):
     ds = records(data)
     res = load_results()
     by_id = {r["id"]: r for r in ds}
-    verifiers = [v for v in ALL if v in res]
+    verifiers = [v for v in ALL if v in res] + [v for v in res if v not in ALL]   # then the real protocols
     out = {"messages": len(ds), "verifiers": verifiers}
     out["size"] = {f"{c}.{t}.{lab}": n for (c, t, lab), n in sorted(collections.Counter(
         (r["class"], r["claim_type"], r["label"]) for r in ds).items(), key=lambda x: (class_key(x[0][0]), x[0][1:]))}
@@ -136,6 +136,16 @@ def build(data=None):
                 det[v][c] = {"false": len(f), "rejected": sum(verdict(v, r["id"]) == "reject" for r in f),
                              "not_accepted": sum(verdict(v, r["id"]) in ("reject", "accept-unproven") for r in f)}
     out["detection"] = det
+    lie_classes = [c for c in classes if any(r["class"] == c for r in lies)]
+    out["lies_by_class"] = {v: {c: [sum(verdict(v, r["id"]) == "accept" for r in lies if r["class"] == c),
+                                    sum(r["class"] == c for r in lies)] for c in lie_classes} for v in verifiers}
+    honest_ids = [r["id"] for r in ds if r["class"] == "honest"]
+    out["receivers"] = {v: {   # every receiver that is not PCM: the baselines, then the real protocols
+        "lies": len(lies), "accepted": fa[v]["false_accepts"], "rate": fa[v]["rate"], "ci95": fa[v]["ci95"],
+        "honest": len(honest_ids), "honest_accepted": sum(verdict(v, i) == "accept" for i in honest_ids),
+        "rejects_by_class": {c: dict(collections.Counter(res[v][r["id"]].get("reason") for r in lies
+                                                         if r["class"] == c and verdict(v, r["id"]) != "accept"))
+                             for c in lie_classes}} for v in verifiers if v not in PCM}
     # H1-H5
     H = {}
     H["H1"] = {v: {"false_accepts": fa[v]["false_accepts"], "pass": fa[v]["false_accepts"] == 0,
@@ -323,7 +333,7 @@ def markdown(o):
     L.append(table(["class"] + types + ["total"], rows))
     L.append(f"\nT = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grants, X = several "
              f"claims; counts as nT (TRUE), nF (FALSE), nU (UNKNOWABLE). Threat model: {o['threat_model']}.")
-    for v in o["verifiers"]:
+    for v in [v for v in o["verifiers"] if v in ALL]:
         L.append(f"\n### Confusion matrix: {v}\n")
         rows = []
         for c in o["classes"]:
@@ -334,15 +344,25 @@ def markdown(o):
             rows.append(row)
         L.append(table(["class"] + [f"{lab[0]}:{vd}" for lab in LABELS for vd in VERDICTS], rows))
     L.append("\n### Detection per class (FALSE messages)\n")
-    rows = []
+    rows, four = [], [v for v in o["verifiers"] if v in ALL]
     for c in o["classes"]:
         row = [c]
-        for v in o["verifiers"]:
+        for v in four:
             d = o["detection"].get(v, {}).get(c)
             row.append("" if not d else f"{d['rejected']}/{d['false']} rejected, {d['not_accepted']} not accepted")
         if any(row[1:]):
             rows.append(row)
-    L.append(table(["class"] + o["verifiers"], rows))
+    L.append(table(["class"] + four, rows))
+    rec = o["receivers"]
+    if any(v not in ALL for v in rec):
+        L.append("\n### Real protocols as receivers (added after pre-registration)\n")
+        rows = [[v, f"{x['accepted']}/{x['lies']}", rate(x["rate"]), ci(*x["ci95"]),
+                 f"{x['honest_accepted']}/{x['honest']}"] for v, x in rec.items()]
+        L.append(table(["receiver", "lies accepted", "rate", "Wilson 95% CI", "honest accepted"], rows))
+        by, cols = o["lies_by_class"], list(rec) + [v for v in PCM if v in o["lies_by_class"]][:1]
+        rows = [[c] + [f"{by[v][c][0]}/{by[v][c][1]}" for v in cols] for c in by[cols[0]]]
+        L.append("\nLies accepted per class:\n")
+        L.append(table(["class"] + cols, rows))
     L.append("\n### approved_by with the receiver's SPEC 6.6 scope check\n")
     rows = []
     for v, groups in o["spec_receiver"].items():
