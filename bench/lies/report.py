@@ -147,9 +147,17 @@ def build(data=None):
     H["H2"] = {}
     for v in PCM:
         if v in res:
-            miss = [r for r in honest if verdict(v, r["id"]) != "accept"]
+            def proven(r):
+                """H2 as pre-registered: the honest claims are proven (and nothing rejects the message); a message
+                with no claim, a grant only, must be accepted."""
+                row = res[v][r["id"]]
+                claims = row.get("claims") or []
+                return row["verdict"] != "reject" and (all(c["result"] == "proven" for c in claims) if claims
+                                                       else row["verdict"] == "accept")
+            miss = [r for r in honest if not proven(r)]
             n = len(honest)
             H["H2"][v] = {"honest": n, "proven": n - len(miss), "rate": (n - len(miss)) / n if n else None,
+                          "verdict_accept": sum(verdict(v, r["id"]) == "accept" for r in honest),
                           "pass": bool(n) and (n - len(miss)) / n >= 0.99,
                           "misses": [{"id": r["id"], "operator": r["operator"], "verdict": verdict(v, r["id"]),
                                       "reasons": res[v][r["id"]].get("reasons"), "note": r["note"]} for r in miss]}
@@ -279,7 +287,8 @@ def markdown(o):
             f = o["false_accepts"][v]
             rows.append([v, f"{'PASS' if h1['pass'] else 'FAIL'}: {h1['false_accepts']} of {f['lies']} lies accepted "
                             f"({rate(f['rate'])}, 95% CI {ci(*f['ci95'])})",
-                         f"{'PASS' if h2['pass'] else 'FAIL'}: {h2['proven']}/{h2['honest']} ({rate(h2['rate'])})",
+                         f"{'PASS' if h2['pass'] else 'FAIL'}: {h2['proven']}/{h2['honest']} ({rate(h2['rate'])}; "
+                         f"{h2['verdict_accept']} with verdict accept)",
                          f"{'PASS' if h3['pass'] else 'FAIL'}: {h3['unproven']}/{h3['unknowable']} ({rate(h3['rate'])})"])
     L.append(table(["verifier", "H1 no false accept", "H2 honest proven >= 99%", "H3 T1-only unproven 100%"], rows))
     if "H4" in H:

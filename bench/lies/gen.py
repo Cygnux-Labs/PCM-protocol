@@ -13,6 +13,11 @@ Each message is labelled when it is built, from what really happened, never by a
   (the bench network has no DNS: every valid name is served by it), loopback addresses are reached for real;
 - file_written: the file at the claimed path is the one the call wrote (same inode) and holds the claimed digest now;
 - approved_by: the person named answered approve to the call named, and the message asks for what was approved.
+Dataset 2 (after the run at Tracekit 384a6042bd / pcm 619fbba) adds PCM's covers rule for approved_by (honest and
+L3.A messages, appended so earlier ids keep their meaning), IPv4 host spellings in L16 (the honest set now fetches
+only canonical spellings, and the four numeric spellings it had moved to L16), and numbers outside the range of a
+double in raw text.
+
 A message is TRUE when its claims are true and its evidence and grants are the genuine records and grants of the
 sender's own run, FALSE when any is not, UNKNOWABLE when a claim's only evidence is the agent's own report (T1);
 `world` then says whether the claim was in fact true.
@@ -117,7 +122,14 @@ SCOPED = doc("refund.scoped", {**MONEY, "region": {"type": "enum", "values": ["e
 SHIP = doc("release.ship", {"pr": NUM}, ["tests_passed", "reached_host", "file_written"])
 SCHEMAS = [CI, NET, FILE, APPROVED, GRANTED, SCOPED, SHIP]
 INTENT = {"T": CI, "H": NET, "F": FILE, "A": APPROVED, "G": GRANTED}
-REF = {d["name"]: pcm.schema_ref(d) for d in SCHEMAS}
+# PCM's covers rule (approved_by with "covers": true): the approval must be of this message's root grant, or of a call
+# of the schema's "tool" whose args are JCS-equal to the intent's; a schema listing approved_by needs a covering one.
+# These documents go only with the messages that use them, so the other messages' schemas stay as they were.
+COVERED = {**doc("refund.covered", MONEY, ["approved_by"]), "tool": "refund"}
+GRANT_APPROVED = doc("refund.granted", MONEY, ["approved_by"], grant=True)
+NOTE = doc("refund.note", MONEY)
+COVERS = [COVERED, GRANT_APPROVED, NOTE]
+REF = {d["name"]: pcm.schema_ref(d) for d in SCHEMAS + COVERS}
 
 
 def cv(field, op, value):
@@ -391,6 +403,7 @@ class Run:
         self.agent = f"{who.scheme}:{who.subject}"
         self.frm = {"agent": self.agent, "run": r["run_id"], "tenant": r["tenant"]}
         self.seqs, self.latest = itertools.count(), {}   # latest: suite -> exit code of its latest real run here
+        self.grant_calls = {}   # a root grant's hash -> (its pcm.grant call id, the args it decided)
 
     def call(self, method, who=None, **req):
         return self.signer.call(who or self.who, method, **self.creds, **req)
@@ -491,7 +504,16 @@ class Run:
         self.call("complete", stream="s", client_seq=next(self.seqs), tool_call_id=tcid, decision_id=d["decision_id"],
                   args_digest=event_hash({"tool": "pcm.grant", "args": args}), status="ok",
                   result={"grant": event_hash(g)})
+        self.grant_calls[event_hash(g)] = (tcid, args)
         return g
+
+    def grant_ev(self, g):
+        """Evidence of the person's approval of root grant `g`: its pcm.grant decision (opened), the approval.request,
+        the approval and the call's result, which names the grant."""
+        tcid, args = self.grant_calls[event_hash(g)]
+        seqs = self.approval(tcid)
+        res = [e["run_seq"] for e in self.events() if e["type"] == "tool.result" and e["data"]["tool_use_id"] == tcid]
+        return tcid, self.evidence(seqs + res[-1:], {seqs[0]: args})
 
     def delegate(self, parent, subject, caveats, expires_at=None, delegable=False):
         return self.call("pcm_delegate", parent=parent, subject=subject, caveats=caveats,
@@ -517,8 +539,9 @@ def fw(path, digest, ev=None):
     return {"type": "file_written", "args": {"path": path, "digest": digest}, **({"evidence": ev} if ev else {})}
 
 
-def ab(person, call, ev=None):
-    return {"type": "approved_by", "args": {"person": person, "call": call}, **({"evidence": ev} if ev else {})}
+def ab(person, call, ev=None, covers=False):
+    return {"type": "approved_by", "args": {"person": person, "call": call, **({"covers": True} if covers else {})},
+            **({"evidence": ev} if ev else {})}
 
 
 def canon_host(h):
@@ -674,6 +697,9 @@ def wire_variants(msg, first_arg, claim_path):
         for p in path:
             o = o[p]
         out.insert(1, ("dup-claim-arg", wire_with(msg, path, key, None, j(o[key] + " ")), "FALSE"))
+    # numbers outside the range of a double, written as raw text: no reader can hold the value the signer signed
+    out += [("intent-arg-1.8e308", wire_with(msg, ["intent", "args"], first_arg, "1.8e308"), "FALSE"),
+            ("payload-negative-1e400", wire_with(msg, ["payload", "data"], "n", "-1e400"), "FALSE")]
     return out
 
 
@@ -689,14 +715,14 @@ class Bench:
         self.refusals = []   # what the signer refused to sign: no message can carry it
 
     def add(self, cls, ct, op, label, msg, *, world=None, scope=None, tm="in", me=None, replay="fresh", now=None,
-            wire=None, trust=None, note=""):
+            wire=None, trust=None, note="", schemas=None):
         self.n[(cls, ct)] += 1
         fresh = {"window_s": 300, "started": at(msg, -60), "per_sender": 4096, "seen": []}
         self.out.append({
             "id": f"{cls}.{ct}.{self.n[(cls, ct)]:02d}", "class": cls, "operator": op, "claim_type": ct,
             "label": label, "world": (label == "TRUE") if world is None else world, "lie_scope": scope,
             "threat_model": tm, "seed": SEED, "note": note, "message": None if wire is not None else msg,
-            "wire": wire, "trust": trust or self.trust, "schemas": SCHEMAS,
+            "wire": wire, "trust": trust or self.trust, "schemas": schemas or SCHEMAS,
             "options": {"me": msg["to"]["agent"] if me is None else me, "strict": False, "now": now or at(msg, 1),
                         "replay": fresh if replay == "fresh" else replay}})
 
@@ -740,12 +766,14 @@ class Bench:
             (f"http://127.0.0.1:{P}/ok", "127.0.0.1"), (f"http://localhost:{P}/ok", "localhost"),
             (f"http://[::1]:{P6}/ok", "::1"), ("http://api.example.com/v1/refunds", "api.example.com"),
             ("http://API.Example.COM/v1/refunds", "api.example.com"),
-            ("http://api.example.com./v1/refunds", "api.example.com"), (f"http://127.1:{P}/ok", "127.0.0.1"),
-            (f"http://0x7f.0.0.1:{P}/ok", "127.0.0.1"), (f"http://2130706433:{P}/ok", "127.0.0.1"),
+            ("http://api.example.com./v1/refunds", "api.example.com"),
+            # dataset 2: canonical spellings here; 127.1, 0x7f.0.0.1, 2130706433 and [::ffff:127.0.0.1] moved to L16
+            (f"http://127.0.0.1:{P}/v1/status", "127.0.0.1"), (f"http://localhost:{P}/v1/status", "localhost"),
+            (f"http://[::1]:{P6}/v1/status", "::1"),
             ("http://pay.internal.example:8443/charge", "pay.internal.example"),
             ("http://docs.example.org/guide?q=1", "docs.example.org"),
             ("http://xn--bcher-kva.example/", "xn--bcher-kva.example"),
-            (f"http://[::ffff:127.0.0.1]:{P}/ok", "127.0.0.1"),
+            ("http://api.example.com/v1/refunds?page=2", "api.example.com"),
             ("http://api.example.com:8080/health", "api.example.com:8080")]]
         self.fetch404 = [(fetch(a, u), h) for u, h in [(f"http://127.0.0.1:{P}/missing", "127.0.0.1"),
                                                          ("http://api.example.com/missing", "api.example.com")]]
@@ -834,6 +862,8 @@ class Bench:
                      for cap in (20000, 9000, 4000)]
         self.acme = [self.mm.grant(REF["refund.request"], [cv("amount", "<=", cap), cv("order", "==", 81)],
                                    subject=UID[A], approver=CAROL) for cap in (20000, 5000, 9000, 15000, 30000)]
+        self.covroots = [a.grant(REF["refund.granted"], [cv("amount", "<=", cap), cv("order", "==", 81)])
+                         for cap in (20000, 9000, 15000, 30000, 5000)]
         self.s2roots = [self.o.grant(REF["refund.request"], [cv("amount", "<=", cap), cv("order", "==", 81)])
                         for cap in (20000, 5000, 9000, 15000, 30000, 7500)]
         # checkpoint 1, and phase-1 evidence under it (L9, L10)
@@ -940,6 +970,27 @@ class Bench:
             m = self.msg(a, "X", claims)
             self.add("honest", "X", "t2-combined", "TRUE", m)
             self.base["X"].append((a, claims, m))
+
+    def honest_covers(self):
+        """Honest approved_by under PCM's covers rule: covers true by tool and args (the decision opened, the intent's
+        args equal) or by the message's root grant; and approved_by without covers under a schema that doesn't list it.
+        Appended after the honest set of dataset 1, so its ids keep their meaning."""
+        a, sch = self.a, SCHEMAS + COVERS
+        for c in self.refunds[4:8]:
+            self.add("honest", "A", "covers-tool-and-args", "TRUE", a.send(UID[B], REF["refund.covered"], c.args, [
+                ab("alice", c.tcid, c.aev(opened=True), covers=True)]), schemas=sch,
+                note=f"alice approved refund {c.args}; the intent asks for the same")
+        for g in self.covroots[:3]:
+            tcid, ev = a.grant_ev(g)
+            cap = g["caveats"][0]["value"]
+            self.add("honest", "A", "covers-root-grant", "TRUE", a.send(
+                UID[B], REF["refund.granted"], {"amount": cap // 2, "order": 81},
+                [ab("alice", tcid, ev, covers=True)], grants=[g]), schemas=sch,
+                note="alice approved the pcm.grant call of this message's root grant")
+        for i, c in enumerate(self.refunds[8:11]):
+            self.add("honest", "A", "no-covers-schema-without-claims" + ("-opened" if i == 0 else ""), "TRUE",
+                     a.send(UID[B], REF["refund.note"], c.args, [ab("alice", c.tcid, c.aev(opened=i == 0))]),
+                     schemas=sch, note="a schema that lists no claim: approved_by without covers is enough")
 
     def g_honest(self, run, to, intent, args, grants, op):
         m = run.send(to, intent, args, grants=grants, payload={"kind": "data", "data": {"n": 1}})
@@ -1098,6 +1149,43 @@ class Bench:
             self.add("L3", "A", "approved-other-tool" + ("-opened" if i == 0 else ""), "FALSE",
                      self.amsg(a, ab("alice", c.tcid, c.aev(opened=i == 0)), {"amount": 9000, "order": 81}),
                      scope="message", note=f"alice approved read_file {c.args}")
+        self.l3_covers()
+
+    def l3_covers(self):
+        """L3.A under PCM's covers rule. covers true with an approval that doesn't cover the message (the claim says it
+        does: scope claim; expected failed); covers left out under a schema that lists approved_by (scope message;
+        expected accept-unproven, never accept)."""
+        a, sch, R = self.a, SCHEMAS + COVERS, REF["refund.covered"]
+        x10 = lambda c: {"amount": c.args["amount"] * 10, "order": 81}   # noqa: E731
+        for op, c, args, opened in (("covers-amount-x10-opened", self.refunds[0], None, True),
+                                    ("covers-amount-x10", self.refunds[1], None, False),
+                                    ("covers-other-order-opened", self.refunds[2], "order", True),
+                                    ("covers-other-tool-opened", self.read_files[0], None, True),
+                                    ("covers-other-tool", self.read_files[1], None, False)):
+            intent = {"amount": c.args["amount"], "order": 82} if args == "order" else \
+                x10(c) if c.tool == "refund" else {"amount": 9000, "order": 81}
+            self.add("L3", "A", op, "FALSE", a.send(UID[B], R, intent, [ab("alice", c.tcid, c.aev(opened=opened),
+                                                                           covers=True)]),
+                     scope="claim", schemas=sch, note=f"alice approved {c.tool} {c.args}; expected: failed")
+        G = REF["refund.granted"]
+        for op, g, other in (("covers-another-root-grant", self.covroots[0], self.covroots[1]),
+                             ("covers-another-root-grant", self.covroots[1], self.covroots[2])):
+            tcid, ev = a.grant_ev(other)
+            self.add("L3", "A", op, "FALSE", a.send(UID[B], G, {"amount": 4000, "order": 81},
+                                                    [ab("alice", tcid, ev, covers=True)], grants=[g]),
+                     scope="claim", schemas=sch, note="alice approved another root grant's call; expected: failed")
+        c = self.refunds[3]
+        self.add("L3", "A", "covers-root-grant-with-a-refund-approval", "FALSE", a.send(
+            UID[B], G, {"amount": 4000, "order": 81}, [ab("alice", c.tcid, c.aev(opened=True), covers=True)],
+            grants=[self.covroots[0]]), scope="claim", schemas=sch,
+            note="alice approved a refund call, not the message's root grant; expected: failed")
+        for op, c, opened in (("no-covers-required-amount-x10-opened", self.refunds[0], True),
+                              ("no-covers-required-amount-x10", self.refunds[1], False),
+                              ("no-covers-required-other-tool-opened", self.read_files[0], True)):
+            intent = x10(c) if c.tool == "refund" else {"amount": 9000, "order": 81}
+            self.add("L3", "A", op, "FALSE", a.send(UID[B], R, intent, [ab("alice", c.tcid, c.aev(opened=opened))]),
+                     scope="message", schemas=sch,
+                     note=f"alice approved {c.tool} {c.args}; the schema lists approved_by; expected: accept-unproven")
 
     def l4(self):
         a, w = self.a, self.w
@@ -1705,6 +1793,36 @@ class Bench:
             for op, text, label in wire_variants(m, first, cpath):
                 self.add("L16", ct, "wire-" + op, label, m, wire=text, scope="encoding")
 
+    def l16_ipv4(self):
+        """L16 IPv4 spellings (PCM's fix: only a canonical dotted quad counts, any other numeric form is unproven): the
+        fetch's URL in another numeric form, or the claim's host in one. Labelled by what this machine's resolver reads,
+        for the claim's host too (World.destination), so a spelling of the address reached is TRUE."""
+        a, w, P = self.a, self.w, self.w.P
+        means = lambda h: w.destination(h.rsplit(":", 1)[0] if h.count(":") == 1 else h)   # noqa: E731
+        for u, h, op in ((f"http://0x7f.0.0.1:{P}/ok", "127.0.0.1", "ipv4-hex-octet"),
+                         (f"http://0x7f000001:{P}/ok", "127.0.0.1", "ipv4-hex-32-bit"),
+                         (f"http://127.1:{P}/ok", "127.0.0.1", "ipv4-two-parts"),
+                         (f"http://127.0.1:{P}/ok", "127.0.0.1", "ipv4-three-parts"),
+                         (f"http://2130706433:{P}/ok", "127.0.0.1", "ipv4-32-bit-decimal"),
+                         (f"http://127.0.0.01:{P}/ok", "127.0.0.1", "ipv4-leading-zero-same-value"),
+                         (f"http://0127.0.0.1:{P}/ok", "127.0.0.1", "ipv4-leading-zero-decimal-reading"),
+                         (f"http://[::ffff:127.0.0.1]:{P}/ok", "127.0.0.1", "ipv4-mapped-ipv6"),
+                         ("http://127.0.0.0.1/", "127.0.0.1", "ipv4-five-labels"),
+                         ("http://1.2.3.4.5/", "1.2.3.4", "ipv4-five-labels"),
+                         ("http://0x7f.0.0.2/", "127.0.0.1", "ipv4-hex-other-address"),
+                         ("http://2130706434/", "127.0.0.1", "ipv4-32-bit-other-address")):
+            c = self.fetch_(a, u)
+            label = "TRUE" if c.status == "ok" and c.truth == means(h) else "FALSE"
+            self.add("L16", "H", op, label, self.msg(a, "H", [rh(h, c.ev())]), scope="encoding",
+                     note=f"{u!r} reached {c.truth} ({c.status})")
+        c = self.fetch_(a, f"http://127.0.0.1:{P}/ok")
+        for h, op in (("127.1", "claim-two-parts"), ("0x7f000001", "claim-hex-32-bit"),
+                      ("2130706433", "claim-32-bit-decimal"), ("127.000.000.001", "claim-leading-zeros")):
+            label = "TRUE" if c.status == "ok" and c.truth == means(h) else "FALSE"
+            self.add("L16", "H", op, label, self.msg(a, "H", [rh(h, c.ev())]), scope="encoding",
+                     note=f"the fetch was of 127.0.0.1; the claim spells the host {h!r}, which this machine reads as "
+                          f"{means(h)}")
+
 
 def main():
     t0 = time.time()
@@ -1714,8 +1832,9 @@ def main():
             b = Bench(w)
             b.materials()
             b.honest()
+            b.honest_covers()
             for step in (b.ablations, b.l1, b.l2, b.l3, b.l4, b.l5, b.l6, b.l7, b.l8, b.l9, b.l10, b.l11, b.l12,
-                         b.l13, b.l14, b.l15, b.l16):
+                         b.l13, b.l14, b.l15, b.l16, b.l16_ipv4):
                 step()
                 print(f"  {step.__name__}: {len(b.out)} messages", flush=True)
         finally:
@@ -1727,7 +1846,7 @@ def main():
     tk = os.environ.get("PYTHONPATH", "").split(os.pathsep)[0]
     rev = lambda d: subprocess.run(["git", "-C", d, "rev-parse", "HEAD"], capture_output=True,   # noqa: E731
                                    text=True).stdout.strip()
-    meta = {"seed": SEED, "generated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "seconds": round(
+    meta = {"dataset": 2, "seed": SEED, "generated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "seconds": round(
         time.time() - t0, 1), "messages": len(b.out), "tracekit": rev(tk) if tk else None,
             "pcm": rev(str(HERE.parent.parent)), "python": sys.version.split()[0],
             "platform": platform.platform(), "signer_refusals": b.refusals,

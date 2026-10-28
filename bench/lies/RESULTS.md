@@ -53,6 +53,33 @@ Comparing the two runs message by message (ids are stable):
 So the final heads' new host rules don't touch F1. A leading-zero octet is printable ASCII and has no `%`, so it is
 still read by `inet_aton`.
 
+## Next run: dataset 2 (generator changed, not yet run)
+
+The numbers on this page are from dataset 1. For PCM's coming fixes, `gen.py` now builds dataset 2. Its labels keep
+their meaning. Messages added to a class are appended, so dataset 1's ids keep theirs, with one exception (the honest
+fetches, below).
+- **(b) the `approved_by` covers rule:**
+  - 10 honest messages:
+    - 4 with `covers: true` by tool and args, under `refund.covered`, a schema with `"tool": "refund"`;
+    - 3 with `covers: true` by the message's root grant, under `refund.granted`;
+    - 3 without covers, under a schema that lists no claim.
+  - 11 L3.A lies:
+    - 8 with `covers: true` and an approval that doesn't cover the message (expected `failed`);
+    - 3 without covers, under a schema that lists `approved_by` (expected `accept-unproven`, never `accept`).
+  - The new schema documents go only with the messages that use them.
+- **(a) IPv4 spellings:** 16 more L16 host messages, labelled by what this machine's resolver reads:
+  - fetches by hex, two- and three-part, 32-bit decimal, leading-zero, IPv4-mapped and five-label hosts;
+  - claims that spell 127.0.0.1 four other ways.
+- **The honest fetches:** they now use only canonical spellings. The four numeric spellings that were `honest.H.07`,
+  `.08`, `.09` and `.13` are now L16 messages, and their ids hold canonical fetches instead. So H2 measures a sender
+  that follows the spec, and L16 shows what fix (a) costs a sender that doesn't.
+- **(d) numbers out of the double range:** each claim type gets `1.8e308` in the intent's args and `-1e400` in the
+  payload, as raw text.
+- **(c):** no change is needed: `honest.H.15` and `.16` already test a 404.
+- **H2 counts claims:** `report.py` now counts H2 as pre-registered, that is honest *claims* proven, so an honest
+  `approved_by` without covers still counts under a schema that requires a covering one. It also shows how many
+  honest messages got the verdict `accept`. Datasets 1 and 2 give the same numbers either way (71/73).
+
 ## Findings and diagnosis
 
 These are not fixed here: per the task, fixes go to the owners of the spec and the code. Each finding has a minimal
@@ -255,8 +282,8 @@ _879 messages; verifiers: tracekit, standalone, a2a, sigonly._
 
 | verifier | H1 no false accept | H2 honest proven >= 99% | H3 T1-only unproven 100% |
 |---|---|---|---|
-| tracekit | FAIL: 23 of 687 lies accepted (3.3%, 95% CI [2.24%, 4.97%]) | FAIL: 71/73 (97.3%) | PASS: 72/72 (100.0%) |
-| standalone | FAIL: 23 of 687 lies accepted (3.3%, 95% CI [2.24%, 4.97%]) | FAIL: 71/73 (97.3%) | PASS: 72/72 (100.0%) |
+| tracekit | FAIL: 23 of 687 lies accepted (3.3%, 95% CI [2.24%, 4.97%]) | FAIL: 71/73 (97.3%; 71 with verdict accept) | PASS: 72/72 (100.0%) |
+| standalone | FAIL: 23 of 687 lies accepted (3.3%, 95% CI [2.24%, 4.97%]) | FAIL: 71/73 (97.3%; 71 with verdict accept) | PASS: 72/72 (100.0%) |
 
 H4 verifier agreement (conformance fields and reason class): **FAIL**, 874/879 agree.
 
