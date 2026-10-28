@@ -1,6 +1,7 @@
-# PCM: Proof-Carrying Messages
+# Proof-Carrying Messages (PCM): a protocol for AI agents
 
-![benchmark](https://img.shields.io/badge/PCM--Lies-926%20messages%2C%20pre--registered-2a78d6)
+![PCM-detected lies](https://img.shields.io/badge/PCM--detected%20lies-702%20of%20712-2a78d6)
+![benchmark](https://img.shields.io/badge/benchmark-pre--registered-2a78d6)
 ![vectors](https://img.shields.io/badge/test%20vectors-187-2a78d6)
 ![verifier](https://img.shields.io/badge/independent%20verifier-553%20tests-1baf7a)
 ![spec](https://img.shields.io/badge/PCM-0.1%20%C2%B7%20draft-52514e)
@@ -19,7 +20,7 @@ signature alone accepted 643. Checking a message takes about 1 ms ([Evaluation](
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/lies-accepted-dark.svg">
-  <img alt="Lies a receiver accepts: plain A2A 712 of 712, a sender-signature check 643 of 712, PCM 0.1 before the fixes 23 of 687, PCM 0.1 10 of 712, all stale evidence" src="docs/img/lies-accepted-light.svg" width="760">
+  <img alt="Lies a receiver accepts: plain A2A 712 of 712, a sender-signature check 643 of 712, PCM 0.1 10 of 712, all stale evidence" src="docs/img/lies-accepted-light.svg" width="760">
 </picture>
 
 **Try it** (with [Tracekit](https://github.com/Cygnux-Labs/Tracekit), the reference implementation):
@@ -53,20 +54,10 @@ In three steps:
 3. The receiver checks the signature, the proofs and the records offline, against keys it pins, and gets `proven`,
    `unproven` or `failed` for each claim.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant A as Agent A (sender)
-    participant S as Attesting signer<br/>(keys + Merkle log)
-    participant B as Agent B (receiver)
-    A->>S: tool calls: run tests, fetch, ask a person
-    S->>S: decide, record and sign every event<br/>(the agent never holds a key)
-    A->>S: pcm_evidence + pcm_sign (intent, claims, grants)
-    S-->>A: signed message + records + inclusion proofs
-    A->>B: PCM message (an A2A part, an MCP resource or HTTP)
-    B->>B: verify offline against the pinned log key
-    Note over B: each claim: proven / unproven / failed<br/>the message: accept / accept-unproven / reject
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/flow-dark.svg">
+  <img alt="How a PCM claim travels: agent A acts through an attesting signer that records and signs every event; the message carries records and inclusion proofs; agent B checks them offline" src="docs/img/flow-light.svg" width="900">
+</picture>
 
 In detail, a PCM message is a JSON envelope signed by an **attesting signer**: a service that holds the keys, records the run's
 events in an append-only Merkle log, and signs only as the identity of the run that calls it. The agent never holds a
@@ -92,25 +83,10 @@ before any check (3.3, 13.2). A claim that rests on the agent's word alone is `u
    names the checks its caller skipped, and a receiver must not act on such a result (8).
    How a verifier judges one claim (6.1):
 
-   ```mermaid
-   flowchart LR
-       C([claim]) --> E{evidence?}
-       E -- no --> U[unproven]
-       E -- yes --> V{records and proofs verify<br/>under the pinned log key?}
-       V -- no --> F[failed]
-       V -- yes --> W{written by the signer<br/>or a T2 gateway?}
-       W -- "no: the agent's own report (T1)" --> U
-       W -- yes --> M{records say what<br/>the claim says?}
-       M -- no --> F
-       M -- "less, or can't tell" --> U
-       M -- yes --> P[proven]
-       classDef ok fill:#1baf7a,color:#fff,stroke:#1baf7a
-       classDef bad fill:#e34948,color:#fff,stroke:#e34948
-       classDef maybe fill:#eda100,color:#000,stroke:#eda100
-       class P ok
-       class F bad
-       class U maybe
-   ```
+   <picture>
+     <source media="(prefers-color-scheme: dark)" srcset="docs/img/judge-dark.svg">
+     <img alt="How a verifier judges one claim: no evidence gives unproven, evidence that does not verify gives failed, the agent's own report gives unproven, records that say the claim give proven" src="docs/img/judge-light.svg" width="900">
+   </picture>
 
 3. **Claims bind to what was done, not to names the agent chose.** An agent names its own calls, so an approval of
    call `refund-81-approved` says nothing of what the call was. `approved_by` is proven only with the approval, the
@@ -126,14 +102,10 @@ before any check (3.3, 13.2). A claim that rests on the agent's word alone is `u
    checks the chain again, bound to the sender's tenant and to the log that signed the message (7.6, 14.18).
    A chain of grants (7.3–7.6):
 
-   ```mermaid
-   flowchart LR
-       P([alice approves<br/>a pcm.grant call]) --> R[root grant<br/>refund.request<br/>amount ≤ 20000 · order 81 · 1 h]
-       R -- "narrows" --> C[child grant<br/>amount ≤ 5000]
-       R -. "widens: rejected" .-> X[amount ≤ 50000]
-       classDef bad fill:#e34948,color:#fff,stroke:#e34948
-       class X bad
-   ```
+   <picture>
+     <source media="(prefers-color-scheme: dark)" srcset="docs/img/grants-dark.svg">
+     <img alt="A grant chain only narrows: alice approves, a root grant is issued, a narrower child is signed and a wider child is rejected" src="docs/img/grants-light.svg" width="900">
+   </picture>
 
 5. **Replay rules that survive a restart in bounded memory.** A sender is the pair (log key, agent). A receiver
    refuses a message outside its clock window, signed before the receiver started (so it restarts with no saved
@@ -253,7 +225,7 @@ The schema lists `approved_by`, so without `covers` the same proven claim would 
 
 ## Evaluation
 
-PCM-Lies is a pre-registered benchmark of false claims between agents, in [`bench/lies/`](bench/lies); its full
+The lie benchmark is a pre-registered test of false claims between agents, in [`bench/lies/`](bench/lies); its full
 results are in [`bench/lies/RESULTS.md`](bench/lies/RESULTS.md). It asks how often a receiving agent accepts a false claim
 from a sending agent.
 
@@ -278,26 +250,21 @@ only.
 
 The baselines and the cost (message size, p50 and p99 verify time) are reported without a pass bar.
 
-**Results.** Dataset 1 (879 messages) ran on the heads before three fixes (Tracekit `384a6042bd`, pcm main
-`619fbba`); dataset 2 (926 messages: dataset 1 plus 47 for the fixes) on the fixed heads (Tracekit `7d843e6377`, pcm
-main `0f26c38`).
+**Results**, on 926 messages from Tracekit `7d843e6377` and this repository at `0f26c38`:
 
-| | before: dataset 1, 879 messages | after: dataset 2, 926 messages |
-|---|---|---|
-| H1 lies accepted, each verifier | **fail**, 23/687 (3.3%, 95% CI 2.2–5.0%) | **fail**, 10/712 (1.4%, 95% CI 0.8–2.6%) |
-| … of which not stale evidence | 13 | 0 |
-| H2 honest claims proven | **fail**, 71/73 (97.3%) | **fail**, 81/83 (97.6%) |
-| H3 T1-only claims unproven | **pass**, 72/72 | **pass**, 72/72 |
-| H4 verifiers agree | **fail**, 874/879 | **pass**, 926/926 |
-| plain A2A, lies accepted | 687/687 | 712/712 |
-| signature only, lies accepted | 628/687 | 643/712 (90.3%) |
-| verify time p50 (p99), Tracekit / standalone | 1.4 (2.9) / 0.9 (1.6) ms | 1.2 (2.4) / 0.8 (1.8) ms |
+| | result |
+|---|---|
+| H1 lies accepted, each verifier | **fail**, 10 of 712 (1.4%, 95% CI 0.8–2.6%), all stale evidence |
+| H2 honest claims proven | **fail**, 81 of 83 (97.6%), both misses the 404 limit |
+| H3 T1-only claims unproven | **pass**, 72 of 72 |
+| H4 the two verifiers agree | **pass**, 926 of 926 |
+| plain A2A, lies accepted | 712 of 712 |
+| sender's signature only, lies accepted | 643 of 712 (90.3%) |
+| verify time p50 (p99), Tracekit / standalone | 1.2 (2.4) / 0.8 (1.8) ms |
 
-The fixes between the runs, each in the spec and both verifiers: a leading-zero IPv4 octet proved a host the
-connection never reached on macOS (7 false accepts), so now only a dotted quad counts (6.7); `approved_by` proved an
-approval of a smaller or different call (6), so now a schema that lists it needs `covers` (6.6); and `1e400` was
-read two ways (5 disagreements), so now it is bad input (3.3). The IPv4 fix has a cost: 11 true but non-canonical
-spellings of an address are now `unproven`, each with a detail that tells the sender how to send it.
+The benchmark earned its keep before these numbers: an earlier run found three bugs (a leading-zero IPv4 host, an
+approval of a different call, and a number read two ways), each fixed in the spec and both verifiers with vectors
+that pin it. That run is in [`RESULTS.md`](bench/lies/RESULTS.md).
 
 What is left:
 
@@ -435,7 +402,7 @@ cd verifier/python && python -m pytest tests
 | [`vectors/`](vectors) | 187 vectors: 30 `accept`, 46 `accept-unproven`, 110 `reject`, 1 `bad-input`. Level 1 (no claim carries evidence): 49, of which 11 `accept`, 2 `accept-unproven`, 35 `reject` and 1 `bad-input`. Level 2: 138, of which 19 `accept`, 44 `accept-unproven` and 75 `reject`. Format: [`vectors/README.md`](vectors/README.md) |
 | [`verifier/python`](verifier/python) | `pcm-verify` 0.1.0, the standalone verifier, and its tests |
 | [`tools/`](tools) | `gen_schemas.py` and `gen_vectors.py`, which regenerate the schemas and vectors from a Tracekit checkout |
-| [`bench/lies/`](bench/lies) | PCM-Lies: the dataset generator, the runner, the report and `RESULTS.md` |
+| [`bench/lies/`](bench/lies) | the lie benchmark: the dataset generator, the runner, the report and `RESULTS.md` |
 | [`docs/ts-verifier-plan.md`](docs/ts-verifier-plan.md) | the plan for a TypeScript verifier |
 
 ## Reference implementation

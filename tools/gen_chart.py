@@ -1,10 +1,9 @@
-"""Draw docs/img/lies-accepted-{light,dark}.svg, the README's PCM-Lies chart (numbers from bench/lies/RESULTS.md)."""
+"""Draw docs/img/lies-accepted-{light,dark}.svg, the README's lie-benchmark chart (numbers from bench/lies/RESULTS.md)."""
 import os
 
 ROWS = [  # label, accepted, lies, group
     ("Plain A2A (no proof)", 712, 712, "base"),
     ("Sender's signature only", 643, 712, "base"),
-    ("PCM 0.1, before the fixes", 23, 687, "pcm"),
     ("PCM 0.1", 10, 712, "pcm"),
 ]
 THEMES = {  # validated with dataviz validate_palette.js (light on #fcfcfb, dark on #1a1a19): all checks pass
@@ -29,11 +28,11 @@ def svg(t):
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{h}" viewBox="0 0 {W} {h}" '
            f'font-family="{FONT}" role="img" aria-labelledby="t d">',
            '<title id="t">Lies a receiver accepts</title>',
-           '<desc id="d">PCM-Lies benchmark. Plain A2A accepts 712 of 712 lies, a sender-signature check 643 of 712, '
-           'PCM 0.1 before the fixes 23 of 687, and PCM 0.1 10 of 712, all stale evidence.</desc>',
+           '<desc id="d">Lie benchmark. Plain A2A accepts 712 of 712 lies, a sender-signature check 643 of 712, '
+           'and PCM 0.1 10 of 712, all stale evidence.</desc>',
            f'<text x="0" y="26" font-size="18" font-weight="600" fill="{c["text"]}">Lies a receiver accepts</text>',
-           f'<text x="0" y="48" font-size="13" fill="{c["muted"]}">PCM-Lies benchmark: false claims accepted as true, '
-           f'of 712 lies (687 before the fixes). Lower is better.</text>']
+           f'<text x="0" y="48" font-size="13" fill="{c["muted"]}">Lie benchmark: false claims accepted as true, '
+           f'of 712 lies. Lower is better.</text>']
     for k in range(5):  # recessive grid at 0, 25, 50, 75, 100 %
         gx = x0 + BAR_W * k / 4
         out.append(f'<line x1="{gx}" y1="{TOP - 14}" x2="{gx}" y2="{TOP + ROW_H * len(ROWS) - 8}" '

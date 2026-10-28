@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="196" viewBox="0 0 960 196" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+<title id="t">A PCM grant chain only narrows</title>
+<desc id="d">Alice approves a pcm.grant call, which issues a root grant (refund.request, amount at most 20000, order 81, one hour). A child grant may narrow it to amount at most 5000; a child that widens it to 50000 is rejected.</desc>
+<defs><marker id="line" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8d8c85"/></marker><marker id="accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2a78d6"/></marker><marker id="ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#008300"/></marker><marker id="maybe" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#b97c00"/></marker><marker id="bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d33a39"/></marker></defs>
+<rect x="0" y="61" width="180" height="70" rx="10" fill="#f4f4f1" stroke="#2a78d6" stroke-width="1.5"/>
+<text x="90.0" y="92.0" font-size="14" font-weight="600" text-anchor="middle" fill="#0b0b0b">alice approves</text>
+<text x="90.0" y="110.0" font-size="12" font-weight="400" text-anchor="middle" fill="#52514e">a pcm.grant call</text>
+<rect x="290" y="49" width="290" height="94" rx="10" fill="#f4f4f1" stroke="#d9d8d2" stroke-width="1.5"/>
+<text x="435.0" y="83.0" font-size="14" font-weight="600" text-anchor="middle" fill="#0b0b0b">Root grant</text>
+<text x="435.0" y="101.0" font-size="12" font-weight="400" text-anchor="middle" fill="#52514e">refund.request · amount ≤ 20000</text>
+<text x="435.0" y="119.0" font-size="12" font-weight="400" text-anchor="middle" fill="#52514e">order 81 · for 1 hour</text>
+<line x1="186" y1="96" x2="282" y2="96" stroke="#8d8c85" stroke-width="1.8" marker-end="url(#line)"/>
+<text x="234" y="86" font-size="12" font-weight="400" text-anchor="middle" fill="#52514e">issues</text>
+<rect x="700" y="12" width="258" height="66" rx="10" fill="#f4f4f1" stroke="#008300" stroke-width="1.5"/>
+<text x="829.0" y="41.0" font-size="14" font-weight="600" text-anchor="middle" fill="#0b0b0b">Child grant</text>
+<text x="829.0" y="59.0" font-size="12" font-weight="400" text-anchor="middle" fill="#52514e">amount ≤ 5000</text>
+<rect x="700" y="116" width="258" height="66" rx="10" fill="#f4f4f1" stroke="#d33a39" stroke-width="1.5"/>
+<text x="829.0" y="145.0" font-size="14" font-weight="600" text-anchor="middle" fill="#0b0b0b">Child grant</text>
+<text x="829.0" y="163.0" font-size="12" font-weight="400" text-anchor="middle" fill="#52514e">amount ≤ 50000</text>
+<line x1="586" y1="80" x2="692" y2="48" stroke="#008300" stroke-width="1.8" marker-end="url(#ok)"/>
+<text x="640" y="48" font-size="12" font-weight="400" text-anchor="middle" fill="#008300">narrows: signed</text>
+<line x1="586" y1="114" x2="692" y2="146" stroke="#d33a39" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#bad)"/>
+<text x="640" y="160" font-size="12" font-weight="400" text-anchor="middle" fill="#d33a39">widens: rejected</text>
+</svg>

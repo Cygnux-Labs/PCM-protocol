@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="214" viewBox="0 0 960 214" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+<title id="t">How a verifier judges one claim</title>
+<desc id="d">A claim with no evidence is unproven; evidence that fails to verify is failed; a record the agent wrote itself (T1) is unproven; records that say what the claim says are proven, records that contradict it are failed, and records that say less or can't be matched are unproven.</desc>
+<defs><marker id="line" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8d8c85"/></marker><marker id="accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#3987e5"/></marker><marker id="ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2fa84f"/></marker><marker id="maybe" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d79a1a"/></marker><marker id="bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e66767"/></marker></defs>
+<rect x="1.0" y="20" width="138" height="64" rx="10" fill="#1f2328" stroke="#3987e5" stroke-width="1.5"/>
+<text x="70.0" y="57.0" font-size="14" font-weight="600" text-anchor="middle" fill="#f2f1ec">Claim</text>
+<rect x="176.2" y="20" width="138" height="64" rx="10" fill="#1f2328" stroke="#3a3a37" stroke-width="1.5"/>
+<text x="245.2" y="57.0" font-size="14" font-weight="600" text-anchor="middle" fill="#f2f1ec">Evidence?</text>
+<rect x="351.4" y="20" width="138" height="64" rx="10" fill="#1f2328" stroke="#3a3a37" stroke-width="1.5"/>
+<text x="420.4" y="48.0" font-size="14" font-weight="600" text-anchor="middle" fill="#f2f1ec">Proofs verify?</text>
+<text x="420.4" y="66.0" font-size="12" font-weight="400" text-anchor="middle" fill="#c3c2b7">under the pinned key</text>
+<rect x="526.5999999999999" y="20" width="138" height="64" rx="10" fill="#1f2328" stroke="#3a3a37" stroke-width="1.5"/>
+<text x="595.5999999999999" y="48.0" font-size="14" font-weight="600" text-anchor="middle" fill="#f2f1ec">Who wrote it?</text>
+<text x="595.5999999999999" y="66.0" font-size="12" font-weight="400" text-anchor="middle" fill="#c3c2b7">signer or T2 gateway</text>
+<rect x="701.8" y="20" width="138" height="64" rx="10" fill="#1f2328" stroke="#3a3a37" stroke-width="1.5"/>
+<text x="770.8" y="57.0" font-size="14" font-weight="600" text-anchor="middle" fill="#f2f1ec">Records say it?</text>
+<line x1="144.0" y1="52.0" x2="169.2" y2="52.0" stroke="#8d8c85" stroke-width="1.8" marker-end="url(#line)"/>
+<line x1="319.2" y1="52.0" x2="344.4" y2="52.0" stroke="#8d8c85" stroke-width="1.8" marker-end="url(#line)"/>
+<text x="331.79999999999995" y="44.0" font-size="12" font-weight="400" text-anchor="middle" fill="#c3c2b7">yes</text>
+<line x1="494.4" y1="52.0" x2="519.5999999999999" y2="52.0" stroke="#8d8c85" stroke-width="1.8" marker-end="url(#line)"/>
+<text x="506.99999999999994" y="44.0" font-size="12" font-weight="400" text-anchor="middle" fill="#c3c2b7">yes</text>
+<line x1="669.5999999999999" y1="52.0" x2="694.8" y2="52.0" stroke="#8d8c85" stroke-width="1.8" marker-end="url(#line)"/>
+<text x="682.1999999999999" y="44.0" font-size="12" font-weight="400" text-anchor="middle" fill="#c3c2b7">yes</text>
+<line x1="844.8" y1="52.0" x2="870" y2="52.0" stroke="#2fa84f" stroke-width="1.8" marker-end="url(#ok)"/>
+<text x="857.4" y="44.0" font-size="12" font-weight="400" text-anchor="middle" fill="#c3c2b7">yes</text>
+<rect x="875.0" y="39.0" width="84" height="26" rx="13" fill="#2fa84f"/>
+<text x="917.0" y="57.0" font-size="13" font-weight="600" text-anchor="middle" fill="#0d1117">proven</text>
+<line x1="245.2" y1="88" x2="245.2" y2="144" stroke="#d79a1a" stroke-width="1.8" marker-end="url(#maybe)"/>
+<text x="253.2" y="116" font-size="12" font-weight="400" text-anchor="start" fill="#c3c2b7">none</text>
+<rect x="201.2" y="150" width="88" height="26" rx="13" fill="#d79a1a"/>
+<text x="245.2" y="168" font-size="13" font-weight="600" text-anchor="middle" fill="#0d1117">unproven</text>
+<line x1="420.4" y1="88" x2="420.4" y2="144" stroke="#e66767" stroke-width="1.8" marker-end="url(#bad)"/>
+<text x="428.4" y="116" font-size="12" font-weight="400" text-anchor="start" fill="#c3c2b7">no</text>
+<rect x="376.4" y="150" width="88" height="26" rx="13" fill="#e66767"/>
+<text x="420.4" y="168" font-size="13" font-weight="600" text-anchor="middle" fill="#0d1117">failed</text>
+<line x1="595.5999999999999" y1="88" x2="595.5999999999999" y2="144" stroke="#d79a1a" stroke-width="1.8" marker-end="url(#maybe)"/>
+<text x="603.5999999999999" y="116" font-size="12" font-weight="400" text-anchor="start" fill="#c3c2b7">the agent itself (T1)</text>
+<rect x="551.5999999999999" y="150" width="88" height="26" rx="13" fill="#d79a1a"/>
+<text x="595.5999999999999" y="168" font-size="13" font-weight="600" text-anchor="middle" fill="#0d1117">unproven</text>
+<line x1="770.8" y1="88" x2="770.8" y2="144" stroke="#e66767" stroke-width="1.8" marker-end="url(#bad)"/>
+<text x="778.8" y="116" font-size="12" font-weight="400" text-anchor="start" fill="#c3c2b7">no</text>
+<rect x="726.8" y="150" width="88" height="26" rx="13" fill="#e66767"/>
+<text x="770.8" y="168" font-size="13" font-weight="600" text-anchor="middle" fill="#0d1117">failed</text>
+<text x="770.8" y="198" font-size="12" font-weight="400" text-anchor="middle" fill="#c3c2b7">says less, or can't tell: unproven</text>
+</svg>
