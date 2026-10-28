@@ -178,18 +178,18 @@ The message, with its claim and grant shown in sections 6.6 and 7.1:
 <!-- vector accept-approved-by input.message -->
 ```json
 {
- "from": {"agent": "uid:990101", "run": "583adcec7efc28ba23dc979d477777ff", "tenant": "default"},
+ "from": {"agent": "uid:990101", "run": "ec130a625bc622738e7f2652097d9535", "tenant": "default"},
  "to": {"agent": "uid:990102"},
  "intent": {"type": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
             "args": {"amount": 12000, "order": 81}},
  "claims": ["... one approved_by claim, section 6.6 ..."],
  "grants": ["... alice's root grant, section 7.1 ..."],
  "pcm": 0,
- "id": "011b69cb1d991ab040b38139337ea47a",
- "ts": "2026-10-28T01:45:49.459956Z",
- "nonce": "334f201fc7a637c7ee8d02c25bd89d0e",
+ "id": "0ac65318a85ca571b5a29c348280f1d9",
+ "ts": "2026-10-28T02:24:35.496285Z",
+ "nonce": "705e9bb546e4876321bcbc748f982bd0",
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "2EYjvbcKiSOJXc1JKqdTlyol4OIYnFJtCDTjmhXU2RcXABrvvkAlm2hzgwt9tWV3o1DMW20LeIwjBKFRcQK+Bg=="}
+         "sig": "Xtv6U9fKIx3FG1t+OGuK5ifNbOHf6aOLDSUaoHWa/g8QGzazVirPtLR57furSUouYWn0eSYn037sTIkLEeAQBQ=="}
 }
 ```
 
@@ -229,7 +229,7 @@ and further on, in JCS key order:
 
 <!-- vector accept-approved-by input.message.@signed -->
 ```
-..."nonce":"334f201fc7a637c7ee8d02c25bd89d0e","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
+..."nonce":"705e9bb546e4876321bcbc748f982bd0","pcm":0,"t":"pcm.message.v0","to":{"agent":"uid:990102"},"ts"...
 ```
 
 The note's line breaks appear as the two characters `\n`: JCS escapes them.
@@ -529,15 +529,15 @@ A real `approval` record, as evidence carries it:
 
 <!-- vector accept-approved-by input.message.claims.0.evidence.records.2.event -->
 ```json
-{"schema_version": "tracekit.event.v2", "id": "c9aea42056dd7f536d8d313d06f5d9d3", "seq": 5,
- "prev_hash": "sha256:fa039acdef31054cb8c4644aea398f1c5dfac6bab03bffcc7e113b3c1512d1c2",
- "ts": "2026-10-28T01:45:49.442020Z", "run_id": "583adcec7efc28ba23dc979d477777ff", "agent_id": "main",
+{"schema_version": "tracekit.event.v2", "id": "5227e7d73803852f982a60b91f149889", "seq": 5,
+ "prev_hash": "sha256:39c29ce4973ac0753b77f3ae1a7056a8d06d054fe6b7ea951c423f5b5491288a",
+ "ts": "2026-10-28T02:24:35.476647Z", "run_id": "ec130a625bc622738e7f2652097d9535", "agent_id": "main",
  "parent_id": null, "source": "sdk", "type": "approval",
- "data": {"tool_use_id": "grant-1", "approval_id": "apr-810cbe1c06f65d65121fd9634a43bcce", "decision": "approve",
+ "data": {"tool_use_id": "grant-1", "approval_id": "apr-afa8cc12fcd9032a7eb9c9479deedd68", "decision": "approve",
           "approver": "uid:990001", "approver_identity": {"scheme": "uid", "subject": "990001", "attested": true},
           "channel": "rpc", "self_approved": false, "person": "alice"},
- "tenant": "default", "log_id": "f212ce306d8778f6832cc0d512429c56", "run_seq": 3,
- "run_prev_hash": "sha256:fa039acdef31054cb8c4644aea398f1c5dfac6bab03bffcc7e113b3c1512d1c2",
+ "tenant": "default", "log_id": "029c911a688edfba336b1f60b28dcc3c", "run_seq": 3,
+ "run_prev_hash": "sha256:39c29ce4973ac0753b77f3ae1a7056a8d06d054fe6b7ea951c423f5b5491288a",
  "request_id": "r4", "tool_call_id": "grant-1"}
 ```
 
@@ -576,13 +576,13 @@ holds an opened decision and its result, both recorded through an attesting exec
 ```json
 [{"event": {"type": "policy.decision", "seq": 10, "source": "gateway", "tier": "T2", "...": "...",
             "data": {"tool_use_id": "call-9", "tool": "Bash", "decision": "allow",
-                     "decision_id": "dec-82f121827146808e9815989f186cf303", "via": "mtls:spiffe://example/executor",
-                     "args_commitment": "hmac-sha256:327ae9098d7268910fe6f9b8979e7e94ea8c0d77ba221f5df4faee9291ef09ef",
+                     "decision_id": "dec-87905101824feb56b9c4573322afd74d", "via": "mtls:spiffe://example/executor",
+                     "args_commitment": "hmac-sha256:83514f662e8a21d1dd6a32fcf9b73aaed729f1a9cec8e4589afae3b9251bf734",
                      "...": "..."}},
-  "salt": "5b7148658d56135f8048874fe307f62e43d0c68c627ee38877b203a2a92da00e",
+  "salt": "78273d8c87b7a0a5c7cc699c65530edca4722b854f18a550ef6e57daebf484e7",
   "args": {"command": "pytest -q tests/test_refund.py"}, "hash": "...", "proof": ["..."]},
  {"event": {"type": "tool.result", "seq": 11, "source": "gateway", "tier": "T2", "...": "...",
-            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-82f121827146808e9815989f186cf303",
+            "data": {"tool_use_id": "call-9", "ok": true, "decision_id": "dec-87905101824feb56b9c4573322afd74d",
                      "via": "mtls:spiffe://example/executor", "...": "..."}},
   "hash": "...", "proof": ["..."]}]
 ```
@@ -747,24 +747,24 @@ shortened to the fields the checker reads):
 ```json
 {"type": "approved_by", "args": {"person": "alice", "call": "grant-1", "covers": true},
  "evidence": {
-  "checkpoint": "example.com/pcm-test-log\n9\nHlGqpbCIpHjnbtOA5b8L+9bhzZ7dF1f2mocuQERJj5M=\n\n— example.com/pcm-test-log C7keZqJRZ/hUYOcFm71nmBMOHbwCRYJzEFpOqZW7hWx/rAEMXsWC8UUbgDEFMIL5HMajB62OX96W4jyennzO2Qtq2gU=\n",
+  "checkpoint": "example.com/pcm-test-log\n9\nQhInJS9+Rjyar8mhP1wGwzx1O2DYcMy8af/XYRCqSb8=\n\n— example.com/pcm-test-log C7keZoQnlibbpH9yOCeEzKJs6Hzc97YYaP1hsfTBxyO0QzEKJRpaXpxBKoLJEIi9d0FMYRNNmWOSl0cOBOf2whMhowQ=\n",
   "records": [
    {"event": {"type": "policy.decision", "seq": 3, "...": "...",
               "data": {"tool_use_id": "grant-1", "tool": "pcm.grant", "decision": "ask",
-                       "decision_id": "dec-ef1f7dd94c4054688c9eb42e371c3d66", "...": "..."}},
-    "hash": "sha256:a0a008982a38abf02df437f436073a5aaace98fb2c09f33b6b5d14f1868c5214",
-    "proof": ["hgnLjgHa9UvLvjEiddW4uR6BfNNJoGoobId/GUqbht8=", "PMIaob/dhkPa81xJQyPYc9kNFntVR/C2mjrD60/siRA=",
-              "xpxgodfp4rKOmjcqmDe2AxDzBTuzV5qEi9oZj0wQE5U=", "CXxo7+FhbOiWFEcLz8lSi1xbKOjJfb9vujBlJNxa5sM="]},
+                       "decision_id": "dec-76e1373f66cddad74ba54eb2ffcf97af", "...": "..."}},
+    "hash": "sha256:444ea34333ed7e77be0fe1ca8f57b108b93d79258dd27ec3f2ffe0f5d89409f5",
+    "proof": ["GHc2iRz78zZ9UrFNQfRdYDhZyd9ere1mVrgDE2zN4w8=", "a1WP4EFPP5lJvKXGna0/aMjExMY6buoajX2ZZWWR87w=",
+              "XV3DvLmIxeoAAS29RasT6tRFgGOFhLjjSzUyQPdNyZs=", "oGluwXsyMyIJMoCTujrGPPsyxEcnsqfn+A06KUVWSuc="]},
    {"event": {"type": "approval.request", "seq": 4, "...": "...",
-              "data": {"approval_id": "apr-810cbe1c06f65d65121fd9634a43bcce",
-                       "decision_id": "dec-ef1f7dd94c4054688c9eb42e371c3d66", "...": "..."}},
-    "hash": "sha256:fa039acdef31054cb8c4644aea398f1c5dfac6bab03bffcc7e113b3c1512d1c2",
-    "proof": ["OcC1XkuyBn8uMVHRg+4QGfTmRxDTNhQQ4e2+AJxs1wg=", "d32VCJAvGU7ZbTuCo8fgtaGy1x4+TIAk+UKtf2T1WoE=",
-              "V62iabaPS70Ac6Zzpe6HlEoAeKXY6ESNQPHS8QEanJQ=", "CXxo7+FhbOiWFEcLz8lSi1xbKOjJfb9vujBlJNxa5sM="]},
+              "data": {"approval_id": "apr-afa8cc12fcd9032a7eb9c9479deedd68",
+                       "decision_id": "dec-76e1373f66cddad74ba54eb2ffcf97af", "...": "..."}},
+    "hash": "sha256:39c29ce4973ac0753b77f3ae1a7056a8d06d054fe6b7ea951c423f5b5491288a",
+    "proof": ["fc2FAMAMEmTGeNOEggj5AuC4lnCiG6ZqObEWzUcNHsU=", "8j9RAMAAem3ddLt8BiZLIR4p1Hel7+3/XhWay/9A3Gg=",
+              "EbdsQQodmPPv9Jd89YbsSA1vYYjly5d/Q+Y6uHghTdc=", "oGluwXsyMyIJMoCTujrGPPsyxEcnsqfn+A06KUVWSuc="]},
    {"event": {"...": "the approval record of 6.4"},
-    "hash": "sha256:6aa387efc788e08d3aa6f18dfb5e273744317e269b2aa1f6770c3f971b4ccfb4",
-    "proof": ["szLAHrUw3Gpg1XguhXQmpzAdOvW1KXGafgBuUhtnz7o=", "d32VCJAvGU7ZbTuCo8fgtaGy1x4+TIAk+UKtf2T1WoE=",
-              "V62iabaPS70Ac6Zzpe6HlEoAeKXY6ESNQPHS8QEanJQ=", "CXxo7+FhbOiWFEcLz8lSi1xbKOjJfb9vujBlJNxa5sM="]}]}}
+    "hash": "sha256:3483c8f824e7072e479f93de2a5d9ce2f4e32ed6fc5472e8621a353da9371e1b",
+    "proof": ["ePM3fNgfQR2STyNfBlxMZY4mugWmhJwjaNTjT420NBM=", "8j9RAMAAem3ddLt8BiZLIR4p1Hel7+3/XhWay/9A3Gg=",
+              "EbdsQQodmPPv9Jd89YbsSA1vYYjly5d/Q+Y6uHghTdc=", "oGluwXsyMyIJMoCTujrGPPsyxEcnsqfn+A06KUVWSuc="]}]}}
 ```
 
 Result: <!-- vector accept-approved-by expected.claims.0 -->
@@ -815,11 +815,11 @@ Hosts are compared in the form of 6.7.
    Any other cause adds nothing: `http://[::1]@[::1%25x]/`, which fails the bracket rule, gets no sentence, whatever
    a URL library reads from it. So vector `accept-unproven-reached-host-idn` (`http://bücher.example/`) gives
    <!-- vector accept-unproven-reached-host-idn expected.claims.0.detail -->
-   `the verifier can't tell whether call call-337 reached xn--bcher-kva.example: its URL is not printable ASCII: send
+   `the verifier can't tell whether call call-354 reached xn--bcher-kva.example: its URL is not printable ASCII: send
    it without spaces or control characters, with the host in xn-- form and anything else percent-encoded`,
    `accept-unproven-reached-host-percent` (`http://%61pi.example.com/`)
    <!-- vector accept-unproven-reached-host-percent expected.claims.0.detail -->
-   `the verifier can't tell whether call call-409 reached api.example.com: its host has a %: send the URL with the
+   `the verifier can't tell whether call call-438 reached api.example.com: its host has a %: send the URL with the
    host as plain ASCII, not percent-encoded`, and `accept-unproven-reached-host-ipv4-leading-zero`
    (`http://0127.0.0.1/ok`, for a claim of `87.0.0.1`)
    <!-- vector accept-unproven-reached-host-ipv4-leading-zero expected.claims.0.detail -->
@@ -1126,15 +1126,15 @@ The root grant of `accept-approved-by`, signed after alice approved it:
 
 <!-- vector accept-approved-by input.message.grants.0 -->
 ```json
-{"pcm_grant": 0, "ts": "2026-10-28T01:45:49.442804Z",
- "issuer": {"kind": "person", "id": "uid:990001", "run": "583adcec7efc28ba23dc979d477777ff", "tenant": "default",
-            "approval_id": "apr-810cbe1c06f65d65121fd9634a43bcce", "person": "alice"},
+{"pcm_grant": 0, "ts": "2026-10-28T02:24:35.477412Z",
+ "issuer": {"kind": "person", "id": "uid:990001", "run": "ec130a625bc622738e7f2652097d9535", "tenant": "default",
+            "approval_id": "apr-afa8cc12fcd9032a7eb9c9479deedd68", "person": "alice"},
  "subject": "uid:990101",
  "intent": "refund.request@sha256:d8636b6fbbd07430d057ea9ead9c27f0df1b918b10d34ab9257a4971d487846c",
  "caveats": [{"field": "amount", "op": "<=", "value": 20000}, {"field": "order", "op": "==", "value": 81}],
- "expires_at": "2026-10-28T02:45:49.440955Z", "delegable": false, "parent": null,
+ "expires_at": "2026-10-28T03:24:35.475470Z", "delegable": false, "parent": null,
  "sig": {"key": "example.com/pcm-test-log+0bb91e66",
-         "sig": "BipME88wJ6s0dSHtA57oRIraRbGJMTGJXyRNUe3Xwo39Y92mIMQN0D+IjLwMxD65xdYfk4wehwRZPHnunhinCw=="}}
+         "sig": "Jm0YbtyvSJL4GaRkk8BnjWyq1LfF6o6WPlPry8vKCE7Erh3F8nmi1LW94nr2Zu8WWOEN4Y9bqmbSn00cx6L8AA=="}}
 ```
 
 ### 7.2 Caveats
