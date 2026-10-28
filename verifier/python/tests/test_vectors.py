@@ -139,9 +139,10 @@ def test_spec_example(name, path, text):
 
 
 def test_spec_ties_every_run_value_to_a_vector():
-    """Ids and nonces (32 hex digits) change whenever the vectors are made again: SPEC.md holds each only inside an
-    example tied to a vector, which test_spec_example checks."""
-    assert re.findall(r"\b[0-9a-f]{32}\b", QUOTED.sub("", SPEC.read_text())) == []
+    """Ids and nonces (32 hex digits) change whenever the vectors are made again: SPEC.md and README.md hold each only
+    inside an example tied to a vector, which test_spec_example checks."""
+    for doc in DOCS:
+        assert re.findall(r"\b[0-9a-f]{32}\b", QUOTED.sub("", doc.read_text(encoding="utf-8"))) == [], doc.name
 
 
 def unread(text):
@@ -153,7 +154,8 @@ def unread(text):
 
 def test_spec_ties_every_marker_to_its_example():
     """A mistyped marker, or a word between a marker and its example, would leave the example unchecked."""
-    assert unread(SPEC.read_text()) == []
+    for doc in DOCS:
+        assert unread(doc.read_text(encoding="utf-8")) == [], doc.name
     assert unread("<!-- vectr a b -->\n`x`\n<!-- vector a b --> see `x`") == ["<!-- vectr a b -->", "<!-- vector a b -->"]
 
 
