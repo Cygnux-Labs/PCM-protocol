@@ -2,6 +2,7 @@
 failed and never raise; the CLI's exit codes."""
 import base64
 import copy
+import datetime
 import hashlib
 import hmac
 import ipaddress
@@ -10,6 +11,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import time
 import urllib.parse
 
 import pytest
@@ -702,6 +704,17 @@ def test_two_keys_of_one_log_are_the_receivers_error():
     assert check(message())["verdict"] == "accept"
     assert pcm_verify.verify(message(), dict(TRUST, logs=[VKEY, vkey("example.org/other", b"\x01" * 32)]),
                              [DOC])["verdict"] == "accept"
+
+
+def test_a_receiver_that_starts_in_the_tick_a_message_was_signed_in_takes_it(monkeypatch):
+    """Python before 3.13 reads Windows' clock in 15.6 ms ticks, so a receiver can start in the tick a message was
+    signed in, whose ts is that tick rounded down to the microsecond: not sent before the receiver started (SPEC 9)."""
+    tick = time.time() // 0.015625 * 0.015625 + 3e-7
+    monkeypatch.setattr(time, "time", lambda: tick)
+    ts = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc) + datetime.timedelta(microseconds=int(tick * 1e6))
+    msg = signed(dict(message(), ts=ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ")), pcm_verify.MESSAGE_TAG)
+    out = pcm_verify.verify(msg, TRUST, [DOC], replay=pcm_verify.Replay())
+    assert out["replay"] == {"ok": True, "detail": "fresh"} and out["verdict"] == "accept", out["reasons"]
 
 
 @pytest.mark.parametrize("args", [[1], "n", None, {"n": 2 ** 60}, {"n": 1.0}, {"n": True}])
