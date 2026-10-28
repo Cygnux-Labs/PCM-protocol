@@ -2,7 +2,8 @@
 
 How often does a receiving agent accept a false claim from a sending agent? Messages built from real Tracekit signer
 runs, checked by Tracekit's `pcm.verify`, the standalone `pcm_verify`, plain A2A (accepts everything) and a
-sender-signature-only check.
+sender-signature-only check. Added after the pre-registration: models of six real agent protocols as receivers ("Real
+protocols as receivers").
 
 **This run (after):** dataset 2, 926 messages, at Tracekit `7d843e6377` and pcm `73a287c` (pcm main `0f26c38` merged,
 with PCM's fixes for F1, F3 and F5).
@@ -89,6 +90,95 @@ sender is rejected.
 **Nothing else moved.** Across the 875 ids the two datasets share, the only verdict changes in either verifier are
 accept → accept-unproven (26: F1 7, F3 6, and 13 honest `approved_by` without covers: `honest.A.01`–`12` and the wire
 form `L16.A.22`). The only reason-class change is F5's.
+
+## Real protocols as receivers (added after pre-registration)
+
+These six receivers were added after the pre-registered hypotheses, and no hypothesis covers them. Each is a model of
+what one protocol lets a receiver check, built from its specification, not a run of its SDK; `protocols.py` cites the
+section each check comes from. They read the same 926 messages with the same parse as plain A2A, and are scored as H1
+is: a lie is accepted when the verdict is `accept`, with a Wilson 95% CI.
+
+**Who holds the key.** In every protocol here the sender signs with its own key or its platform's, not with an
+attesting signer it can't control. So each receiver gets the message the sender would send in that protocol, signed
+with the sender's own key wherever the protocol uses one: a lying sender signs its lie. A signature only another party
+can make (a person's, a platform's, a log's) has a counterpart only in AP2 and VI (mandates) and SCITT (receipts).
+There the sender carries what really exists, and a mandate that no real grant or approval stands behind is one it
+signs itself. A replay (L11) is the original message sent again, unchanged.
+
+| receiver | what it checks | lies accepted | 95% CI | honest accepted |
+|---|---|---|---|---|
+| plain A2A (pre-registered) | nothing | 712/712 (100%) | 99.5–100% | 83/83 |
+| A2A + signed card | A2A 1.0: the sender's Agent Card JWS (8.4); messages are unsigned | 712/712 (100%) | 99.5–100% | 83/83 |
+| uAgents envelope | Fetch.ai uAgents: the envelope signed by the sender's key, and its target | 702/712 (98.6%) | 97.4–99.2% | 83/83 |
+| RFC 9421 + replay | ANP-02, Visa TAP, Web Bot Auth: the sender's HTTP signature over method, target and body digest; a 300 s window; a nonce cache | 682/712 (95.8%) | 94.0–97.0% | 83/83 |
+| sender's signature only (pre-registered) | the PCM signer's signature | 643/712 (90.3%) | 87.9–92.3% | 83/83 |
+| SCITT receipts | RFC 9943 and 9942: each claim's records are in a pinned log (content hash, inclusion receipt) | 550/712 (77.2%) | 74.0–80.2% | 83/83 |
+| Verifiable Intent | Mastercard VI 0.1: AP2's checks, with a person key an issuer certifies (L1) | 509/712 (71.5%) | 68.1–74.7% | 67/83 |
+| AP2 mandates | AP2 0.2 (Trusted Agent Provider model): the open mandate's signer, constraints, exp and cnf; checkout mandates; KB-JWT aud, nonce and iat | 504/712 (70.8%) | 67.3–74.0% | 67/83 |
+| PCM 0.1 (H1) | SPEC 8 | 10/712 (1.4%) | 0.8–2.6% | 69/83 `accept` (H2: 81/83 claims proven) |
+
+What each catches, and what it misses:
+
+- **A2A 1.0 + signed Agent Card** catches nothing. The card authenticates the sender, and the sender is the liar;
+  nothing in a message is signed.
+- **uAgents envelope** catches the 10 replays addressed to another receiver (the envelope's target). It has no nonce
+  cache and reads `expires` as a reply timeout, so the other 40 replays pass, and the sender signs every other lie
+  itself.
+- **RFC 9421 + replay** catches 30 replays: the same nonce (10), another receiver (10: the target is in the signature
+  base) and outside the window (10). It misses the replays after a receiver restart (10: the cache is in memory) and
+  below the floor (10: there is no per-sender floor), and every lie in a message's content, which the sender re-signs.
+- **SCITT receipts** catch 162 lies, all at the evidence layer: proofs for another tree (L9, 48 of 48), edited records
+  (L5, 45 of 66), forged or stripped checkpoint signatures (L6, 12), records under an unpinned log or not in the
+  checkpoint (L8, 17), the old checkpoint with later records (L10, 30) and claims with no records (L1, 10). They miss
+  true records cited for false claims (L1 with other evidence, L2, L3: SCITT has no rule that ties a claim to a
+  record), the agent's own reports (L4: no tiers), records of another run or tenant (L7, L8), every replay, every grant
+  lie (L12–L15, and the 12 grant edits in L5), message-signature lies (L6) and encodings (L16). 8 of L5's other 9
+  misses edit the opened args or their salt, which sit outside the signed record, and one writes a field's own value
+  back.
+- **AP2 mandates** catch 208 lies: 76 of the 109 grant lies and 132 of the 153 approval lies, 63 of them only because
+  the dataset doesn't hold what the model needs (below). They reject all of L12 and L13 and 12 of L15's 13, mostly
+  because AP2 0.2 has no agent-to-agent delegation: a child grant can't be presented, so a delegated request fails cnf
+  (the rule that also rejects the 8 honest delegations); the expired roots fail exp. They also catch edited or forged
+  grants, root grants for another agent, approvals that don't exist, were refused or name another person, and replays
+  of messages that carry mandates (11 of 20, by aud, nonce or iat). They miss all 450 lies about
+  tests, hosts and files, which carry no mandate; root grants of another tenant (5); message-signature and encoding
+  lies on messages with mandates; and 3 signer-bug grants.
+- **Verifiable Intent** gives AP2's verdicts on all but 7 grants. It accepts the 6 grants of a log the receiver doesn't
+  pin (a real person's certified key signed them, whatever the platform), and rejects a signer-bug root that names no
+  person, which AP2 accepts.
+- **Stacked.** A receiver that runs the AP2, SCITT and RFC 9421 checks and accepts only what all three accept still
+  accepts 365 lies (51.3%), and 67 of the 83 honest messages. All of L4 passes, most of L1–L3 and L16, and 18 of the
+  20 replays after a restart or below the floor.
+
+**Honest messages.** The other receivers accept all 83. AP2 and VI reject 16:
+- 8 delegated grants. AP2 0.2 has no agent-to-agent delegation, so the request can't be authorized. This is AP2's own
+  limit.
+- 8 approvals whose message doesn't open the approved call's args (`honest.A.02`, `.04` … `.12`, `.21`, `.22`). The
+  model needs those values to check that the mandate is for this request, and the dataset doesn't hold them; a sender
+  built for AP2 would disclose them. This is a limit of the model.
+
+**What couldn't be modelled faithfully:**
+- **Undisclosed approvals.** AP2 and VI bind a person's approval to a request by its values. 53 approval lies (54 for
+  VI) don't open the approved call's args, so the model rejects them as undisclosed. 10 L10 approvals are real, but
+  their message carries an older checkpoint and the dataset holds none that includes them, so the model can't tell
+  them from forged ones and rejects them too. Counting all 63 as accepted gives the most AP2 could accept: 567 (79.6%);
+  VI 573 (80.5%). 13 of the 53 ask for another amount, call or tool than the one approved, which the values would
+  expose, and one replays a message the receiver has seen; the other 39, and the 10 in L10, cite an approval of the
+  very request. So the faithful counts are most likely 553 for AP2 (77.7%) and 559 for VI (78.5%). The chart and the
+  README show the measured 504 and 509, the counts that favour AP2.
+- **Mappings.** A root grant is an open mandate, a person's approval a checkout mandate, and a child grant has no AP2
+  form. AP2 is modelled with its Trusted Agent Provider model (the receiver trusts the platforms whose logs it pins)
+  and VI with its L1 issuer (who certifies the persons the signer's configuration names). Other choices give other
+  numbers on L8, L14 and the signer-bug grants.
+- **Encodings.** Signatures are real Ed25519, over the model's own encodings rather than JWS, SD-JWT, COSE or HTTP
+  header syntax; no check here depends on that syntax. The RFC 9421 window is ANP-02's 300 s; TAP allows 480 s, which
+  changes nothing here (the replays outside the window are 600 s old).
+- **Not modelled.** Transport security (TLS, mTLS, OAuth), which authenticates the liar too; VI's suggested mandate
+  lifetimes; the protocols that reduce to plain A2A on these claims (MCP, IBM ACP, LangChain Agent Protocol, Agora,
+  Coral, FIPA-ACL) or to RFC 9421 + replay at best (Visa TAP, OpenAI/Stripe ACP).
+- **Which code.** The PCM rows are the dataset 2 run at the heads above. The protocol rows are `protocols.py` at this
+  commit, over the same dataset (`results/baselines.jsonl`); per-class counts and reject reasons are in
+  `results/results.json` (`receivers`, `lies_by_class`).
 
 ## Findings in detail (diagnosis from the run before)
 
@@ -334,6 +424,7 @@ These are bugs in the harness only. No verifier or Tracekit code was changed.
 cd <this repo>   # PYTHONPATH: a Tracekit checkout; the standalone verifier is found under verifier/python
 PYTHONPATH=<tracekit> python -m bench.lies gen      # data/dataset.jsonl, data/meta.json (~1 min)
 PYTHONPATH=<tracekit> python -m bench.lies run --verifier all   # results/{tracekit,standalone,baselines}.jsonl
+# baselines.jsonl holds a2a, sigonly and the six protocol receivers (no extra dependencies)
 python -m bench.lies report                          # results/results.json, findings/, the tables below
 ```
 
