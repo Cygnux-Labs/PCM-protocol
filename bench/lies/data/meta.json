@@ -1,10 +1,10 @@
 {
   "seed": 20261028,
-  "generated": "2026-10-27T23:59:01Z",
-  "seconds": 61.8,
+  "generated": "2026-10-28T00:03:57Z",
+  "seconds": 42.7,
   "messages": 879,
-  "tracekit": "e3221cf2b6d2240a18457d8ec7b0b0a03fe7f24e",
-  "pcm": "b54cfe42cec3e5b5a1947abb19b6e28b969301c9",
+  "tracekit": "384a6042bd7dc9cc104dc364c817c1dd88ee0e6c",
+  "pcm": "1ba784a1abfcf5eb5c2f9e3e5fd370d8537f2bc9",
   "python": "3.11.15",
   "platform": "macOS-26.3-arm64-arm-64bit",
   "signer_refusals": [
@@ -24,7 +24,7 @@
       "attempt": "pcm_delegate outliving its parent",
       "refused": true,
       "code": "invalid_request",
-      "message": "expires_at is after the parent's, 2026-10-28T00:58:32.131812Z"
+      "message": "expires_at is after the parent's, 2026-10-28T01:03:33.302977Z"
     },
     {
       "attempt": "pcm_delegate below a non-delegable root",
@@ -42,7 +42,7 @@
       "attempt": "a root grant approved by an agent approver",
       "refused": true,
       "code": "unknown_approval",
-      "message": "apr-990fbd9ab00d975578cf6ec50c2c37f7"
+      "message": "apr-7162ac8e17f6642f98f5c6c2d80ff4d3"
     },
     {
       "attempt": "a root grant approved by an identity no person maps to",
@@ -66,13 +66,13 @@
       "attempt": "pcm_sign as another agent",
       "refused": true,
       "code": "forbidden",
-      "message": "the signer signs only as the calling run's own agent (uid:990101, run df29aa67b83815464ceb3b2f12fd771b, tenant default)"
+      "message": "the signer signs only as the calling run's own agent (uid:990101, run e7b7af1066360a608c928d56951b0877, tenant default)"
     },
     {
       "attempt": "pcm_sign as another run of the same agent",
       "refused": true,
       "code": "forbidden",
-      "message": "the signer signs only as the calling run's own agent (uid:990101, run df29aa67b83815464ceb3b2f12fd771b, tenant default)"
+      "message": "the signer signs only as the calling run's own agent (uid:990101, run e7b7af1066360a608c928d56951b0877, tenant default)"
     }
   ],
   "by_class": {

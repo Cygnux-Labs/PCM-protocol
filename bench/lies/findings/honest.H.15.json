@@ -11,11 +11,11 @@
   "lie_scope": null,
   "threat_model": "in",
   "seed": 20261028,
-  "note": "http://127.0.0.1:49219/missing reached 127.0.0.1 (error)",
+  "note": "http://127.0.0.1:53163/missing reached 127.0.0.1 (error)",
   "message": {
    "from": {
     "agent": "uid:990101",
-    "run": "df29aa67b83815464ceb3b2f12fd771b",
+    "run": "e7b7af1066360a608c928d56951b0877",
     "tenant": "default"
    },
    "to": {
@@ -34,16 +34,16 @@
       "host": "127.0.0.1"
      },
      "evidence": {
-      "checkpoint": "example.com/pcm-lies-log\n702\noh2zAARsTVNJ1enSTXUomrv/Q2oMxXSkZP2YaG5rXQY=\n\n— example.com/pcm-lies-log 1yfbY8jjStlFSya4oD4x2IXcSdp6vEdSkV4EWK495uIF1blhMPd7oVXQSatbNkEbyz41DevojPE3mpYPfnbqzX1fFwc=\n",
+      "checkpoint": "example.com/pcm-lies-log\n702\nawtuNadEdC9R5Zm2a/Z9U4Rf9vgEUlb6pv7iYMxfe7Y=\n\n— example.com/pcm-lies-log 1yfbY7FHF5Pq5KW5NXrD6rD8dFScxP/6ihUSW/fPNcVOGBjSSo4uYxhDlXEGEk0VsffzPv4I6q7apaCd91ns5yTFgQw=\n",
       "records": [
        {
         "event": {
          "schema_version": "tracekit.event.v2",
-         "id": "86ffdb49ce49543777ee4c774192a4da",
+         "id": "4a8320fe766e5a6ece99c510415e3645",
          "seq": 92,
-         "prev_hash": "sha256:af612854db040421bd2ba10cec7a499da5a5c822b1150579667207bd3e63b5b5",
-         "ts": "2026-10-27T23:58:15.212669Z",
-         "run_id": "df29aa67b83815464ceb3b2f12fd771b",
+         "prev_hash": "sha256:09b31dec050ed42f889cb57c862b2f64d75392cfd5a72d93d8478c88987f71be",
+         "ts": "2026-10-28T00:03:25.562505Z",
+         "run_id": "e7b7af1066360a608c928d56951b0877",
          "agent_id": "main",
          "parent_id": null,
          "source": "gateway",
@@ -53,19 +53,19 @@
           "tool": "WebFetch",
           "policy_hash": "sha256:71ee0edfe4ab6349b43d68ee9ce3b0b56679859c2eff4b76840167820009a73e",
           "engine": "re2@1.1.20251105",
-          "expires_at": "2026-10-28T00:03:15.212593Z",
+          "expires_at": "2026-10-28T00:08:25.562427Z",
           "via": "mtls:spiffe://example/executor",
           "caller": "uid:990101",
-          "decision_id": "dec-85a227c6790bc5305c3a3210a65a7c3f",
-          "nonce": "e4f8d5367d22884703688482773d5510",
+          "decision_id": "dec-a1380bdd3a1b7dee171ff0e695657afb",
+          "nonce": "ca2ab121f86b613c26f2efdfe52c7b7c",
           "decision": "allow",
           "rule_ids": [],
-          "args_commitment": "hmac-sha256:fe2f044f2eae8f5b260581b086201986cdd9555e01e16c8e0d9aa534c2fd11dc"
+          "args_commitment": "hmac-sha256:513f2dc342c05aae2439b7525035c955a31f978a7ab1060f20e4cca114b8c90a"
          },
          "tenant": "default",
-         "log_id": "617397ba0732fdb6b4c3836969dc0f82",
+         "log_id": "88b10a1613ec79291c8f71f5bd5dc10f",
          "run_seq": 87,
-         "run_prev_hash": "sha256:af612854db040421bd2ba10cec7a499da5a5c822b1150579667207bd3e63b5b5",
+         "run_prev_hash": "sha256:09b31dec050ed42f889cb57c862b2f64d75392cfd5a72d93d8478c88987f71be",
          "request_id": "r178",
          "stream": "gw",
          "client_seq": 86,
@@ -74,32 +74,32 @@
          "args_source": "parsed",
          "tier": "T2"
         },
-        "hash": "sha256:ab8e111e7802ba521b194f26fd06334914439f026aafa06baeec48d973db5411",
+        "hash": "sha256:e39132a0b70d07bf53c4baa1219ae620fecc580396ef99314b4701c7014551dd",
         "proof": [
-         "Dby6JXwG42BXzOgzeDu4MoEf5gKAYoDxMS1L2NkFwjA=",
-         "XsrVtQnpLvUYakH4T9F3oQX0COU3jGakMeILgmD8IlE=",
-         "uzMf1wFhNYfTRxRbzjl/HKncxKSEnSdTdSs/DlW0x04=",
-         "SKEpjMvx1ih0ngxYVbiyXV9u2Oll3GcpzL42RdAw9/Y=",
-         "rh8ptuT0VXiuUEyEVzcpDJPOxDxNqk21V/XMdzJLyXM=",
-         "EpN3VUoH+w74b+ipIuYroNaGrkq+hbZ0z4c1RpbEq1s=",
-         "cOY9ca38ufGjafiqHiLbbJ7LDiKUi2H9GkVf9MnCrKI=",
-         "Xe69SO/TkIZfOJL0j0u6e3jXAuJlhAk851rJ0RJHVEU=",
-         "0uqgdsT8f+L/fYhbXtQUy0P+wj5+KIyLEdqXk9I3VGA=",
-         "mUJ+lMBqsRnQ2GYZ/oNbcTff3z+6i2FVpxJWXJQtr+E="
+         "JhJTaJTxaLjrvtsAGLmNdp2DhsNx3ZqFqbkR3wzlNnw=",
+         "qKygqUBB2ROMz323ZGtZ446h5vG+Fz3YPf85rOTQKCE=",
+         "gmrCg/ssvKytxZM9ozyBp2bbLujaV1wGy5D6RTCyMf4=",
+         "MIaizLNFIlHzisxSiR2UJqkmYUAOvZ1L7B4HhA4PnfY=",
+         "Jv6UcmlFxzE7graYeM1yV1WUUGPKkh4vf2Gp8armm90=",
+         "D75beFvKSfyJauJeedGVV1PdCFe8veiolSyBkaU89S4=",
+         "tyXUP9zymgHmG6fVs3lCECj4OebW7GOb6UbYGm+5f9U=",
+         "0ij0YbtAWqZkS1MAuyePRTlzDPOB5jiGqo6CRFs5z84=",
+         "kNbVGbN7HR15cqL00YgmCXoFA7oHBfktfS8e1mbgyhM=",
+         "Q1ETtZSyCcxgYAc11QyQiv4yzaki1Nn3JR9RlFLTDig="
         ],
-        "salt": "44e806ae14d0cb97200eb0e450a816081e7c846e8f7a03f8e302eb28a1be895a",
+        "salt": "84b45793e82fd045d5df3820e5352c4e2452a12625ecf8d1c25fc5cc45f65e6b",
         "args": {
-         "url": "http://127.0.0.1:49219/missing"
+         "url": "http://127.0.0.1:53163/missing"
         }
        },
        {
         "event": {
          "schema_version": "tracekit.event.v2",
-         "id": "26116f241328c5a1ed8d2960cbc92d11",
+         "id": "41b41d105bf83dbe41e3fef2c1769096",
          "seq": 93,
-         "prev_hash": "sha256:ab8e111e7802ba521b194f26fd06334914439f026aafa06baeec48d973db5411",
-         "ts": "2026-10-27T23:58:15.213847Z",
-         "run_id": "df29aa67b83815464ceb3b2f12fd771b",
+         "prev_hash": "sha256:e39132a0b70d07bf53c4baa1219ae620fecc580396ef99314b4701c7014551dd",
+         "ts": "2026-10-28T00:03:25.563252Z",
+         "run_id": "e7b7af1066360a608c928d56951b0877",
          "agent_id": "main",
          "parent_id": null,
          "source": "gateway",
@@ -108,11 +108,11 @@
           "tool_use_id": "WebFetch-177",
           "ok": false,
           "output": {
-           "hash": "hmac-sha256:90fbfcaa495492b02461d879beb2b7bbdb3169e1394db84c7be8f5678af67898",
+           "hash": "hmac-sha256:49d271b962c96228cb84dae9b8c78b4bd99b2017827069370f9761d718dc5e83",
            "size": 25,
            "redacted": false
           },
-          "decision_id": "dec-85a227c6790bc5305c3a3210a65a7c3f",
+          "decision_id": "dec-a1380bdd3a1b7dee171ff0e695657afb",
           "redaction": {
            "rules": [],
            "count": 0,
@@ -121,28 +121,28 @@
           "via": "mtls:spiffe://example/executor"
          },
          "tenant": "default",
-         "log_id": "617397ba0732fdb6b4c3836969dc0f82",
+         "log_id": "88b10a1613ec79291c8f71f5bd5dc10f",
          "run_seq": 88,
-         "run_prev_hash": "sha256:ab8e111e7802ba521b194f26fd06334914439f026aafa06baeec48d973db5411",
-         "request_id": "aede6f3f43be459a86c31dc11d7d0eaa",
+         "run_prev_hash": "sha256:e39132a0b70d07bf53c4baa1219ae620fecc580396ef99314b4701c7014551dd",
+         "request_id": "a86c9177329c47cd8ca91ccd78f18b75",
          "stream": "gw",
          "client_seq": 87,
          "tool_call_id": "WebFetch-177",
          "attempt": 0,
          "tier": "T2"
         },
-        "hash": "sha256:54e093181b59de49e4defd89ae80449dc7d1cdfa0e0e21dedf7d0689386328b4",
+        "hash": "sha256:923b04d6900f16a00396490c97d40e4ca44acdbb84aeb3080c87593975e06b29",
         "proof": [
-         "W9Mw9iqmNPu08dhdahAStKSMCARD+nu0vcfdrYynRtQ=",
-         "XsrVtQnpLvUYakH4T9F3oQX0COU3jGakMeILgmD8IlE=",
-         "uzMf1wFhNYfTRxRbzjl/HKncxKSEnSdTdSs/DlW0x04=",
-         "SKEpjMvx1ih0ngxYVbiyXV9u2Oll3GcpzL42RdAw9/Y=",
-         "rh8ptuT0VXiuUEyEVzcpDJPOxDxNqk21V/XMdzJLyXM=",
-         "EpN3VUoH+w74b+ipIuYroNaGrkq+hbZ0z4c1RpbEq1s=",
-         "cOY9ca38ufGjafiqHiLbbJ7LDiKUi2H9GkVf9MnCrKI=",
-         "Xe69SO/TkIZfOJL0j0u6e3jXAuJlhAk851rJ0RJHVEU=",
-         "0uqgdsT8f+L/fYhbXtQUy0P+wj5+KIyLEdqXk9I3VGA=",
-         "mUJ+lMBqsRnQ2GYZ/oNbcTff3z+6i2FVpxJWXJQtr+E="
+         "PPHmvv/mlz5TAZKQA0LM2kbUcJOwC3SyfMrzH3LmrzY=",
+         "qKygqUBB2ROMz323ZGtZ446h5vG+Fz3YPf85rOTQKCE=",
+         "gmrCg/ssvKytxZM9ozyBp2bbLujaV1wGy5D6RTCyMf4=",
+         "MIaizLNFIlHzisxSiR2UJqkmYUAOvZ1L7B4HhA4PnfY=",
+         "Jv6UcmlFxzE7graYeM1yV1WUUGPKkh4vf2Gp8armm90=",
+         "D75beFvKSfyJauJeedGVV1PdCFe8veiolSyBkaU89S4=",
+         "tyXUP9zymgHmG6fVs3lCECj4OebW7GOb6UbYGm+5f9U=",
+         "0ij0YbtAWqZkS1MAuyePRTlzDPOB5jiGqo6CRFs5z84=",
+         "kNbVGbN7HR15cqL00YgmCXoFA7oHBfktfS8e1mbgyhM=",
+         "Q1ETtZSyCcxgYAc11QyQiv4yzaki1Nn3JR9RlFLTDig="
         ]
        }
       ]
@@ -150,12 +150,12 @@
     }
    ],
    "pcm": 0,
-   "id": "fff556da4dd4e8915206ed3b8e45da63",
-   "ts": "2026-10-27T23:58:38.866510Z",
-   "nonce": "79e5533621fe6a0eee14f9e26d062ccd",
+   "id": "f6b6760185944d7f25929b53ed055793",
+   "ts": "2026-10-28T00:03:38.034462Z",
+   "nonce": "eaa9fa61d5492b9c8c9935b3d3738fd5",
    "sig": {
     "key": "example.com/pcm-lies-log+d727db63",
-    "sig": "gPC/9l3DgYi+Lu46irarkhpW6T2/WfqZ58BOIgakRsa8NIq67wVNUZfzNNKtHq8nLbz+f9SRTBD9q1hwVtUMDw=="
+    "sig": "jSE6x4zHkR1PlR5eMEziPsgh0noVEtw2n++wWqTwGvkf5nJNrrkE1kFANhEJkGCH8G/mXQ0xDW2TEebuvTXFBw=="
    }
   },
   "wire": null,
@@ -293,10 +293,10 @@
   "options": {
    "me": "uid:990102",
    "strict": false,
-   "now": "2026-10-27T23:58:39.866510Z",
+   "now": "2026-10-28T00:03:39.034462Z",
    "replay": {
     "window_s": 300,
-    "started": "2026-10-27T23:57:38.866510Z",
+    "started": "2026-10-28T00:02:38.034462Z",
     "per_sender": 4096,
     "seen": []
    }
@@ -334,7 +334,7 @@
    "reasons": [
     "reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed)"
    ],
-   "ms": 1.505
+   "ms": 1.722
   },
   "standalone": {
    "id": "honest.H.15",
@@ -367,7 +367,7 @@
    "reasons": [
     "reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed)"
    ],
-   "ms": 1.1027
+   "ms": 1.1686
   },
   "a2a": {
    "id": "honest.H.15",

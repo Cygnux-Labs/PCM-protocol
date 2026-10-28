@@ -11,11 +11,11 @@
   "lie_scope": "encoding",
   "threat_model": "in",
   "seed": 20261028,
-  "note": "'http://0127.0.0.01:49219/ok' reached 127.0.0.1 (ok)",
+  "note": "'http://0127.0.0.01:53163/ok' reached 127.0.0.1 (ok)",
   "message": {
    "from": {
     "agent": "uid:990101",
-    "run": "df29aa67b83815464ceb3b2f12fd771b",
+    "run": "e7b7af1066360a608c928d56951b0877",
     "tenant": "default"
    },
    "to": {
@@ -34,16 +34,16 @@
       "host": "87.0.0.1"
      },
      "evidence": {
-      "checkpoint": "example.com/pcm-lies-log\n1597\nACen8545I/rFFjm83A3m82KCa7C1BvjaVqLzibmcTMM=\n\n— example.com/pcm-lies-log 1yfbYwol888M+LVXiqZ5lvAk04wBmijjHJSmCkyDb8/AuYqYRS1VIw0eX8/cyutAFFGv+hXCHRFT3s3Mkvs4jF0GjgI=\n",
+      "checkpoint": "example.com/pcm-lies-log\n1597\nMa7bCF3q8EJM5n1EQpaIgyGeJXsUclFVxh5+Vau0bew=\n\n— example.com/pcm-lies-log 1yfbY8+qznoOL8g7vT02gkfqtJ8lv3ce5P2IF3pIJqYe9oIfkPcs8l12Cqsc9tHCoLkuMj6DYJBXdFnKmXokzHO/cAI=\n",
       "records": [
        {
         "event": {
          "schema_version": "tracekit.event.v2",
-         "id": "6009fd2e667f16e4e87606f613939077",
+         "id": "b2f70094eb6b04aa1f2a78cdc2058de8",
          "seq": 1595,
-         "prev_hash": "sha256:a7b2fd42fef1527db669b7cc50c7c393086c2d223a56b6c791081265fedc0ac9",
-         "ts": "2026-10-27T23:59:00.054714Z",
-         "run_id": "df29aa67b83815464ceb3b2f12fd771b",
+         "prev_hash": "sha256:17ce4ba0d8e6047ba585b574250acc929f56f9fd7ffd1ef2700d0b8b441efadd",
+         "ts": "2026-10-28T00:03:56.506405Z",
+         "run_id": "e7b7af1066360a608c928d56951b0877",
          "agent_id": "main",
          "parent_id": null,
          "source": "gateway",
@@ -53,21 +53,21 @@
           "tool": "WebFetch",
           "policy_hash": "sha256:71ee0edfe4ab6349b43d68ee9ce3b0b56679859c2eff4b76840167820009a73e",
           "engine": "re2@1.1.20251105",
-          "expires_at": "2026-10-28T00:04:00.054668Z",
+          "expires_at": "2026-10-28T00:08:56.506359Z",
           "provenance_state": "partial",
           "provenance_reason": "stream gw skipped client_seq 222..247: the signer never got those events, and an input observed or a tool's result in them is not in the index",
           "via": "mtls:spiffe://example/executor",
           "caller": "uid:990101",
-          "decision_id": "dec-cd7d485053d90c09a984efd920d99139",
-          "nonce": "8efc090991e4a4fd8c407f0791a0fce9",
+          "decision_id": "dec-95b17b1a5795b1d989635e0c72d632bd",
+          "nonce": "8f6ab1d5d54a4db18b9fbe5a5765e6e7",
           "decision": "allow",
           "rule_ids": [],
-          "args_commitment": "hmac-sha256:ce72db3be2e5f6b1b5474646674d2fa03481b091ecce728cd5ebe84d728fbd8a"
+          "args_commitment": "hmac-sha256:a9f047bac1203b8fd46ceb1bf6d173efc6ad181a180650037ed593a6fb7a0918"
          },
          "tenant": "default",
-         "log_id": "617397ba0732fdb6b4c3836969dc0f82",
+         "log_id": "88b10a1613ec79291c8f71f5bd5dc10f",
          "run_seq": 1384,
-         "run_prev_hash": "sha256:a7b2fd42fef1527db669b7cc50c7c393086c2d223a56b6c791081265fedc0ac9",
+         "run_prev_hash": "sha256:17ce4ba0d8e6047ba585b574250acc929f56f9fd7ffd1ef2700d0b8b441efadd",
          "request_id": "r2085",
          "stream": "gw",
          "client_seq": 360,
@@ -76,30 +76,30 @@
          "args_source": "parsed",
          "tier": "T2"
         },
-        "hash": "sha256:fb83c5d5ad3e9f2337c7378763e201c895bcec811b9e08f7f99ca14c083cb8cf",
+        "hash": "sha256:9c0640efdeda8d8e544014c321337f816a8d7021a5f52a9afb5d324c3aed7d0c",
         "proof": [
-         "JR+fPXzijqTWBk2hmxV8wrFSP6flVdCVloRCvfP3uck=",
-         "tZu03/CrULTAt/UwY6dEUgNCtGaFcOU2CKe6LEuSq8g=",
-         "L6My4G0IJ08/ZxkNN27T9I7VWf9CThH+s8gBhU/UOEY=",
-         "Hk/lCMSkY5pi0ul32Zx623b+G2AzRNKcyvh2ScomDFg=",
-         "OuEJVPG2ysE7jikpNS0YmylpreLr2CshB22sdAc2juk=",
-         "364l9qu5yW7kARon2XDS9mXpvA4nJbjXkJLH4+8RDno=",
-         "wxPLDJ7Xaevqk2LO/DP7jFV81x/EVSlRESwxGbyXrH8=",
-         "Wu30zy71UM9RpcHDpo7qwGzuRtNHFLF747Uch/w0K5M="
+         "JQjK8GQlcPK4CNg0695Sl92qpxJNepMVbRZndQ0IEbI=",
+         "+LrBYgxR69y85kq5Lu2wHPb0+M/ntEAGQc1mZA7Slo8=",
+         "luYKDg4WgBSjb3Ks0ngKMUMpVvjHTT/qMWUSo2D7yio=",
+         "p+XKMbDqftzEU7OibkOT5bj5LXOql1h7iXixEXRedso=",
+         "ULTOEhVAEXYk0gh4fFEmGB22gFlAFvtduEPFvCc1y94=",
+         "/QdGp4OHIomiY0zSCD/cJCdicZs7fE32anSOoEdCq7s=",
+         "6A24hXD6oKPcMXrklsCkNAfnqT5I1vw+mClnl1cdWdg=",
+         "lDv+oE1rnjXS7MpLgAmAwUCh1Osy1yB39hQ7OOLjdJE="
         ],
-        "salt": "c9b42be637692497019cbcfef8dbb90f7a4311009ce64e4f94c31cfeae56b060",
+        "salt": "b6a43c8f0a512d82dfb79f7a5c9d71bd67661fdc04a1ba9ecfde49f777364a9f",
         "args": {
-         "url": "http://0127.0.0.01:49219/ok"
+         "url": "http://0127.0.0.01:53163/ok"
         }
        },
        {
         "event": {
          "schema_version": "tracekit.event.v2",
-         "id": "4acd775d5c2e9275f18bd8bd25637227",
+         "id": "36562188b670d5f1997160c5abf09789",
          "seq": 1596,
-         "prev_hash": "sha256:fb83c5d5ad3e9f2337c7378763e201c895bcec811b9e08f7f99ca14c083cb8cf",
-         "ts": "2026-10-27T23:59:00.055413Z",
-         "run_id": "df29aa67b83815464ceb3b2f12fd771b",
+         "prev_hash": "sha256:9c0640efdeda8d8e544014c321337f816a8d7021a5f52a9afb5d324c3aed7d0c",
+         "ts": "2026-10-28T00:03:56.507294Z",
+         "run_id": "e7b7af1066360a608c928d56951b0877",
          "agent_id": "main",
          "parent_id": null,
          "source": "gateway",
@@ -108,11 +108,11 @@
           "tool_use_id": "WebFetch-2084",
           "ok": true,
           "output": {
-           "hash": "hmac-sha256:974f61cf432e7ecd2f921447c88767d6b355cf276b97bc2705ba6ed667692472",
+           "hash": "hmac-sha256:8e31b031442399faeb845c32cd2c3ce2c2339dcf8348bacd1950a4d68c87c93b",
            "size": 25,
            "redacted": false
           },
-          "decision_id": "dec-cd7d485053d90c09a984efd920d99139",
+          "decision_id": "dec-95b17b1a5795b1d989635e0c72d632bd",
           "redaction": {
            "rules": [],
            "count": 0,
@@ -121,24 +121,24 @@
           "via": "mtls:spiffe://example/executor"
          },
          "tenant": "default",
-         "log_id": "617397ba0732fdb6b4c3836969dc0f82",
+         "log_id": "88b10a1613ec79291c8f71f5bd5dc10f",
          "run_seq": 1385,
-         "run_prev_hash": "sha256:fb83c5d5ad3e9f2337c7378763e201c895bcec811b9e08f7f99ca14c083cb8cf",
-         "request_id": "c136fc1f1b4a4c9d97dc00f08ea2e61d",
+         "run_prev_hash": "sha256:9c0640efdeda8d8e544014c321337f816a8d7021a5f52a9afb5d324c3aed7d0c",
+         "request_id": "c85fa29209f94032b7a63452b3f7ecae",
          "stream": "gw",
          "client_seq": 361,
          "tool_call_id": "WebFetch-2084",
          "attempt": 0,
          "tier": "T2"
         },
-        "hash": "sha256:eff9bfeb4b7d9dcb1c1826e93b7f30f9919c13540e03ff842b2db5e8f2edde3a",
+        "hash": "sha256:1ea338f846d142392dfac16f557eebeeeda68ab6432d01bbfd9c640eb23cfd08",
         "proof": [
-         "S+RIFpLaEQl02wnnFLr85qQBTIFj/Z6x8oyqsUC0Yek=",
-         "Hk/lCMSkY5pi0ul32Zx623b+G2AzRNKcyvh2ScomDFg=",
-         "OuEJVPG2ysE7jikpNS0YmylpreLr2CshB22sdAc2juk=",
-         "364l9qu5yW7kARon2XDS9mXpvA4nJbjXkJLH4+8RDno=",
-         "wxPLDJ7Xaevqk2LO/DP7jFV81x/EVSlRESwxGbyXrH8=",
-         "Wu30zy71UM9RpcHDpo7qwGzuRtNHFLF747Uch/w0K5M="
+         "8UGlgL5vs7xRm0v3kT1j/1+w9uB0YHrYvPtY8Un8V0I=",
+         "p+XKMbDqftzEU7OibkOT5bj5LXOql1h7iXixEXRedso=",
+         "ULTOEhVAEXYk0gh4fFEmGB22gFlAFvtduEPFvCc1y94=",
+         "/QdGp4OHIomiY0zSCD/cJCdicZs7fE32anSOoEdCq7s=",
+         "6A24hXD6oKPcMXrklsCkNAfnqT5I1vw+mClnl1cdWdg=",
+         "lDv+oE1rnjXS7MpLgAmAwUCh1Osy1yB39hQ7OOLjdJE="
         ]
        }
       ]
@@ -146,12 +146,12 @@
     }
    ],
    "pcm": 0,
-   "id": "e1286593776ddbe60a80cb840a2234c8",
-   "ts": "2026-10-27T23:59:00.060500Z",
-   "nonce": "45e178cafb567a266cc3fcc308fe50d8",
+   "id": "398a54bb7e04d3acd03a95e0c2628e9a",
+   "ts": "2026-10-28T00:03:56.512006Z",
+   "nonce": "c36da6c3cfe5e47b390d38d62caa7fa3",
    "sig": {
     "key": "example.com/pcm-lies-log+d727db63",
-    "sig": "tHXqhcXJwsf+uJvIMUQPrfVrY56+igz+wxc38m6KVPTpAxSSrVzFX2cb3Cvt9oHrAHRzSDRqKSEoGDsdvTG2Dg=="
+    "sig": "e3FuhcXx0nux7B46EsB9OEaFZCM4fftN4090xIdyzzE2Jc3xoOkLjNwaC2s3XVWSeK1DryPNJALJZ6zeIxHHDw=="
    }
   },
   "wire": null,
@@ -289,10 +289,10 @@
   "options": {
    "me": "uid:990102",
    "strict": false,
-   "now": "2026-10-27T23:59:01.060500Z",
+   "now": "2026-10-28T00:03:57.512006Z",
    "replay": {
     "window_s": 300,
-    "started": "2026-10-27T23:58:00.060500Z",
+    "started": "2026-10-28T00:02:56.512006Z",
     "per_sender": 4096,
     "seen": []
    }
@@ -328,7 +328,7 @@
     }
    ],
    "reasons": [],
-   "ms": 1.5416
+   "ms": 1.6556
   },
   "standalone": {
    "id": "L16.H.02",
@@ -359,7 +359,7 @@
     }
    ],
    "reasons": [],
-   "ms": 1.1023
+   "ms": 1.1514
   },
   "a2a": {
    "id": "L16.H.02",

@@ -15,7 +15,7 @@
   "message": {
    "from": {
     "agent": "uid:990101",
-    "run": "df29aa67b83815464ceb3b2f12fd771b",
+    "run": "e7b7af1066360a608c928d56951b0877",
     "tenant": "default"
    },
    "to": {
@@ -31,20 +31,20 @@
     {
      "type": "file_written",
      "args": {
-      "path": "/var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1d7/work/out/handoff-0.txt",
+      "path": "/var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8cgu/work/out/handoff-0.txt",
       "digest": "sha256:641164af2ec73b0dbb1ccdbfbe500d9c466f77212ed06f17f378af7454d212dd"
      },
      "evidence": {
-      "checkpoint": "example.com/pcm-lies-log\n522\nx6fEnYol5eIRu6JzQ6Qip8T7dq6AByvroYYloiBsy9c=\n\n— example.com/pcm-lies-log 1yfbY7ExfmnxhBWzEl4IefX4eIzNE2hxpMjuwNUalGkHZr5cw9+WxVstXO1sECfa22W2X4/BOTRoDmEr1gT1PQCjgQc=\n",
+      "checkpoint": "example.com/pcm-lies-log\n522\nGAr8/yk4MUAmo/5XYq8ak5hn86l10rgQ22EJPmyzgH8=\n\n— example.com/pcm-lies-log 1yfbY7cdEih+/LNLbxGFbleztpCxvRZdGRzRQoou4FL0x/yA+47bMyYnyT/0DMAlo8fA5r2SytdwXt3nA6uTMZ8LewI=\n",
       "records": [
        {
         "event": {
          "schema_version": "tracekit.event.v2",
-         "id": "14aed678968b14df509124654522a2b3",
+         "id": "fe76350cdfcfcaa34d87c13a8740872e",
          "seq": 164,
-         "prev_hash": "sha256:84516e58759d7d0dd6475eead603f410784e46d25da8e41b8883e8b341adc75f",
-         "ts": "2026-10-27T23:58:15.264523Z",
-         "run_id": "df29aa67b83815464ceb3b2f12fd771b",
+         "prev_hash": "sha256:8ca1d2ed87f08c87e08d6d983e674fb5af770574af5eec9955fabd82b1fe87f9",
+         "ts": "2026-10-28T00:03:25.620392Z",
+         "run_id": "e7b7af1066360a608c928d56951b0877",
          "agent_id": "main",
          "parent_id": null,
          "source": "gateway",
@@ -54,19 +54,19 @@
           "tool": "Write",
           "policy_hash": "sha256:71ee0edfe4ab6349b43d68ee9ce3b0b56679859c2eff4b76840167820009a73e",
           "engine": "re2@1.1.20251105",
-          "expires_at": "2026-10-28T00:03:15.264430Z",
+          "expires_at": "2026-10-28T00:08:25.620346Z",
           "via": "mtls:spiffe://example/executor",
           "caller": "uid:990101",
-          "decision_id": "dec-85c9b3c6d97ea839121eb4cee4fd574a",
-          "nonce": "b1271f1b8d1080c44d7c7e856e1e67c4",
+          "decision_id": "dec-dc5773c18684260f913171db391036aa",
+          "nonce": "906b70855ecc3b62386d2fac1c950b66",
           "decision": "allow",
           "rule_ids": [],
-          "args_commitment": "hmac-sha256:95384c13df685e34fb2eb9e98b1b51fedc3b137ae2718e824ad5d3cb9eb1a8b8"
+          "args_commitment": "hmac-sha256:fd8e30c7408866d0f63e996a47ee79ebf7388e52a99b4a3175b34c532bcf85ad"
          },
          "tenant": "default",
-         "log_id": "617397ba0732fdb6b4c3836969dc0f82",
+         "log_id": "88b10a1613ec79291c8f71f5bd5dc10f",
          "run_seq": 159,
-         "run_prev_hash": "sha256:84516e58759d7d0dd6475eead603f410784e46d25da8e41b8883e8b341adc75f",
+         "run_prev_hash": "sha256:8ca1d2ed87f08c87e08d6d983e674fb5af770574af5eec9955fabd82b1fe87f9",
          "request_id": "r322",
          "stream": "gw",
          "client_seq": 158,
@@ -75,33 +75,33 @@
          "args_source": "parsed",
          "tier": "T2"
         },
-        "hash": "sha256:130176f316029c4425e449f9f2a2cb8efbe0e7c41decd6151b94d0ae2e34c98c",
+        "hash": "sha256:1b0e74bef8a204002ff5b12f48fc66c12f16142bd535152ffc87dc87da40b098",
         "proof": [
-         "L7oxhlbpD2JO1qSNjFMz+h1vWjUISGboO2zhxIOlUYI=",
-         "CTbXrDN5+AAwDqUHaoYkiZMzdkUMsz111cZY0N6E/ZU=",
-         "bIik5XF7OGJtwjv1QMpdY24L2O5EbfLonvtXSwnRrDg=",
-         "nsZlq4aIZkW/irJwpRLdFdG1ivWW/RvVxZxJEzR0ARA=",
-         "3r9TXtcaqG9hb68ay2dbgsX2yMRfDiEwvLPditRi7Aw=",
-         "YpO8NYfntYRDfD9sIEqfufFKSInVe6jraqI4f9/uqss=",
-         "+Z8wRqWqoQr7IhUzvzoZuSL8uUtxSpDNKA7H5pKIsXg=",
-         "8M1qZYXbz26J1geNf/SM/5z853RL1ecuISjIvT9A6Tg=",
-         "0uqgdsT8f+L/fYhbXtQUy0P+wj5+KIyLEdqXk9I3VGA=",
-         "sFf9Rl2Meazodzdd8r6DZqTfUc7uXHMvbhtVulQ6ZB0="
+         "gMLz2zJ/Jhc8is17Ckn3YwsqHE7SrDug3kSEyITz08M=",
+         "jKWtXU8Dgwjc3ywJOVJ41/Nnw4+Hb4KeO1Z/svcHeBM=",
+         "iUOSyhbYRRtujqGZRDbK0eyxFUQuLxRqkvyWMTob0hY=",
+         "x/ZDGfM98qHVwWwzYIgHwNCRYjIvVVjriuInkXl/TSE=",
+         "dk67Wvsi8/Kn9l6AzqtMwt5n31Ci7zlvZrfRtIca6BA=",
+         "hSzxFBHgpMl4ggFpKzJyjf1t9svGyt5IM0rA/grN0kU=",
+         "ugarNLPv5J0IawXVvbcN2WpzqF4eY+f6ePwinltqb2s=",
+         "2W5HMuPRS0+s/wQvfD/xkNcnoUOCQy3U6FOhPbtGQHk=",
+         "kNbVGbN7HR15cqL00YgmCXoFA7oHBfktfS8e1mbgyhM=",
+         "HBCWBSmtz6iyOXKB8blr3K5QR12VsL62jUylsM25OVo="
         ],
-        "salt": "726fc6eb13a810423993c5d3b438a135f34525eaa1207dca8f81663c40b9bcae",
+        "salt": "977f302699f430a2dfb285fb858233c48b03d91d3ee4eee50d24c65cc2f34a08",
         "args": {
-         "file_path": "/var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1d7/work/out/handoff-0.txt",
+         "file_path": "/var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8cgu/work/out/handoff-0.txt",
          "content": "approved: 0\n"
         }
        },
        {
         "event": {
          "schema_version": "tracekit.event.v2",
-         "id": "7eb1f66ac04cd557171c29c7a0728a8a",
+         "id": "b85d1357bfcb81f17773131e84114693",
          "seq": 165,
-         "prev_hash": "sha256:130176f316029c4425e449f9f2a2cb8efbe0e7c41decd6151b94d0ae2e34c98c",
-         "ts": "2026-10-27T23:58:15.265448Z",
-         "run_id": "df29aa67b83815464ceb3b2f12fd771b",
+         "prev_hash": "sha256:1b0e74bef8a204002ff5b12f48fc66c12f16142bd535152ffc87dc87da40b098",
+         "ts": "2026-10-28T00:03:25.624111Z",
+         "run_id": "e7b7af1066360a608c928d56951b0877",
          "agent_id": "main",
          "parent_id": null,
          "source": "gateway",
@@ -110,11 +110,11 @@
           "tool_use_id": "Write-321",
           "ok": true,
           "output": {
-           "hash": "hmac-sha256:271c3b34f3d9dfd8093a23d58fd0e60bdf9ce4450fe103d0144a9f4b944e0e12",
+           "hash": "hmac-sha256:32ad01f6a815cee85ec1e8c67599377c22dce2d7f65dbddbb7aab1859694e1e6",
            "size": 23,
            "redacted": false
           },
-          "decision_id": "dec-85c9b3c6d97ea839121eb4cee4fd574a",
+          "decision_id": "dec-dc5773c18684260f913171db391036aa",
           "redaction": {
            "rules": [],
            "count": 0,
@@ -123,28 +123,28 @@
           "via": "mtls:spiffe://example/executor"
          },
          "tenant": "default",
-         "log_id": "617397ba0732fdb6b4c3836969dc0f82",
+         "log_id": "88b10a1613ec79291c8f71f5bd5dc10f",
          "run_seq": 160,
-         "run_prev_hash": "sha256:130176f316029c4425e449f9f2a2cb8efbe0e7c41decd6151b94d0ae2e34c98c",
-         "request_id": "84f2b22d998146cdb867d2dd06223e50",
+         "run_prev_hash": "sha256:1b0e74bef8a204002ff5b12f48fc66c12f16142bd535152ffc87dc87da40b098",
+         "request_id": "de9c6693f48146f0a71e4911fad4a0d3",
          "stream": "gw",
          "client_seq": 159,
          "tool_call_id": "Write-321",
          "attempt": 0,
          "tier": "T2"
         },
-        "hash": "sha256:e0aef7ddc79bb10fdb9bb0260f2e67177816bc56ce1370886f9bfa08bc2cdeec",
+        "hash": "sha256:d28068c3e3988a5fe6707f2ae08b5812828a08052db503dd985bae5eacc68edb",
         "proof": [
-         "DmVTRAnTapvWw3RIcTtgZ8aCc6iytajDKTW44RSUF5M=",
-         "CTbXrDN5+AAwDqUHaoYkiZMzdkUMsz111cZY0N6E/ZU=",
-         "bIik5XF7OGJtwjv1QMpdY24L2O5EbfLonvtXSwnRrDg=",
-         "nsZlq4aIZkW/irJwpRLdFdG1ivWW/RvVxZxJEzR0ARA=",
-         "3r9TXtcaqG9hb68ay2dbgsX2yMRfDiEwvLPditRi7Aw=",
-         "YpO8NYfntYRDfD9sIEqfufFKSInVe6jraqI4f9/uqss=",
-         "+Z8wRqWqoQr7IhUzvzoZuSL8uUtxSpDNKA7H5pKIsXg=",
-         "8M1qZYXbz26J1geNf/SM/5z853RL1ecuISjIvT9A6Tg=",
-         "0uqgdsT8f+L/fYhbXtQUy0P+wj5+KIyLEdqXk9I3VGA=",
-         "sFf9Rl2Meazodzdd8r6DZqTfUc7uXHMvbhtVulQ6ZB0="
+         "hJ4t2JxwwWmH+Ioa23Y6rDVYFnC1HpK5/5ab9y1As+k=",
+         "jKWtXU8Dgwjc3ywJOVJ41/Nnw4+Hb4KeO1Z/svcHeBM=",
+         "iUOSyhbYRRtujqGZRDbK0eyxFUQuLxRqkvyWMTob0hY=",
+         "x/ZDGfM98qHVwWwzYIgHwNCRYjIvVVjriuInkXl/TSE=",
+         "dk67Wvsi8/Kn9l6AzqtMwt5n31Ci7zlvZrfRtIca6BA=",
+         "hSzxFBHgpMl4ggFpKzJyjf1t9svGyt5IM0rA/grN0kU=",
+         "ugarNLPv5J0IawXVvbcN2WpzqF4eY+f6ePwinltqb2s=",
+         "2W5HMuPRS0+s/wQvfD/xkNcnoUOCQy3U6FOhPbtGQHk=",
+         "kNbVGbN7HR15cqL00YgmCXoFA7oHBfktfS8e1mbgyhM=",
+         "HBCWBSmtz6iyOXKB8blr3K5QR12VsL62jUylsM25OVo="
         ]
        }
       ]
@@ -152,12 +152,12 @@
     }
    ],
    "pcm": 0,
-   "id": "570a69ed5643b89e275b10ef8cc7eba3",
-   "ts": "2026-10-27T23:58:52.714797Z",
-   "nonce": "5bd619f6489a850fdf7f62d2b0774250",
+   "id": "338eeb10e4170b0f86fbfc39f4c5d81e",
+   "ts": "2026-10-28T00:03:49.839906Z",
+   "nonce": "e2dc2788fe94b40b5878d6405b0f58a1",
    "sig": {
     "key": "example.com/pcm-lies-log+d727db63",
-    "sig": "ptCJP398FCEu47nI4OL+ZYxpcolpB6TA7ZqDnhZCWobP0kEz4Cd+LjwD1JNz3Gei0YRlywMxK8zcY3Up4hGFCQ=="
+    "sig": "yS5hvcHGwSdMD4lp2svRNVkJMf+6JkLWqCVYCZZpxEhI8wkhBUh2HqZouK6FxOWvEQpy7Yy+IDnWWCmeSF6GCA=="
    }
   },
   "wire": null,
@@ -295,10 +295,10 @@
   "options": {
    "me": "uid:990102",
    "strict": false,
-   "now": "2026-10-27T23:58:53.714797Z",
+   "now": "2026-10-28T00:03:50.839906Z",
    "replay": {
     "window_s": 300,
-    "started": "2026-10-27T23:57:52.714797Z",
+    "started": "2026-10-28T00:02:49.839906Z",
     "per_sender": 4096,
     "seen": []
    }
@@ -330,11 +330,11 @@
     {
      "type": "file_written",
      "result": "proven",
-     "detail": "call Write-321 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1 with sha256:641164af2ec73b0dbb1ccdbfbe500d9c466f77212ed06f17f378af7454d212dd, run by mtls:spiffe://example/executor (T2)"
+     "detail": "call Write-321 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8c with sha256:641164af2ec73b0dbb1ccdbfbe500d9c466f77212ed06f17f378af7454d212dd, run by mtls:spiffe://example/executor (T2)"
     }
    ],
    "reasons": [],
-   "ms": 1.5719
+   "ms": 1.5512
   },
   "standalone": {
    "id": "L10.F.06",
@@ -361,11 +361,11 @@
     {
      "type": "file_written",
      "result": "proven",
-     "detail": "call Write-321 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-4y1k_1 with sha256:641164af2ec73b0dbb1ccdbfbe500d9c466f77212ed06f17f378af7454d212dd, run by mtls:spiffe://example/executor (T2)"
+     "detail": "call Write-321 wrote /var/folders/s9/g815rzd5779dlvsx6pzq9pl00000gn/T/pcm-lies-enea8c with sha256:641164af2ec73b0dbb1ccdbfbe500d9c466f77212ed06f17f378af7454d212dd, run by mtls:spiffe://example/executor (T2)"
     }
    ],
    "reasons": [],
-   "ms": 1.0735
+   "ms": 1.1575
   },
   "a2a": {
    "id": "L10.F.06",

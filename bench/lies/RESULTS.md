@@ -4,9 +4,8 @@ How often does a receiving agent accept a false claim from a sending agent? 879 
 signer runs, checked by Tracekit's `pcm.verify`, the standalone `pcm_verify`, plain A2A (accepts everything) and a
 sender-signature-only check.
 
-> **Heads: not the final ones.** This run is at Tracekit `e3221cf2b6` (the `agent/issue-436` merge) and pcm
-> `b54cfe4`. Moving the two worktrees to the final heads (Tracekit `384a6042bd`, pcm main `619fbba`) was denied by
-> the auto-mode classifier (see "Held"). Re-run on the final heads (see "Reproduce") before citing a number.
+**Heads:** Tracekit `384a6042bd` (#450) and pcm `1ba784a` (this branch with main `619fbba` merged: 166 vectors,
+ASCII-only hosts). This is the final run; the pre-final run is described under "Pre-final run".
 
 ## Headline
 
@@ -29,7 +28,30 @@ sender-signature-only check.
 - **H5:** plain A2A accepts every lie, and the signature-only check accepts 91.4%.
 - **Cost:**
   - Message size: 4.2–6.0 KB per message with one claim against 0.4–0.6 KB plain. That is 7–13x at p50, and 16x with three claims.
-  - Verify time: Tracekit p50 1.2 ms (p99 2.0 ms), standalone p50 0.8 ms (p99 1.7 ms).
+  - Verify time: Tracekit p50 1.4 ms (p99 2.9 ms), standalone p50 0.9 ms (p99 1.6 ms).
+
+## Pre-final run, and what changed
+
+Before this run, the benchmark ran at Tracekit `e3221cf2b6` and pcm `b54cfe4` (commit `71cad5f`). That run gave the
+same headline numbers, with timings of p50 1.2 ms (p99 2.0 ms) for Tracekit and p50 0.8 ms (p99 1.7 ms) for
+standalone:
+
+| hypothesis | result, both verifiers |
+|---|---|
+| H1 | 23/687 lies accepted |
+| H2 | 71/73 honest claims proven |
+| H3 | 72/72 T1-only claims unproven |
+| H4 | 874/879 messages agree |
+
+Comparing the two runs message by message (ids are stable):
+- No verdict, no reason class and no claim result changed, in either verifier.
+- F1–F5 are unchanged.
+- Only the detail of three non-ASCII or `%` hosts changed: `L16.H.08`, `L16.H.10` and `L16.H.16` are still
+  `unproven`, but now say what to fix, for example "its URL is not printable ASCII: send the URL with the host in xn--
+  form…" or "its host has a %…". The two verifiers give the same text.
+
+So the final heads' new host rules don't touch F1. A leading-zero octet is printable ASCII and has no `%`, so it is
+still read by `inet_aton`.
 
 ## Findings and diagnosis
 
@@ -204,7 +226,8 @@ These are bugs in the harness only. No verifier or Tracekit code was changed.
    was held by Tracekit's own hook (TK-D007: "touching Tracekit's own files or signer"). I did not retry it. RPC
    shapes came from `tools/gen_vectors.py`, Tracekit's tests and the RPCs' own responses.
 2. `git -C ~/tracekit-pcm-bench checkout --detach 384a6042bd` and `git merge --no-edit main` in this worktree were
-   denied by the auto-mode classifier. I did not retry them, so the results above are from the earlier heads.
+   denied by the auto-mode classifier. I did not retry them. The coordinator then moved both worktrees, and this run
+   is on those final heads.
 
 ## Limits
 
@@ -213,8 +236,8 @@ These are bugs in the harness only. No verifier or Tracekit code was changed.
   executor service. The harness itself runs the tools it executes.
 - **What the seed fixes:** the keys and every choice. Run ids, nonces, timestamps and signatures change each time the
   dataset is generated.
-- **Stable across generations:** two generations gave the same counts in every cell, apart from the `L15.G.13`
-  relabel.
+- **Stable across generations:** three generations on two pairs of heads gave the same counts in every cell, apart
+  from the `L15.G.13` relabel before the pre-final run.
 
 ## Reproduce
 
@@ -414,8 +437,8 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 
 | verifier | messages timed | p50 ms | p99 ms | max ms |
 |---|---|---|---|---|
-| tracekit | 839 | 1.217 | 2.030 | 9.270 |
-| standalone | 844 | 0.816 | 1.671 | 8.112 |
+| tracekit | 839 | 1.357 | 2.850 | 11.098 |
+| standalone | 844 | 0.904 | 1.589 | 2.655 |
 
 ### Ablations
 
@@ -448,14 +471,14 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 - **false accept** (tracekit) `L10.F.08` write-then-overwrite-cites-first [freshness, in]: the file was overwritten after; the sender cites the first write
 - **false accept** (tracekit) `L10.F.09` write-then-overwrite-cites-first [freshness, in]: the file was overwritten after; the sender cites the first write
 - **false accept** (tracekit) `L10.F.10` write-then-overwrite-cites-first [freshness, in]: the file was overwritten after; the sender cites the first write
-- **false accept** (tracekit) `L16.H.01` ipv4-leading-zero-octet [encoding, in]: 'http://0127.0.0.1:49219/ok' reached 127.0.0.1 (ok)
-- **false accept** (tracekit) `L16.H.02` ipv4-leading-zero-octet [encoding, in]: 'http://0127.0.0.01:49219/ok' reached 127.0.0.1 (ok)
-- **false accept** (tracekit) `L16.H.03` ipv4-leading-zero-octet [encoding, in]: 'http://0127.000.000.001:49219/ok' reached 127.0.0.1 (ok)
-- **false accept** (tracekit) `L16.H.04` ipv4-leading-zero-octet [encoding, in]: 'http://00127.0.0.1:49219/ok' reached 127.0.0.1 (ok)
+- **false accept** (tracekit) `L16.H.01` ipv4-leading-zero-octet [encoding, in]: 'http://0127.0.0.1:53163/ok' reached 127.0.0.1 (ok)
+- **false accept** (tracekit) `L16.H.02` ipv4-leading-zero-octet [encoding, in]: 'http://0127.0.0.01:53163/ok' reached 127.0.0.1 (ok)
+- **false accept** (tracekit) `L16.H.03` ipv4-leading-zero-octet [encoding, in]: 'http://0127.000.000.001:53163/ok' reached 127.0.0.1 (ok)
+- **false accept** (tracekit) `L16.H.04` ipv4-leading-zero-octet [encoding, in]: 'http://00127.0.0.1:53163/ok' reached 127.0.0.1 (ok)
 - **false accept** (tracekit) `L16.H.05` ipv4-leading-zero-octet [encoding, in]: 'http://0177.0.0.1/' reached 177.0.0.1 (ok)
 - **false accept** (tracekit) `L16.H.06` ipv4-leading-zero-octet [encoding, in]: 'http://010.0.0.1/' reached 10.0.0.1 (ok)
 - **false accept** (tracekit) `L16.H.07` ipv4-leading-zero-octet [encoding, in]: 'http://192.168.0.010/' reached 192.168.0.10 (ok)
-- **honest not proven** (tracekit) `honest.H.15` t2-fetch-http-error-status -> reject: reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed) http://127.0.0.1:49219/missing reached 127.0.0.1 (error)
+- **honest not proven** (tracekit) `honest.H.15` t2-fetch-http-error-status -> reject: reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed) http://127.0.0.1:53163/missing reached 127.0.0.1 (error)
 - **honest not proven** (tracekit) `honest.H.16` t2-fetch-http-error-status -> reject: reached_host: failed (call WebFetch-181 reached api.example.com, and failed) http://api.example.com/missing reached api.example.com (error)
 - **false accept** (standalone) `L3.A.07` approved-amount-x10-opened [message, in]: alice approved {'amount': 500, 'order': 81}
 - **false accept** (standalone) `L3.A.08` approved-amount-x10 [message, in]: alice approved {'amount': 1200, 'order': 81}
@@ -473,14 +496,14 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 - **false accept** (standalone) `L10.F.08` write-then-overwrite-cites-first [freshness, in]: the file was overwritten after; the sender cites the first write
 - **false accept** (standalone) `L10.F.09` write-then-overwrite-cites-first [freshness, in]: the file was overwritten after; the sender cites the first write
 - **false accept** (standalone) `L10.F.10` write-then-overwrite-cites-first [freshness, in]: the file was overwritten after; the sender cites the first write
-- **false accept** (standalone) `L16.H.01` ipv4-leading-zero-octet [encoding, in]: 'http://0127.0.0.1:49219/ok' reached 127.0.0.1 (ok)
-- **false accept** (standalone) `L16.H.02` ipv4-leading-zero-octet [encoding, in]: 'http://0127.0.0.01:49219/ok' reached 127.0.0.1 (ok)
-- **false accept** (standalone) `L16.H.03` ipv4-leading-zero-octet [encoding, in]: 'http://0127.000.000.001:49219/ok' reached 127.0.0.1 (ok)
-- **false accept** (standalone) `L16.H.04` ipv4-leading-zero-octet [encoding, in]: 'http://00127.0.0.1:49219/ok' reached 127.0.0.1 (ok)
+- **false accept** (standalone) `L16.H.01` ipv4-leading-zero-octet [encoding, in]: 'http://0127.0.0.1:53163/ok' reached 127.0.0.1 (ok)
+- **false accept** (standalone) `L16.H.02` ipv4-leading-zero-octet [encoding, in]: 'http://0127.0.0.01:53163/ok' reached 127.0.0.1 (ok)
+- **false accept** (standalone) `L16.H.03` ipv4-leading-zero-octet [encoding, in]: 'http://0127.000.000.001:53163/ok' reached 127.0.0.1 (ok)
+- **false accept** (standalone) `L16.H.04` ipv4-leading-zero-octet [encoding, in]: 'http://00127.0.0.1:53163/ok' reached 127.0.0.1 (ok)
 - **false accept** (standalone) `L16.H.05` ipv4-leading-zero-octet [encoding, in]: 'http://0177.0.0.1/' reached 177.0.0.1 (ok)
 - **false accept** (standalone) `L16.H.06` ipv4-leading-zero-octet [encoding, in]: 'http://010.0.0.1/' reached 10.0.0.1 (ok)
 - **false accept** (standalone) `L16.H.07` ipv4-leading-zero-octet [encoding, in]: 'http://192.168.0.010/' reached 192.168.0.10 (ok)
-- **honest not proven** (standalone) `honest.H.15` t2-fetch-http-error-status -> reject: reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed) http://127.0.0.1:49219/missing reached 127.0.0.1 (error)
+- **honest not proven** (standalone) `honest.H.15` t2-fetch-http-error-status -> reject: reached_host: failed (call WebFetch-177 reached 127.0.0.1, and failed) http://127.0.0.1:53163/missing reached 127.0.0.1 (error)
 - **honest not proven** (standalone) `honest.H.16` t2-fetch-http-error-status -> reject: reached_host: failed (call WebFetch-181 reached api.example.com, and failed) http://api.example.com/missing reached api.example.com (error)
 - **disagreement** `L16.T.17` wire-payload-1e400: tracekit reject|unreadable / standalone reject|signature (conformance fields differ)
 - **disagreement** `L16.H.24` wire-payload-1e400: tracekit reject|unreadable / standalone reject|signature (conformance fields differ)
