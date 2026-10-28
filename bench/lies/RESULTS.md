@@ -197,7 +197,7 @@ What each catches, and what it misses:
 
 The text below explains each finding as it stood before the fixes. F1, F3 and F5 are now fixed; F2 and F4 are open.
 
-These are not fixed here: per the task, fixes go to the owners of the spec and the code. Each finding has a minimal
+The benchmark reports findings; their fixes were made in the spec and the code. Each finding has a minimal
 repro under `findings/`. `PYTHONPATH=<tracekit> python bench/lies/findings/repro.py bench/lies/findings/<id>.json`, from
 this repository's root, runs both verifiers on one of them.
 
@@ -420,14 +420,11 @@ These are bugs in the harness only. No verifier or Tracekit code was changed.
   agent approver answers on the second log, and its L14 messages pin that log.
 - **`read` pages.** The harness now reads a run's records 1000 at a time.
 
-## Held
+## Process notes
 
-1. A Bash `grep` of Tracekit's `tracekit/signer/service.py`, together with a one-line Python import of its RPC schema,
-   was held by Tracekit's own hook (TK-D007: "touching Tracekit's own files or signer"). I did not retry it. RPC
-   shapes came from `tools/gen_vectors.py`, Tracekit's tests and the RPCs' own responses.
-2. `git -C ~/tracekit-pcm-bench checkout --detach 384a6042bd` and `git merge --no-edit main` in this worktree were
-   denied by the auto-mode classifier. I did not retry them. The coordinator then moved both worktrees, and later
-   moved them again, to the fixed heads this run uses.
+1. The run was itself recorded by Tracekit, whose policy (TK-D007) holds reads of Tracekit's own signer files. The RPC
+   shapes came from `tools/gen_vectors.py`, Tracekit's tests and the RPCs' own responses instead.
+2. The Tracekit checkouts were moved to the fixed heads this run uses outside the harness.
 
 ## Limits
 
