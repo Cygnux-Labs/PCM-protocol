@@ -435,12 +435,12 @@ _926 messages; verifiers: tracekit, standalone, a2a, sigonly, a2a-card, uagents,
 
 | verifier | H1 no false accept | H2 honest proven >= 99% | H3 T1-only unproven 100% |
 |---|---|---|---|
-| tracekit | FAIL: 10 of 712 lies accepted (1.4%, 95% CI [0.76%, 2.57%]) | FAIL: 81/83 (97.6%; 69 with verdict accept) | PASS: 72/72 (100.0%) |
-| standalone | FAIL: 10 of 712 lies accepted (1.4%, 95% CI [0.76%, 2.57%]) | FAIL: 81/83 (97.6%; 69 with verdict accept) | PASS: 72/72 (100.0%) |
+| tracekit | FAIL: 10 of 712 lies accepted (1.4%, 95% CI [0.76%, 2.57%]); 626 reject, 76 accept-unproven, 10 accept | FAIL: 76/78 claims (97.4%); 81/83 messages (97.6%; 69 with verdict accept) | PASS: 72/72 (100.0%) |
+| standalone | FAIL: 10 of 712 lies accepted (1.4%, 95% CI [0.76%, 2.57%]); 626 reject, 76 accept-unproven, 10 accept | FAIL: 76/78 claims (97.4%); 81/83 messages (97.6%; 69 with verdict accept) | PASS: 72/72 (100.0%) |
 
 H4 verifier agreement (conformance fields and reason class): **PASS**, 926/926 agree.
 
-H5 baselines (lies accepted): a2a 712/712 (100.0%); sigonly 643/712 (90.3%).
+Baselines (no pass bar), lies accepted: a2a 712/712 (100.0%); sigonly 643/712 (90.3%).
 
 ### False-accept rate by lie scope and threat model
 
@@ -611,6 +611,7 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 | ap2 | 504/712 | 70.8% | [67.34%, 74.01%] | 67/83 |
 | vi | 509/712 | 71.5% | [68.06%, 74.68%] | 67/83 |
 | scitt | 550/712 | 77.2% | [74.03%, 80.18%] | 83/83 |
+| ap2 ∩ scitt ∩ rfc9421 | 365/712 | 51.3% | [47.60%, 54.92%] | 67/83 |
 
 Lies accepted per class:
 

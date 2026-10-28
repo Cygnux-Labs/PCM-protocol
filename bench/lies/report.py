@@ -20,6 +20,7 @@ VERDICTS = ("accept", "accept-unproven", "reject")
 LABELS = ("TRUE", "FALSE", "UNKNOWABLE")
 PCM = ("tracekit", "standalone")
 ALL = PCM + ("a2a", "sigonly")
+STACKED = ("ap2", "scitt", "rfc9421")
 
 
 def class_key(c):
@@ -124,6 +125,7 @@ def build(data=None):
         split = lambda key: {str(k): {"lies": n, "false_accepts": sum(1 for r in acc if r[key] == k)}   # noqa: E731
                              for k, n in collections.Counter(r[key] for r in lies).items()}
         fa[v] = {"lies": len(lies), "false_accepts": len(acc), "rate": p, "ci95": [lo, hi],
+                 "by_verdict": dict(collections.Counter(verdict(v, r["id"]) for r in lies)),
                  "by_scope": split("lie_scope"), "by_threat_model": split("threat_model"),
                  "ids": [r["id"] for r in acc]}
     out["false_accepts"] = fa
@@ -146,6 +148,12 @@ def build(data=None):
         "rejects_by_class": {c: dict(collections.Counter(res[v][r["id"]].get("reason") for r in lies
                                                          if r["class"] == c and verdict(v, r["id"]) != "accept"))
                              for c in lie_classes}} for v in verifiers if v not in PCM}
+    if all(v in res for v in STACKED):   # one receiver that accepts only what all three accept
+        every = lambda i: all(verdict(v, i) == "accept" for v in STACKED)   # noqa: E731
+        k = sum(every(r["id"]) for r in lies)
+        p, lo, hi = wilson(k, len(lies))
+        out["stacked"] = {"receivers": list(STACKED), "lies": len(lies), "accepted": k, "rate": p, "ci95": [lo, hi],
+                          "honest": len(honest_ids), "honest_accepted": sum(map(every, honest_ids))}
     # H1-H5
     H = {}
     H["H1"] = {v: {"false_accepts": fa[v]["false_accepts"], "pass": fa[v]["false_accepts"] == 0,
@@ -158,17 +166,20 @@ def build(data=None):
     for v in PCM:
         if v in res:
             def proven(r):
-                """H2 as pre-registered: the honest claims are proven (and nothing rejects the message); a message
-                with no claim, a grant only, must be accepted."""
+                """An honest message counts when its claims are proven and nothing rejects it; one with no claim, a
+                grant only, when it is accepted."""
                 row = res[v][r["id"]]
                 claims = row.get("claims") or []
                 return row["verdict"] != "reject" and (all(c["result"] == "proven" for c in claims) if claims
                                                        else row["verdict"] == "accept")
             miss = [r for r in honest if not proven(r)]
             n = len(honest)
+            got = [c["result"] for r in honest for c in res[v][r["id"]].get("claims") or []]   # H2 as pre-registered
             H["H2"][v] = {"honest": n, "proven": n - len(miss), "rate": (n - len(miss)) / n if n else None,
+                          "claims": len(got), "claims_proven": got.count("proven"),
+                          "claims_rate": got.count("proven") / len(got) if got else None,
                           "verdict_accept": sum(verdict(v, r["id"]) == "accept" for r in honest),
-                          "pass": bool(n) and (n - len(miss)) / n >= 0.99,
+                          "pass": bool(got) and got.count("proven") / len(got) >= 0.99,
                           "misses": [{"id": r["id"], "operator": r["operator"], "verdict": verdict(v, r["id"]),
                                       "reasons": res[v][r["id"]].get("reasons"), "note": r["note"]} for r in miss]}
     unk = [r for r in ds if r["label"] == "UNKNOWABLE"]
@@ -296,8 +307,10 @@ def markdown(o):
             h1, h2, h3 = H["H1"][v], H["H2"][v], H["H3"][v]
             f = o["false_accepts"][v]
             rows.append([v, f"{'PASS' if h1['pass'] else 'FAIL'}: {h1['false_accepts']} of {f['lies']} lies accepted "
-                            f"({rate(f['rate'])}, 95% CI {ci(*f['ci95'])})",
-                         f"{'PASS' if h2['pass'] else 'FAIL'}: {h2['proven']}/{h2['honest']} ({rate(h2['rate'])}; "
+                            f"({rate(f['rate'])}, 95% CI {ci(*f['ci95'])}); "
+                            + ", ".join(f"{f['by_verdict'].get(vd, 0)} {vd}" for vd in VERDICTS[::-1]),
+                         f"{'PASS' if h2['pass'] else 'FAIL'}: {h2['claims_proven']}/{h2['claims']} claims "
+                         f"({rate(h2['claims_rate'])}); {h2['proven']}/{h2['honest']} messages ({rate(h2['rate'])}; "
                          f"{h2['verdict_accept']} with verdict accept)",
                          f"{'PASS' if h3['pass'] else 'FAIL'}: {h3['unproven']}/{h3['unknowable']} ({rate(h3['rate'])})"])
     L.append(table(["verifier", "H1 no false accept", "H2 honest proven >= 99%", "H3 T1-only unproven 100%"], rows))
@@ -306,7 +319,7 @@ def markdown(o):
         L.append(f"\nH4 verifier agreement (conformance fields and reason class): "
                  f"**{'PASS' if h4['pass'] else 'FAIL'}**, {h4['agree']}/{h4['messages']} agree.")
     if H.get("H5"):
-        L.append("\nH5 baselines (lies accepted): " + "; ".join(
+        L.append("\nBaselines (no pass bar), lies accepted: " + "; ".join(
             f"{v} {x['accepted']}/{x['lies']} ({rate(x['rate'])})" for v, x in H["H5"].items()) + ".")
     L.append("\n### False-accept rate by lie scope and threat model\n")
     rows = []
@@ -356,8 +369,9 @@ def markdown(o):
     rec = o["receivers"]
     if any(v not in ALL for v in rec):
         L.append("\n### Real protocols as receivers (added after pre-registration)\n")
+        stack = {" ∩ ".join(o["stacked"]["receivers"]): o["stacked"]} if "stacked" in o else {}
         rows = [[v, f"{x['accepted']}/{x['lies']}", rate(x["rate"]), ci(*x["ci95"]),
-                 f"{x['honest_accepted']}/{x['honest']}"] for v, x in rec.items()]
+                 f"{x['honest_accepted']}/{x['honest']}"] for v, x in {**rec, **stack}.items()]
         L.append(table(["receiver", "lies accepted", "rate", "Wilson 95% CI", "honest accepted"], rows))
         by, cols = o["lies_by_class"], list(rec) + [v for v in PCM if v in o["lies_by_class"]][:1]
         rows = [[c] + [f"{by[v][c][0]}/{by[v][c][1]}" for v in cols] for c in by[cols[0]]]
