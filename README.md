@@ -5,6 +5,19 @@ receiver checks offline: records from a log the sending agent can't write, with 
 
 Draft 0.1, experimental. Numbers in parentheses below are sections of the specification, [`SPEC.md`](SPEC.md).
 
+**In one paragraph.** When one AI agent tells another "the tests passed" or "a person approved this", the receiver
+today has only its word. PCM lets each such claim carry signed records from a log the sending agent can't write, and
+the receiver checks them offline. In a pre-registered benchmark of 926 messages, 712 of them lies, PCM accepted 10
+lies, all of one kind it states as a limit (stale evidence); plain A2A accepted all 712, and a check of the sender's
+signature alone accepted 643. Checking a message takes about 1 ms ([Evaluation](#evaluation)).
+
+**Try it** (with [Tracekit](https://github.com/Cygnux-Labs/Tracekit), the reference implementation):
+
+```sh
+pip install tracekit-ai==1.5.0
+tracekit pcm demo        # two agents, a refund request and a real signer: accepted, unproven and rejected messages
+```
+
 ## The problem
 
 Agents pass claims to each other that nobody can check. Agent A asks agent B to refund $120 on order 81, and says:
@@ -20,7 +33,16 @@ define how B checks, offline and without trusting A, what the message says happe
 
 ## The idea
 
-A PCM message is a JSON envelope signed by an **attesting signer**: a service that holds the keys, records the run's
+In three steps:
+
+1. The agent's tool calls go through an **attesting signer** (Tracekit, for example), which records each call in an
+   append-only Merkle log the agent can't write.
+2. When the agent sends a message, the signer signs it, and the message carries the log records that back each
+   claim, with inclusion proofs.
+3. The receiver checks the signature, the proofs and the records offline, against keys it pins, and gets `proven`,
+   `unproven` or `failed` for each claim.
+
+In detail, a PCM message is a JSON envelope signed by an **attesting signer**: a service that holds the keys, records the run's
 events in an append-only Merkle log, and signs only as the identity of the run that calls it. The agent never holds a
 key (4.4). The message carries a typed **intent**, checked against a schema document both sides pin by its hash (5);
 **claims**, each of which can carry **evidence**, records of the sender's own run with RFC 9162 inclusion proofs under
@@ -63,15 +85,11 @@ before any check (3.3, 13.2). A claim that rests on the agent's word alone is `u
    result (6.6, 17.2). The table that places tool names in classes (54 names, frozen by its SHA-256) and the list of
    test runners are protocol data, so no sender or operator can change how a call is classed (6.8, 10.2, 14.29).
 7. **One verdict whatever the verifier's language, library or Unicode version.** Where implementations disagree,
-   PCM states a rule every verifier applies alike. Hosts are compared in printable ASCII only, since IDNA 2003 reads
-   `faß.example` as `fass.example` and a browser as `xn--fa-hia.example`; a URL with any other character, or a host
-   with a `%`, gives `unproven`. So does a URL with neither a scheme nor a leading `//` (`api.example.com/x`), which
-   a client with a base URL reads as a path and curl as a host (6.7 step 2), and an IPv4 host not written as a dotted
-   quad, since `inet_aton` reads `0127.0.0.1` as `87.0.0.1` and the macOS resolver as `127.0.0.1` (6.7 step 5). The
-   result tells the sender how to send each. The verifier checks URL brackets itself, since CPython's `urlsplit` has
-   done so three ways across releases (6.7). A test command holds none of the characters on which `sh` and a word
-   splitter differ (6.8). Base64 must be canonical, Ed25519 keys are checked for small order (4.3), and a number past
-   the double range, such as `1e400`, is bad input rather than infinity (3.3).
+   PCM picks the strict reading every verifier can apply alike. Hosts are compared in printable ASCII only (IDNA 2003
+   and browsers map `faß.example` differently); an IPv4 host counts only as a dotted quad (`inet_aton` reads
+   `0127.0.0.1` as `87.0.0.1`, the macOS resolver as `127.0.0.1`); a URL needs a scheme or a leading `//`; base64 must
+   be canonical; and `1e400` is bad input, not infinity. A claim outside these rules is `unproven`, and the result
+   tells the sender how to send it (3.3, 4.3, 6.7, 6.8).
 
 Section 14 lists 29 attacks and mistakes found while building and reviewing the reference implementation, each with
 the rule that closes it and, for most, the vectors that pin it.
