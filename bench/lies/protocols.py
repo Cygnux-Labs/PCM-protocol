@@ -111,7 +111,9 @@ class World:
                         else:
                             rest.append(rec)
         notes.discard(None)
-        for r in rest:   # e.g. records sent under an older checkpoint than their proof's (L10)
+        # lean: a real record under no checkpoint the dataset holds (L10's approvals) counts as forged; gen.py keeping
+        # the replaced checkpoint in meta.json would place them
+        for r in rest:   # e.g. records sent under an older checkpoint than their proof's
             if isinstance(r, dict) and _hash(r.get("event")) not in self.events:
                 self.events.update({r["hash"]: o for o, size, root in notes if _in(r, size, root)})
 
