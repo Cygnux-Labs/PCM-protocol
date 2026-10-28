@@ -4,7 +4,8 @@
 
 Verifiers: `tracekit` (tracekit.pcm.verify, the reference implementation), `standalone` (pcm_verify in
 verifier/python, which imports no Tracekit code), `baselines` (two receivers with nothing to check: `a2a` accepts any
-message it can parse, `sigonly` accepts any message whose signature verifies). `all` runs each in its own process, so
+message it can parse, `sigonly` accepts any message whose signature verifies; and, added after the pre-registration,
+models of six real agent protocols as receivers, in protocols.py). `all` runs each in its own process, so
 the standalone verifier never shares a process with Tracekit. A message given as `wire` text is parsed by the
 verifier's own command-line loader (SPEC 3.3); a message the loader refuses is rejected as `unreadable`."""
 import argparse
@@ -133,9 +134,11 @@ def verify_one(verifier, rec):
             "ms": round(ms, 4)}
 
 
-def baselines(rec):
-    """a2a: accept whatever parses; sigonly: accept whatever carries a valid signature by a pinned key."""
+def baselines(rec, world):
+    """a2a: accept whatever parses; sigonly: accept whatever carries a valid signature by a pinned key; then the real
+    protocols (protocols.py), with `world` what really exists in the dataset."""
     import pcm_verify
+    from bench.lies import protocols
     try:
         msg = json.loads(rec["wire"]) if rec.get("wire") is not None else rec["message"]
         parsed = True
@@ -147,7 +150,7 @@ def baselines(rec):
     except Exception:
         ok = False
     rows.append({"id": rec["id"], "verifier": "sigonly", "verdict": "accept" if ok else "reject"})
-    return rows
+    return rows + protocols.rows(world, rec)
 
 
 def run(name, data=None):
@@ -155,8 +158,10 @@ def run(name, data=None):
     recs = records(data)
     out = []
     if name == "baselines":
+        from bench.lies import protocols
+        world = protocols.World(recs)
         for rec in recs:
-            out += baselines(rec)
+            out += baselines(rec, world)
     else:
         verifier = Tracekit() if name == "tracekit" else Standalone()
         out = [verify_one(verifier, rec) for rec in recs]

@@ -2,6 +2,7 @@
 failed and never raise; the CLI's exit codes."""
 import base64
 import copy
+import datetime
 import hashlib
 import hmac
 import ipaddress
@@ -10,6 +11,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import time
 import urllib.parse
 
 import pytest
@@ -86,10 +88,10 @@ def test_vector(name):
 
 
 # ---------------------------------------------------------------------------------------------------- SPEC examples
-# SPEC.md ties an example to the vector it quotes with `<!-- vector NAME PATH -->` right before the code block or
-# inline code: PATH is a dotted path into vectors/NAME.json (a number indexes an array), and `@signed` turns a message
-# into the bytes its signature covers (SPEC 4.2).
-SPEC = HERE.parents[2] / "SPEC.md"
+# SPEC.md and README.md tie an example to the vector it quotes with `<!-- vector NAME PATH -->` right before the code
+# block or inline code: PATH is a dotted path into vectors/NAME.json (a number indexes an array), and `@signed` turns a
+# message into the bytes its signature covers (SPEC 4.2).
+DOCS = [HERE.parents[2] / name for name in ("SPEC.md", "README.md")]
 QUOTED = re.compile(r"<!-- vector ([\w-]+) ([\w.@-]+) -->\s*(?:```\w*\n(.*?)\n\s*```|`([^`]+)`)", re.S)
 
 
@@ -127,10 +129,10 @@ def shown(e, v):
     return type(e) is type(v) and e == v
 
 
-@pytest.mark.parametrize("name, path, text", quoted(SPEC.read_text()))
+@pytest.mark.parametrize("name, path, text", [q for doc in DOCS for q in quoted(doc.read_text(encoding="utf-8"))])
 def test_spec_example(name, path, text):
-    """Each example SPEC.md ties to a vector shows that vector's value: a string as written, `...` for text left out;
-    anything else as JSON."""
+    """Each example SPEC.md or README.md ties to a vector shows that vector's value: a string as written, `...` for text
+    left out; anything else as JSON."""
     value = at(name, path)
     if isinstance(value, str):
         assert re.fullmatch(".*".join(map(re.escape, text.split("..."))), value, re.S), (text, value)
@@ -139,9 +141,10 @@ def test_spec_example(name, path, text):
 
 
 def test_spec_ties_every_run_value_to_a_vector():
-    """Ids and nonces (32 hex digits) change whenever the vectors are made again: SPEC.md holds each only inside an
-    example tied to a vector, which test_spec_example checks."""
-    assert re.findall(r"\b[0-9a-f]{32}\b", QUOTED.sub("", SPEC.read_text())) == []
+    """Ids and nonces (32 hex digits) change whenever the vectors are made again: SPEC.md and README.md hold each only
+    inside an example tied to a vector, which test_spec_example checks."""
+    for doc in DOCS:
+        assert re.findall(r"\b[0-9a-f]{32}\b", QUOTED.sub("", doc.read_text(encoding="utf-8"))) == [], doc.name
 
 
 def unread(text):
@@ -153,7 +156,8 @@ def unread(text):
 
 def test_spec_ties_every_marker_to_its_example():
     """A mistyped marker, or a word between a marker and its example, would leave the example unchecked."""
-    assert unread(SPEC.read_text()) == []
+    for doc in DOCS:
+        assert unread(doc.read_text(encoding="utf-8")) == [], doc.name
     assert unread("<!-- vectr a b -->\n`x`\n<!-- vector a b --> see `x`") == ["<!-- vectr a b -->", "<!-- vector a b -->"]
 
 
@@ -700,6 +704,17 @@ def test_two_keys_of_one_log_are_the_receivers_error():
     assert check(message())["verdict"] == "accept"
     assert pcm_verify.verify(message(), dict(TRUST, logs=[VKEY, vkey("example.org/other", b"\x01" * 32)]),
                              [DOC])["verdict"] == "accept"
+
+
+def test_a_receiver_that_starts_in_the_tick_a_message_was_signed_in_takes_it(monkeypatch):
+    """Python before 3.13 reads Windows' clock in 15.6 ms ticks, so a receiver can start in the tick a message was
+    signed in, whose ts is that tick rounded down to the microsecond: not sent before the receiver started (SPEC 9)."""
+    tick = time.time() // 0.015625 * 0.015625 + 3e-7
+    monkeypatch.setattr(time, "time", lambda: tick)
+    ts = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc) + datetime.timedelta(microseconds=int(tick * 1e6))
+    msg = signed(dict(message(), ts=ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ")), pcm_verify.MESSAGE_TAG)
+    out = pcm_verify.verify(msg, TRUST, [DOC], replay=pcm_verify.Replay())
+    assert out["replay"] == {"ok": True, "detail": "fresh"} and out["verdict"] == "accept", out["reasons"]
 
 
 @pytest.mark.parametrize("args", [[1], "n", None, {"n": 2 ** 60}, {"n": 1.0}, {"n": True}])

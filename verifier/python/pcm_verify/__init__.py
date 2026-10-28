@@ -1006,7 +1006,10 @@ class Replay:
     is the current time."""
 
     def __init__(self, window_s=300, per_sender=4096, started=None):
-        self.window_s, self.per_sender, self.started = window_s, per_sender, _secs(started)
+        self.window_s, self.per_sender = window_s, per_sender
+        # in whole microseconds, as a ts is rounded: else a message signed in the receiver's first microsecond (on
+        # Windows before Python 3.13, its first 15.6 ms clock tick) can read as sent before it started
+        self.started = int(_secs(started) * 1e6) / 1e6
         self.seen, self.floor = {}, {}
 
     def check(self, msg, now=None, record=True):

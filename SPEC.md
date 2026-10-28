@@ -9,6 +9,8 @@ Each part of this document carries one of two marks:
 - **[Implemented]**: the reference implementation implements it, and produced the test vectors in `vectors/`.
 - **[Draft]**: specified here, implemented nowhere yet.
 
+A part without a mark of its own has the mark of the part it is in.
+
 A rule marked **(decided, 0.1)** settles a question an earlier draft left open, by the stricter and less ambiguous
 choice. It is normative. Where it constrains a verifier, the reference implementation implements it and the vectors
 pin it.
@@ -1360,7 +1362,8 @@ claim `reject-claim-changed-record-hash`, and `strict` `reject-strict-required-u
 
 Replay state is per receiver. A receiver keeps one replay state for its whole life and passes every message through
 it. **[Implemented]** Parameters: `window_s` (default 300 seconds; `null` for an auditor reading a saved
-conversation), `per_sender` (default 4096), and `started`, the time the state was created.
+conversation), `per_sender` (default 4096), and `started`, the time the state was created, in whole
+microseconds as a TS is.
 
 **The sender (decided, 0.1).** A sender is the pair (`sig.key`, `from.agent`), never `from.agent` alone. Rationale:
 an identity is a name inside one signer, so `uid:990101` of one log and `uid:990101` of another are two senders, and
@@ -1502,8 +1505,9 @@ the message MUST NOT act on it. It MAY return the verification result as its res
 
 ## 12. The transfer-record extension (C2C latent transfers)
 
-**[Draft]** No verifier implements this extension yet, and a PCM 0.1 verifier rejects a `transfer` payload at the
-envelope, because `payload` is closed to `text` and `data`. That is fail-closed by design.
+**[Draft]**, except the transfer record (12.2). No verifier implements this extension yet, and a PCM 0.1 verifier
+rejects a `transfer` payload at the envelope, because `payload` is closed to `text` and `data`. That is fail-closed by
+design.
 
 ### 12.1 The problem
 
@@ -1512,6 +1516,9 @@ Some agents exchange model state instead of text: one model's KV cache fused int
 which bytes, through which adapter, and that the sender's signer allowed it before it happened.
 
 ### 12.2 The transfer record
+
+**[Implemented], recording only**: the reference implementation records this decision (Appendix C.3). Nothing makes
+or checks the transfer payload of 12.3, so no vector covers it.
 
 Before a transfer, the sender's process asks its signer to decide a call of the tool `a2a:transfer`, giving the
 sender and receiver model ids, the modality, an optional projector, and the size and digest it computed from the
@@ -1566,7 +1573,7 @@ are the ones that ran.
   verifier MUST give every claim that has evidence the result
   `unproven` ("evidence not checked"). It never gives `proven`.
 - **Level 2**: Level 1, plus evidence (6.2, 6.3), the evidence profile (6.4) and the four claim checkers (6.5, 6.6).
-- The transfer extension (12) is separate and DRAFT.
+- The transfer extension (12) is separate and **[Draft]**, except 12.2 (recording only).
 
 ### 13.2 Test vectors
 
@@ -2270,14 +2277,12 @@ with the normative text, that is a bug in one of them: open an issue.
 
 ### C.4 Where it does less than this document asks
 
-Each is marked `lean:` in Tracekit's code and has a row in its `docs/limits.md`.
+**Replay state is per process** (9, 14.14). `tracekit.pcm.Replay` keeps its state in memory, so a deployment with
+several replicas per receiver identity must route each sender to one replica until Tracekit shares the state. It is
+marked `lean:` in Tracekit's code and has a row in its `docs/limits.md`.
 
-1. **Replay state is per process** (9, 14.14). `tracekit.pcm.Replay` keeps its state in memory, so a deployment with
-   several replicas per receiver identity must route each sender to one replica until Tracekit shares the state.
-2. **One grant per approval holds only after the call's result** (7.4, 14.8). Until the `pcm.grant` call has its
-   result, repeated `pcm_grant` calls on the same consumed approval can mint grants that differ only in `ts`.
-   Tracekit's SDK completes the call at once.
-
-Also marked `lean:` in its code, though this document asks no more: messages and grants carry no SLH-DSA signature
-(4.3); hosts are read in printable ASCII only (6.7); and the tool table is PCM 0.1's frozen one, so a custom shell or
-http tool stays unplaced (10.2).
+Also marked `lean:` in its code, though this document asks no more: until the `pcm.grant` call has its result,
+repeated `pcm_grant` calls on the same consumed approval can mint grants that differ only in `ts` (7.4 and 14.8 require
+a refusal once the call has its result; Tracekit's SDK completes the call at once); messages and grants carry no
+SLH-DSA signature (4.3); hosts are read in printable ASCII only (6.7); and the tool table is PCM 0.1's frozen one, so a
+custom shell or http tool stays unplaced (10.2).

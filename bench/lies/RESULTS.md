@@ -2,10 +2,17 @@
 
 How often does a receiving agent accept a false claim from a sending agent? Messages built from real Tracekit signer
 runs, checked by Tracekit's `pcm.verify`, the standalone `pcm_verify`, plain A2A (accepts everything) and a
-sender-signature-only check.
+sender-signature-only check. Added after the pre-registration: models of six real agent protocols as receivers ("Real
+protocols as receivers").
 
-**This run (after):** dataset 2, 926 messages, at Tracekit `7d843e6377` and pcm `73a287c` (pcm main `0f26c38` merged,
-with PCM's fixes for F1, F3 and F5).
+**This run (after):** dataset 2, 926 messages, pinned to Tracekit 1.5.0 (its release head `fbcd489089`, Cygnux-Labs/Tracekit#466).
+- Dataset 2 was first produced and run at Tracekit `7d843e6377` (a commit of the branch that #450 squash-merged as
+  `cb4533981e`; `data/meta.json` records it) and pcm `73a287c` (pcm main `0f26c38` merged, with PCM's fixes for F1, F3
+  and F5). The files in `results/` are that run's.
+- Its verdicts reproduce unchanged on Tracekit v1.5.0 with this repository's verifier: `run` then `report` give the
+  same verdict, reason class, conformance fields and claim results on all 926 messages in both verifiers, and the same
+  rows for every other receiver. Only the timings, the temporary file names in loader errors and 11 claim details
+  differ: both verifiers now tell the sender how to prove a host after a failed `reached_host` call.
 
 **Before:** dataset 1, 879 messages, at Tracekit `384a6042bd` and pcm `1ba784a` (main `619fbba`), commit `9b430ab`.
 
@@ -18,16 +25,20 @@ honest fetches `honest.H.07`, `.08`, `.09` and `.13` now use canonical spellings
 |---|---|---|
 | H1 lies accepted, both verifiers | **FAIL** 23/687 (3.3%, 95% CI 2.2–5.0%) | **FAIL** 10/712 (1.4%, 95% CI 0.8–2.6%) |
 | … of which not freshness | 13 (F1 7, F3 6) | **0** |
-| H2 honest claims proven | **FAIL** 71/73 (97.3%) | **FAIL** 81/83 (97.6%); 69 with verdict `accept` |
+| … the verdicts on the lies | 610 `reject`, 54 `accept-unproven`, 23 `accept` | 626 `reject`, 76 `accept-unproven`, 10 `accept` |
+| H2 honest claims proven | **FAIL** 66/68 claims (97.1%); 71/73 messages | **FAIL** 76/78 claims (97.4%); 81/83 messages, 69 with verdict `accept` |
 | H3 T1-only claims unproven | **PASS** 72/72 | **PASS** 72/72 |
 | H4 verifiers agree | **FAIL** 874/879 | **PASS** 926/926 |
-| H5 plain A2A / signature only accept | 687/687 / 628/687 | 712/712 / 643/712 (90.3%) |
+| baselines (no pass bar): plain A2A / signature only accept | 687/687 / 628/687 | 712/712 / 643/712 (90.3%) |
 | verify p50 (p99), Tracekit / standalone | 1.4 (2.9) / 0.9 (1.6) ms | 1.2 (2.4) / 0.8 (1.8) ms |
 
 **H1** still fails: only F2 (freshness, 10 messages) is left. Every other lie, 702 of them, is not accepted. That
 covers the claim, evidence, authority, delivery, encoding and message scopes, and includes 11 signer-bug grants.
 
-**H2** still fails on F4 alone. "Honest claims proven" counts claims, as pre-registered. Two numbers differ by design:
+**H2** still fails on F4 alone: 81 of 83 honest messages (76 of 78 claims, 97.4%). As pre-registered, the pass bar
+is on claims. A message counts when nothing rejects it and each of its claims is proven; 13 of the 83 carry no claim
+(a grant only), and count when they are accepted. The two misses are the same either way. Two numbers differ by
+design:
 - 12 messages are new under the covers rule: the honest `approved_by` messages without covers under `refund.approved`,
   a schema that lists `approved_by` (`honest.A.01`–`12`). Their claims are proven, but the verdict is now
   `accept-unproven` ("required, not proven to cover this request: claim it with covers true").
@@ -90,12 +101,105 @@ sender is rejected.
 accept → accept-unproven (26: F1 7, F3 6, and 13 honest `approved_by` without covers: `honest.A.01`–`12` and the wire
 form `L16.A.22`). The only reason-class change is F5's.
 
+## Real protocols as receivers (added after pre-registration)
+
+These six receivers were added after the pre-registered hypotheses, and no hypothesis covers them. Each is a model of
+what one protocol lets a receiver check, built from its specification, not a run of its SDK; `protocols.py` cites the
+section each check comes from. They read the same 926 messages with the same parse as plain A2A, and are scored as H1
+is: a lie is accepted when the verdict is `accept`, with a Wilson 95% CI.
+
+**Who holds the key.** In every protocol here the sender signs with its own key or its platform's, not with an
+attesting signer it can't control. So each receiver gets the message the sender would send in that protocol, signed
+with the sender's own key wherever the protocol uses one: a lying sender signs its lie. A signature only another party
+can make (a person's, a platform's, a log's) has a counterpart only in AP2 and VI (mandates) and SCITT (receipts).
+There the sender carries what really exists, and a mandate that no real grant or approval stands behind is one it
+signs itself. A replay (L11) is the original message sent again, unchanged.
+
+| receiver | what it checks | lies accepted | 95% CI | honest accepted |
+|---|---|---|---|---|
+| plain A2A (pre-registered) | nothing | 712/712 (100%) | 99.5–100% | 83/83 |
+| A2A + signed card | A2A 1.0: the sender's Agent Card JWS (8.4); messages are unsigned | 712/712 (100%) | 99.5–100% | 83/83 |
+| uAgents envelope | Fetch.ai uAgents: the envelope signed by the sender's key, and its target | 702/712 (98.6%) | 97.4–99.2% | 83/83 |
+| RFC 9421 + replay | ANP-02, Visa TAP, Web Bot Auth: the sender's HTTP signature over method, target and body digest; a 300 s window; a nonce cache | 682/712 (95.8%) | 94.0–97.0% | 83/83 |
+| sender's signature only (pre-registered) | the PCM signer's signature | 643/712 (90.3%) | 87.9–92.3% | 83/83 |
+| SCITT receipts | RFC 9943 and 9942: each claim's records are in a pinned log (content hash, inclusion receipt) | 550/712 (77.2%) | 74.0–80.2% | 83/83 |
+| Verifiable Intent | Mastercard VI 0.1: AP2's checks, with a person key an issuer certifies (L1) | 509/712 (71.5%) | 68.1–74.7% | 67/83 |
+| AP2 mandates | AP2 0.2 (Trusted Agent Provider model): the open mandate's signer, constraints, exp and cnf; checkout mandates; KB-JWT aud, nonce and iat | 504/712 (70.8%) | 67.3–74.0% | 67/83 |
+| AP2 ∩ SCITT ∩ RFC 9421 (stacked) | accepts only what all three accept | 365/712 (51.3%) | 47.6–54.9% | 67/83 |
+| PCM 0.1 (H1) | SPEC 8 | 10/712 (1.4%) | 0.8–2.6% | 69/83 `accept` (H2: 81 of 83 honest messages, 76 of 78 claims) |
+
+What each catches, and what it misses:
+
+- **A2A 1.0 + signed Agent Card** catches nothing. The card authenticates the sender, and the sender is the liar;
+  nothing in a message is signed.
+- **uAgents envelope** catches the 10 replays addressed to another receiver (the envelope's target). It has no nonce
+  cache and reads `expires` as a reply timeout, so the other 40 replays pass, and the sender signs every other lie
+  itself.
+- **RFC 9421 + replay** catches 30 replays: the same nonce (10), another receiver (10: the target is in the signature
+  base) and outside the window (10). It misses the replays after a receiver restart (10: the cache is in memory) and
+  below the floor (10: there is no per-sender floor), and every lie in a message's content, which the sender re-signs.
+- **SCITT receipts** catch 162 lies, all at the evidence layer: proofs for another tree (L9, 48 of 48), edited records
+  (L5, 45 of 66), forged or stripped checkpoint signatures (L6, 12), records under an unpinned log or not in the
+  checkpoint (L8, 17), the old checkpoint with later records (L10, 30) and claims with no records (L1, 10). They miss
+  true records cited for false claims (L1 with other evidence, L2, L3: SCITT has no rule that ties a claim to a
+  record), the agent's own reports (L4: no tiers), records of another run or tenant (L7, L8), every replay, every grant
+  lie (L12–L15, and the 12 grant edits in L5), message-signature lies (L6) and encodings (L16). 8 of L5's other 9
+  misses edit the opened args or their salt, which sit outside the signed record, and one writes a field's own value
+  back.
+- **AP2 mandates** catch 208 lies: 76 of the 109 grant lies and 132 of the 153 approval lies, 63 of them only because
+  the dataset doesn't hold what the model needs (below). They reject all of L12 and L13 and 12 of L15's 13, mostly
+  because AP2 0.2 has no agent-to-agent delegation: a child grant can't be presented, so a delegated request fails cnf
+  (the rule that also rejects the 8 honest delegations); the expired roots fail exp. They also catch edited or forged
+  grants, root grants for another agent, approvals that don't exist, were refused or name another person, and replays
+  of messages that carry mandates (11 of 20, by aud, nonce or iat). They miss all 450 lies about
+  tests, hosts and files, which carry no mandate; root grants of another tenant (5); message-signature and encoding
+  lies on messages with mandates; and 3 signer-bug grants.
+- **Verifiable Intent** gives AP2's verdicts on all but 7 grants. It accepts the 6 grants of a log the receiver doesn't
+  pin (a real person's certified key signed them, whatever the platform), and rejects a signer-bug root that names no
+  person, which AP2 accepts.
+- **Stacked.** A receiver that runs the AP2, SCITT and RFC 9421 checks and accepts only what all three accept still
+  accepts 365 lies (51.3%), and 67 of the 83 honest messages. All of L4 passes, most of L1–L3 and L16, and 18 of the
+  20 replays after a restart or below the floor.
+
+**Honest messages.** The other receivers accept all 83. AP2 and VI reject 16:
+- 8 delegated grants. AP2 0.2 has no agent-to-agent delegation, so the request can't be authorized. This is AP2's own
+  limit.
+- 8 approvals whose message doesn't open the approved call's args (`honest.A.02`, `.04` … `.12`, `.21`, `.22`). The
+  model needs those values to check that the mandate is for this request, and the dataset doesn't hold them; a sender
+  built for AP2 would disclose them. This is a limit of the model.
+
+**What couldn't be modelled faithfully:**
+- **Undisclosed approvals.** AP2 and VI bind a person's approval to a request by its values. 53 approval lies (54 for
+  VI) don't open the approved call's args, so the model rejects them as undisclosed. 10 L10 approvals are real, but
+  their message carries an older checkpoint and the dataset holds none that includes them, so the model can't tell
+  them from forged ones and rejects them too. Counting all 63 as accepted gives the most AP2 could accept: 567 (79.6%);
+  VI 573 (80.5%). 13 of the 53 ask for another amount, call or tool than the one approved, which the values would
+  expose, and one replays a message the receiver has seen; the other 39, and the 10 in L10, cite an approval of the
+  very request. So the faithful counts are most likely 553 for AP2 (77.7%) and 559 for VI (78.5%). The chart and the
+  README show the measured 504 and 509, the counts that favour AP2.
+- **Mappings.** A root grant is an open mandate, a person's approval a checkout mandate, and a child grant has no AP2
+  form. AP2 is modelled with its Trusted Agent Provider model: the receiver trusts the agent's platform to sign a
+  mandate only after a person consents, and here those platforms are the ones whose logs it pins. VI stands for AP2's
+  other model, User Credential, with its L1 issuer (who certifies the persons the signer's configuration names). Other
+  choices give other numbers on L8, L14 and the signer-bug grants.
+- **Encodings.** Signatures are real Ed25519, over the model's own byte layouts rather than literal JWS, SD-JWT, COSE
+  or HTTP header syntax; no check here depends on that syntax. The RFC 9421 window is ANP-02's 300 s; TAP allows
+  480 s, which changes nothing here (the replays outside the window are 600 s old).
+- **Not modelled.** Transport security (TLS, mTLS, OAuth), which authenticates the liar too; VI's suggested mandate
+  lifetimes; the protocols that, by our reading of their specs (not measured), reduce to plain A2A on these claims
+  (MCP, IBM ACP, LangChain Agent Protocol, Agora, Coral, FIPA-ACL) or to RFC 9421 + replay at best (Visa TAP,
+  OpenAI/Stripe ACP).
+- **Which code.** The PCM rows are the dataset 2 run at the heads above. The protocol rows are `protocols.py` at this
+  commit, over the same dataset (`results/baselines.jsonl`); per-class counts and reject reasons are in
+  `results/results.json` (`receivers`, `lies_by_class`).
+
 ## Findings in detail (diagnosis from the run before)
 
 The text below explains each finding as it stood before the fixes. F1, F3 and F5 are now fixed; F2 and F4 are open.
 
-These are not fixed here: per the task, fixes go to the owners of the spec and the code. Each finding has a minimal
-repro under `findings/`. `python bench/lies/findings/repro.py findings/<id>.json` runs both verifiers on one of them.
+The benchmark reports findings; their fixes were made in the spec and the code. Each finding has a minimal
+repro under `findings/`. `PYTHONPATH=<tracekit> python bench/lies/findings/repro.py bench/lies/findings/<id>.json`, from
+this repository's root, runs both verifiers on one of them.
 
 **F1. A leading-zero IPv4 octet proves a host the connection never reached** (`L16.H.01`–`L16.H.07`; both verifiers;
 in the threat model).
@@ -199,9 +303,10 @@ fetches, below).
 - **(d) numbers out of the double range:** each claim type gets `1.8e308` in the intent's args and `-1e400` in the
   payload, as raw text.
 - **(c):** no change was needed: `honest.H.15` and `.16` already test a 404.
-- **H2 counts claims:** `report.py` now counts H2 as pre-registered, that is honest *claims* proven, so an honest
-  `approved_by` without covers still counts under a schema that requires a covering one. It also shows how many
-  honest messages got the verdict `accept`. For dataset 1 both counts were the same: 71/73.
+- **H2 counts claims and messages:** `report.py` counted honest messages (each claim proven and nothing rejecting the
+  message), not claims. It now also counts honest *claims* proven, as pre-registered, and applies the pass bar to
+  them, so an honest `approved_by` without covers counts under a schema that requires a covering one. It also shows
+  how many honest messages got the verdict `accept`. Dataset 1: 66 of 68 claims, 71 of 73 messages, 71 `accept`.
 
 ## Dataset 1: the pre-final run
 
@@ -212,7 +317,7 @@ standalone:
 | hypothesis | result, both verifiers |
 |---|---|
 | H1 | 23/687 lies accepted |
-| H2 | 71/73 honest claims proven |
+| H2 | 66/68 honest claims proven (71/73 messages) |
 | H3 | 72/72 T1-only claims unproven |
 | H4 | 874/879 messages agree |
 
@@ -226,7 +331,12 @@ Comparing the two runs message by message (ids are stable):
 So the final heads' new host rules don't touch F1. A leading-zero octet is printable ASCII and has no `%`, so it is
 still read by `inet_aton`.
 
-## Design (pre-registered 2026-10-28, followed here)
+## Design (pre-registered 2026-10-28)
+
+The design as written is in [`PREREGISTRATION.md`](PREREGISTRATION.md), with a header on where this run departed from
+it: the improve loop stopped with H1 and H2 failing, the dataset grew after the first run, and the six protocol
+receivers came later. It has no public timestamp before these results: it was a local note, written that morning
+before the benchmark's first commit, and committed here after the results. In short:
 
 - **Threat model:**
   - The sender controls its own process, its messages and T1 reports, and any file it can write.
@@ -237,7 +347,8 @@ still read by `inet_aton`.
   - H2: at least 99% of honest T2 or signer-backed claims proven.
   - H3: 100% of T1-only claims unproven.
   - H4: Tracekit and standalone give the same verdict and reason class on every message.
-  - H5: the baselines, reported for comparison only.
+  - Baselines (no pass bar; H5 in the pre-registration): plain A2A and the sender's signature only, reported for
+    comparison.
   - Cost: message size, and p50/p99 verify time.
 - **Lies:**
   - L1 fabricated event;
@@ -309,14 +420,11 @@ These are bugs in the harness only. No verifier or Tracekit code was changed.
   agent approver answers on the second log, and its L14 messages pin that log.
 - **`read` pages.** The harness now reads a run's records 1000 at a time.
 
-## Held
+## Process notes
 
-1. A Bash `grep` of Tracekit's `tracekit/signer/service.py`, together with a one-line Python import of its RPC schema,
-   was held by Tracekit's own hook (TK-D007: "touching Tracekit's own files or signer"). I did not retry it. RPC
-   shapes came from `tools/gen_vectors.py`, Tracekit's tests and the RPCs' own responses.
-2. `git -C ~/tracekit-pcm-bench checkout --detach 384a6042bd` and `git merge --no-edit main` in this worktree were
-   denied by the auto-mode classifier. I did not retry them. The coordinator then moved both worktrees, and later
-   moved them again, to the fixed heads this run uses.
+1. The run was itself recorded by Tracekit, whose policy (TK-D007) holds reads of Tracekit's own signer files. The RPC
+   shapes came from `tools/gen_vectors.py`, Tracekit's tests and the RPCs' own responses instead.
+2. The Tracekit checkouts were moved to the fixed heads this run uses outside the harness.
 
 ## Limits
 
@@ -330,26 +438,43 @@ These are bugs in the harness only. No verifier or Tracekit code was changed.
 
 ## Reproduce
 
+**The published numbers**, from the committed dataset: `run`, then `report`. `run` needs a Tracekit checkout at
+v1.5.0 on `PYTHONPATH` and the standalone verifier's two dependencies (`rfc8785`, `cryptography`); `report` needs only
+the standard library. Every verdict and count reproduces; timings differ from run to run, and on v1.5.0 so do 11
+claim details (above).
+
 ```sh
-cd <this repo>   # PYTHONPATH: a Tracekit checkout; the standalone verifier is found under verifier/python
-PYTHONPATH=<tracekit> python -m bench.lies gen      # data/dataset.jsonl, data/meta.json (~1 min)
+cd <this repo>   # the standalone verifier is found under verifier/python
 PYTHONPATH=<tracekit> python -m bench.lies run --verifier all   # results/{tracekit,standalone,baselines}.jsonl
+# baselines.jsonl holds a2a, sigonly and the six protocol receivers (no extra dependencies)
 python -m bench.lies report                          # results/results.json, findings/, the tables below
 ```
 
+**A new dataset**, with `gen` before them. `gen` overwrites the committed `data/dataset.jsonl` and `data/meta.json`.
+It needs:
+- Tracekit's own dependencies, plus pytest: the suites really run;
+- IPv6 loopback, `::1`: a local server listens there;
+- a resolver that reads IPv4 spellings as macOS does: each host's label is what this machine's `getaddrinfo` reads
+  (`gen.py`, `World.destination`). glibc reads a leading-zero octet as octal, so on Linux some L16 labels, and the
+  counts, differ from the committed dataset.
+
+```sh
+PYTHONPATH=<tracekit> python -m bench.lies gen      # data/dataset.jsonl, data/meta.json (~1 min)
+```
+
 <!-- auto:begin -->
-_926 messages; verifiers: tracekit, standalone, a2a, sigonly._
+_926 messages; verifiers: tracekit, standalone, a2a, sigonly, a2a-card, uagents, rfc9421, ap2, vi, scitt._
 
 ### Pass/fail
 
 | verifier | H1 no false accept | H2 honest proven >= 99% | H3 T1-only unproven 100% |
 |---|---|---|---|
-| tracekit | FAIL: 10 of 712 lies accepted (1.4%, 95% CI [0.76%, 2.57%]) | FAIL: 81/83 (97.6%; 69 with verdict accept) | PASS: 72/72 (100.0%) |
-| standalone | FAIL: 10 of 712 lies accepted (1.4%, 95% CI [0.76%, 2.57%]) | FAIL: 81/83 (97.6%; 69 with verdict accept) | PASS: 72/72 (100.0%) |
+| tracekit | FAIL: 10 of 712 lies accepted (1.4%, 95% CI [0.76%, 2.57%]); 626 reject, 76 accept-unproven, 10 accept | FAIL: 76/78 claims (97.4%); 81/83 messages (97.6%; 69 with verdict accept) | PASS: 72/72 (100.0%) |
+| standalone | FAIL: 10 of 712 lies accepted (1.4%, 95% CI [0.76%, 2.57%]); 626 reject, 76 accept-unproven, 10 accept | FAIL: 76/78 claims (97.4%); 81/83 messages (97.6%; 69 with verdict accept) | PASS: 72/72 (100.0%) |
 
 H4 verifier agreement (conformance fields and reason class): **PASS**, 926/926 agree.
 
-H5 baselines (lies accepted): a2a 712/712 (100.0%); sigonly 643/712 (90.3%).
+Baselines (no pass bar), lies accepted: a2a 712/712 (100.0%); sigonly 643/712 (90.3%).
 
 ### False-accept rate by lie scope and threat model
 
@@ -359,6 +484,12 @@ H5 baselines (lies accepted): a2a 712/712 (100.0%); sigonly 643/712 (90.3%).
 | standalone | 10/712 | 1.4% | [0.76%, 2.57%] | authority 0/90; claim 0/192; delivery 0/50; encoding 0/96; evidence 0/265; freshness 10/10; message 0/9 | in 10/701; signer-bug 0/11 |
 | a2a | 712/712 | 100.0% | [99.46%, 100.00%] | authority 90/90; claim 192/192; delivery 50/50; encoding 96/96; evidence 265/265; freshness 10/10; message 9/9 | in 701/701; signer-bug 11/11 |
 | sigonly | 643/712 | 90.3% | [87.91%, 92.27%] | authority 82/90; claim 192/192; delivery 50/50; encoding 71/96; evidence 229/265; freshness 10/10; message 9/9 | in 632/701; signer-bug 11/11 |
+| a2a-card | 712/712 | 100.0% | [99.46%, 100.00%] | authority 90/90; claim 192/192; delivery 50/50; encoding 96/96; evidence 265/265; freshness 10/10; message 9/9 | in 701/701; signer-bug 11/11 |
+| uagents | 702/712 | 98.6% | [97.43%, 99.24%] | authority 90/90; claim 192/192; delivery 40/50; encoding 96/96; evidence 265/265; freshness 10/10; message 9/9 | in 691/701; signer-bug 11/11 |
+| rfc9421 | 682/712 | 95.8% | [94.05%, 97.03%] | authority 90/90; claim 192/192; delivery 20/50; encoding 96/96; evidence 265/265; freshness 10/10; message 9/9 | in 671/701; signer-bug 11/11 |
+| ap2 | 504/712 | 70.8% | [67.34%, 74.01%] | authority 21/90; claim 146/192; delivery 36/50; encoding 83/96; evidence 208/265; freshness 10/10; message 0/9 | in 501/701; signer-bug 3/11 |
+| vi | 509/712 | 71.5% | [68.06%, 74.68%] | authority 26/90; claim 146/192; delivery 36/50; encoding 83/96; evidence 208/265; freshness 10/10; message 0/9 | in 507/701; signer-bug 2/11 |
+| scitt | 550/712 | 77.2% | [74.03%, 80.18%] | authority 90/90; claim 182/192; delivery 50/50; encoding 96/96; evidence 113/265; freshness 10/10; message 9/9 | in 539/701; signer-bug 11/11 |
 
 ### Dataset
 
@@ -502,6 +633,41 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 | L15 | 13/13 rejected, 13 not accepted | 13/13 rejected, 13 not accepted | 0/13 rejected, 0 not accepted | 0/13 rejected, 0 not accepted |
 | L16 | 80/96 rejected, 96 not accepted | 80/96 rejected, 96 not accepted | 0/96 rejected, 0 not accepted | 25/96 rejected, 25 not accepted |
 
+### Real protocols as receivers (added after pre-registration)
+
+| receiver | lies accepted | rate | Wilson 95% CI | honest accepted |
+|---|---|---|---|---|
+| a2a | 712/712 | 100.0% | [99.46%, 100.00%] | 83/83 |
+| sigonly | 643/712 | 90.3% | [87.91%, 92.27%] | 83/83 |
+| a2a-card | 712/712 | 100.0% | [99.46%, 100.00%] | 83/83 |
+| uagents | 702/712 | 98.6% | [97.43%, 99.24%] | 83/83 |
+| rfc9421 | 682/712 | 95.8% | [94.05%, 97.03%] | 83/83 |
+| ap2 | 504/712 | 70.8% | [67.34%, 74.01%] | 67/83 |
+| vi | 509/712 | 71.5% | [68.06%, 74.68%] | 67/83 |
+| scitt | 550/712 | 77.2% | [74.03%, 80.18%] | 83/83 |
+| ap2 ∩ scitt ∩ rfc9421 | 365/712 | 51.3% | [47.60%, 54.92%] | 67/83 |
+
+Lies accepted per class:
+
+| class | a2a | sigonly | a2a-card | uagents | rfc9421 | ap2 | vi | scitt | tracekit |
+|---|---|---|---|---|---|---|---|---|---|
+| L1 | 48/48 | 48/48 | 48/48 | 48/48 | 48/48 | 36/48 | 36/48 | 38/48 | 0/48 |
+| L2 | 48/48 | 48/48 | 48/48 | 48/48 | 48/48 | 36/48 | 36/48 | 48/48 | 0/48 |
+| L3 | 59/59 | 59/59 | 59/59 | 59/59 | 59/59 | 38/59 | 38/59 | 59/59 | 0/59 |
+| L4 | 36/36 | 36/36 | 36/36 | 36/36 | 36/36 | 36/36 | 36/36 | 36/36 | 0/36 |
+| L5 | 66/66 | 66/66 | 66/66 | 66/66 | 66/66 | 42/66 | 42/66 | 21/66 | 0/66 |
+| L6 | 60/60 | 16/60 | 60/60 | 60/60 | 60/60 | 52/60 | 52/60 | 48/60 | 0/60 |
+| L7 | 42/42 | 42/42 | 42/42 | 42/42 | 42/42 | 32/42 | 32/42 | 42/42 | 0/42 |
+| L8 | 55/55 | 55/55 | 55/55 | 55/55 | 55/55 | 39/55 | 45/55 | 38/55 | 0/55 |
+| L9 | 48/48 | 48/48 | 48/48 | 48/48 | 48/48 | 36/48 | 36/48 | 0/48 | 0/48 |
+| L10 | 40/40 | 40/40 | 40/40 | 40/40 | 40/40 | 30/40 | 30/40 | 10/40 | 10/40 |
+| L11 | 50/50 | 50/50 | 50/50 | 40/50 | 20/50 | 36/50 | 36/50 | 50/50 | 0/50 |
+| L12 | 18/18 | 18/18 | 18/18 | 18/18 | 18/18 | 0/18 | 0/18 | 18/18 | 0/18 |
+| L13 | 10/10 | 10/10 | 10/10 | 10/10 | 10/10 | 0/10 | 0/10 | 10/10 | 0/10 |
+| L14 | 23/23 | 23/23 | 23/23 | 23/23 | 23/23 | 7/23 | 6/23 | 23/23 | 0/23 |
+| L15 | 13/13 | 13/13 | 13/13 | 13/13 | 13/13 | 1/13 | 1/13 | 13/13 | 0/13 |
+| L16 | 96/96 | 71/96 | 96/96 | 96/96 | 96/96 | 83/96 | 83/96 | 96/96 | 0/96 |
+
 ### approved_by with the receiver's SPEC 6.6 scope check
 
 | verifier | messages | n | verdict | verdict after the scope check |
@@ -537,10 +703,22 @@ T = tests_passed, H = reached_host, F = file_written, A = approved_by, G = grant
 | AB-strip | standalone | {"accept-unproven": 60} |
 | AB-strip | a2a | {"accept": 60} |
 | AB-strip | sigonly | {"accept": 60} |
+| AB-strip | a2a-card | {"accept": 60} |
+| AB-strip | uagents | {"accept": 60} |
+| AB-strip | rfc9421 | {"accept": 60} |
+| AB-strip | ap2 | {"accept": 48, "reject": 12} |
+| AB-strip | vi | {"accept": 48, "reject": 12} |
+| AB-strip | scitt | {"reject": 60} |
 | AB-t1 | tracekit | {"accept-unproven": 36} |
 | AB-t1 | standalone | {"accept-unproven": 36} |
 | AB-t1 | a2a | {"accept": 36} |
 | AB-t1 | sigonly | {"accept": 36} |
+| AB-t1 | a2a-card | {"accept": 36} |
+| AB-t1 | uagents | {"accept": 36} |
+| AB-t1 | rfc9421 | {"accept": 36} |
+| AB-t1 | ap2 | {"accept": 36} |
+| AB-t1 | vi | {"accept": 36} |
+| AB-t1 | scitt | {"accept": 36} |
 
 ### Every failure
 

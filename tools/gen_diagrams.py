@@ -125,7 +125,7 @@ def grants(c):
     out += box(700, 12, 258, 66, c, "Child grant", ["amount ≤ 5000"], "ok")
     out += box(700, 116, 258, 66, c, "Child grant", ["amount ≤ 50000"], "bad")
     out += arrow(586, 80, 692, 48, c, "ok")
-    out.append(text(640, 48, "narrows: signed", c, 12, "ok"))
+    out.append(text(632, 42, "narrows: signed", c, 12, "ok"))
     out += arrow(586, 114, 692, 146, c, "bad", dash=True)
     out.append(text(640, 160, "widens: rejected", c, 12, "bad"))
     out.append("</svg>\n")
