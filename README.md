@@ -16,11 +16,12 @@ PCM 0.1, a draft. Numbers in parentheses below are sections of the specification
 today has only its word. PCM lets each such claim carry signed records from a log the sending agent can't write, and
 the receiver checks them offline. In a pre-registered benchmark of 926 messages, 712 of them lies, PCM accepted 10
 lies, all of one kind it states as a limit (stale evidence); plain A2A accepted all 712, and a check of the sender's
-signature alone accepted 643. Checking a message takes about 1 ms ([Evaluation](#evaluation)).
+signature alone accepted 643. Models of six real agent protocols, added after the pre-registration, accepted from 504
+(AP2 mandates) to 712 (A2A with a signed Agent Card). Checking a message takes about 1 ms ([Evaluation](#evaluation)).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/lies-accepted-dark.svg">
-  <img alt="Lies a receiver accepts: plain A2A 712 of 712, a sender-signature check 643 of 712, PCM 0.1 10 of 712, all stale evidence" src="docs/img/lies-accepted-light.svg" width="760">
+  <img alt="Lies a receiver accepts, of 712: plain A2A 712, a sender-signature check 643; models of real protocols: A2A 1.0 with a signed card 712, uAgents 702, RFC 9421 with replay checks 682, SCITT receipts 550, Verifiable Intent 509, AP2 mandates 504; PCM 0.1 10, all stale evidence" src="docs/img/lies-accepted-light.svg" width="760">
 </picture>
 
 **Try it** (with [Tracekit](https://github.com/Cygnux-Labs/Tracekit), the reference implementation):
@@ -239,7 +240,7 @@ a verifier. The lies fall in 16 classes (L1–L16), from fabricated events, edit
 or log to stale proofs, replays, widened or expired grants and encodings; most are edits a sender can make to its own
 message before the signer signs it. Each message is checked by Tracekit's `pcm.verify`, by the standalone
 `pcm_verify`, and by two baselines: plain A2A, which accepts every message, and a check of the sender's signature
-only.
+only. After the pre-registration, models of six real agent protocols were added as receivers (below).
 
 **Hypotheses** (pre-registered 2026-10-28, with their pass bars):
 
@@ -260,6 +261,7 @@ The baselines and the cost (message size, p50 and p99 verify time) are reported 
 | H4 the two verifiers agree | **pass**, 926 of 926 |
 | plain A2A, lies accepted | 712 of 712 |
 | sender's signature only, lies accepted | 643 of 712 (90.3%) |
+| six real protocols as receivers (added later), lies accepted | 504 to 712 of 712 (below) |
 | verify time p50 (p99), Tracekit / standalone | 1.2 (2.4) / 0.8 (1.8) ms |
 
 The benchmark earned its keep before these numbers: an earlier run found three bugs (a leading-zero IPv4 host, an
@@ -284,6 +286,32 @@ What is left:
   including each verifier's own strict loader for messages sent as raw text.
 - **The baselines.** Plain A2A accepts all 712 lies. The signature-only check accepts 643 (90.3%): it catches only
   forged or stripped signatures (44 of L6) and some encodings (25 of L16).
+
+**Real protocols as receivers** (added after the pre-registration; no hypothesis covers them). Each is a model of what
+one protocol lets a receiver check, built from its specification, not a run of its SDK
+([`protocols.py`](bench/lies/protocols.py) cites the sections). Where these protocols sign, they sign with the
+sending agent's own key or its platform's, so a lying sender signs its lie; only AP2 and VI mandates and SCITT
+receipts carry a signature the sender can't make.
+
+| receiver | lies accepted | honest accepted |
+|---|---|---|
+| A2A 1.0 + signed Agent Card | 712 of 712 (100%) | 83 of 83 |
+| uAgents envelope | 702 (98.6%) | 83 |
+| RFC 9421 + replay checks (as in ANP, Visa TAP, Web Bot Auth) | 682 (95.8%) | 83 |
+| SCITT receipts (RFC 9943, 9942) | 550 (77.2%) | 83 |
+| Mastercard Verifiable Intent 0.1 | 509 (71.5%) | 67 |
+| AP2 0.2 mandates | 504 (70.8%) | 67 |
+
+- The signed card catches nothing, and the envelope and the HTTP signature catch only replays (10 and 30 of 50).
+  SCITT receipts catch evidence that isn't in a pinned log (162 lies), but no rule ties a claim to its records, so
+  true records cited for false claims pass. AP2 and VI catch lies about grants and approvals, and none of the 450
+  about tests, hosts and files, which carry no mandate.
+- AP2 and VI reject 8 honest delegations (AP2 0.2 has no agent-to-agent delegation) and 8 honest approvals whose
+  approved values the dataset doesn't disclose. The same gaps in the dataset decide 63 approval lies the models
+  reject (64 for VI); counted as accepted, AP2 and VI would accept at most 567 and 573.
+  [`RESULTS.md`](bench/lies/RESULTS.md) has the per-class results and what couldn't be modelled faithfully.
+- A receiver that runs the AP2, SCITT and RFC 9421 checks and accepts only what all three accept still accepts 365
+  lies (51.3%).
 
 **Cost.** Median size of the honest messages, by claim type, against plain A2A messages (0.4 to 0.7 KB at p50):
 
