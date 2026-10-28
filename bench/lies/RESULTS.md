@@ -5,7 +5,7 @@ runs, checked by Tracekit's `pcm.verify`, the standalone `pcm_verify`, plain A2A
 sender-signature-only check. Added after the pre-registration: models of six real agent protocols as receivers ("Real
 protocols as receivers").
 
-**This run (after):** dataset 2, 926 messages, pinned to Tracekit v1.5.0 (`510566193e`).
+**This run (after):** dataset 2, 926 messages, pinned to Tracekit 1.5.0 (its release head `fbcd489089`, Cygnux-Labs/Tracekit#466).
 - Dataset 2 was first produced and run at Tracekit `7d843e6377` (a commit of the branch that #450 squash-merged as
   `cb4533981e`; `data/meta.json` records it) and pcm `73a287c` (pcm main `0f26c38` merged, with PCM's fixes for F1, F3
   and F5). The files in `results/` are that run's.

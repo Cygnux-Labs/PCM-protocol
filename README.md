@@ -253,7 +253,7 @@ only. After the pre-registration, models of six real agent protocols were added 
 
 The baselines and the cost (message size, p50 and p99 verify time) are reported without a pass bar.
 
-**Results**, on 926 messages, pinned to Tracekit v1.5.0 (`510566193e`). Dataset 2 was first produced at Tracekit
+**Results**, on 926 messages, pinned to Tracekit 1.5.0 (its release head `fbcd489089`, Cygnux-Labs/Tracekit#466). Dataset 2 was first produced at Tracekit
 `7d843e6377` and this repository at `73a287c` (main `0f26c38` merged, with PCM's fixes for F1, F3 and F5); its
 verdicts reproduce unchanged on Tracekit v1.5.0:
 
