@@ -1,11 +1,11 @@
 {
   "name": "accept-replay-same-agent-other-log",
-  "description": "The receiver first took a message from uid:990101 of the other log with the nonce of this one (re-signed with the other log's test key); trust pins both logs. A sender is the pair (log key, agent), so uid:990101 of the test log is another sender and its nonce is new.",
+  "description": "The receiver first took a message from uid:990101 of the other log with the nonce of this one (re-signed with the other log's test key); trust pins both logs. A sender is the pair (public key, agent), so uid:990101 of the test log is another sender and its nonce is new.",
   "input": {
     "message": {
       "from": {
         "agent": "uid:990101",
-        "run": "ec130a625bc622738e7f2652097d9535",
+        "run": "bd3e042d27fecac9d0cfa4caca245243",
         "tenant": "default"
       },
       "to": {
@@ -19,12 +19,12 @@
         }
       },
       "pcm": 0,
-      "id": "f138c7c74ec87561492f5acae5d68c16",
-      "ts": "2026-10-28T02:24:35.521042Z",
-      "nonce": "2fc19117df9b34e5dd2db0628a6f35a8",
+      "id": "44a789c0fe4d0076d3435683b9aac5bb",
+      "ts": "2026-10-29T04:22:07.173072Z",
+      "nonce": "d36bde8cb3e2a1efb11741fe4ffcf73e",
       "sig": {
         "key": "example.com/pcm-test-log+0bb91e66",
-        "sig": "Dy8ayIw9ut6LPJYtSdcXXXlXEtLqrXCyNcczgwaqdoqMvIXKI1FeSA171LCMiQ0Z1PxgINXfSNnBKEtlMy+MAQ=="
+        "sig": "y4sWIpPKD0a+8HdecrS24qMOPIavPYDvcwzwPQ4fS84325E/LJaeeJ3kbW+HDjJGcxFsUo/JcZwdJAC63iWuCQ=="
       }
     },
     "schemas": [
@@ -112,16 +112,16 @@
     "options": {
       "me": "uid:990102",
       "strict": false,
-      "now": "2026-10-28T02:24:36.521042Z",
+      "now": "2026-10-29T04:22:08.173072Z",
       "replay": {
         "window_s": 300,
-        "started": "2026-10-28T02:23:35.521042Z",
+        "started": "2026-10-29T04:21:07.173072Z",
         "per_sender": 4096,
         "seen": [
           {
             "from": {
               "agent": "uid:990101",
-              "run": "aec2773dddf3623adf2cbd48d94ce938",
+              "run": "5d90a0cec63ffd5cacbd2f9d63986adf",
               "tenant": "default"
             },
             "to": {
@@ -135,12 +135,12 @@
               }
             },
             "pcm": 0,
-            "id": "4f9cdd4125a3bd0460ec2827acb7c132",
-            "ts": "2026-10-28T02:24:38.762734Z",
-            "nonce": "2fc19117df9b34e5dd2db0628a6f35a8",
+            "id": "882f74940286cc859c59e61921088822",
+            "ts": "2026-10-29T04:22:10.415118Z",
+            "nonce": "d36bde8cb3e2a1efb11741fe4ffcf73e",
             "sig": {
               "key": "example.com/pcm-other-log+41df8b1c",
-              "sig": "eyu1g5xKWC1WA/A7Ya7tUDSPcRWYZhnnbBVCnn2pPvKfcNtfPjk7WjytM5V9CifNJws1Hiv09dabS/Nygu+0CA=="
+              "sig": "bJKhklnuhpGGomDtfUDPBuAnO45SWUKS5byeMAiAulNTV49C7kcaDgEkovAhbNRWoJqwofD6X4lOTtDqMb/MCQ=="
             }
           }
         ]
