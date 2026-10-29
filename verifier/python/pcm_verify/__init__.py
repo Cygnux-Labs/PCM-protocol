@@ -378,27 +378,50 @@ def _ed25519(public, msg, sig):
         return False
 
 
+def _pinned(trust, key):
+    """The public key of the Ed25519 log key trust pins as `key` (a sig.key), or None."""
+    for vk in trust.get("logs", []):
+        name, kid, type_, public = parse_vkey(vk)
+        if type_ == ED25519 and f"{name}+{kid.hex()}" == key:
+            return public
+    return None
+
+
 def check_sig(obj, tag, trust):
     """None when `obj` carries a valid signature, under domain tag `tag`, by an Ed25519 log key trust pins; else why
     not."""
-    for vk in trust.get("logs", []):
-        name, kid, type_, public = parse_vkey(vk)
-        if type_ != ED25519 or f"{name}+{kid.hex()}" != obj["sig"]["key"]:
-            continue
-        try:
-            text = jcs({**{k: v for k, v in obj.items() if k != "sig"}, "t": tag})
-        except NotJCS as e:
-            return f"not JSON that RFC 8785 can encode ({e})"
-        try:
-            sig = _unb64(obj["sig"]["sig"])   # canonical only (SPEC 4.3), so a signature has one text form
-        except NoteError:
-            return "bad signature"
-        return None if _ed25519(public, text, sig) else "bad signature"
-    return f"signed by {obj['sig']['key']}, a key trust does not pin"
+    public = _pinned(trust, obj["sig"]["key"])
+    if public is None:
+        return f"signed by {obj['sig']['key']}, a key trust does not pin"
+    try:
+        text = jcs({**{k: v for k, v in obj.items() if k != "sig"}, "t": tag})
+    except NotJCS as e:
+        return f"not JSON that RFC 8785 can encode ({e})"
+    try:
+        sig = _unb64(obj["sig"]["sig"])   # canonical only (SPEC 4.3), so a signature has one text form
+    except NoteError:
+        return "bad signature"
+    return None if _ed25519(public, text, sig) else "bad signature"
 
 
 def _cosigned(text, ts):
     return f"cosignature/v1\ntime {ts}\n{text}".encode("utf-8")
+
+
+def check_witnesses(vkeys):
+    """NoteError when `vkeys` pin one cosignature key under two names, or two under one name (SPEC 10.1): a
+    cosignature signs no key name and a witness cosigns with one key, so each witness counts once (6.2 step 3)."""
+    names, keys = {}, {}
+    for k in vkeys:
+        name, _, type_, public = parse_vkey(k)
+        if type_ != COSIGNATURE:
+            continue
+        if names.setdefault(public, name) != name:
+            raise NoteError(f"trust pins one witness key under two names ({names[public]}, {name}); a key is one "
+                            "witness: keep it under the name it cosigns with")
+        if keys.setdefault(name, public) != public:
+            raise NoteError(f"trust pins two witness keys under one name ({name}); a name is one witness: keep only "
+                            "its current key")
 
 
 def open_note(note, log_keys, witness_keys):
@@ -423,6 +446,7 @@ def open_note(note, log_keys, witness_keys):
     root = _unb64(root)
     if len(root) != 32:
         raise NoteError("bad root hash")
+    check_witnesses(witness_keys)
     pinned = {}
     for keys, want in ((log_keys, (ED25519, HYBRID)), (witness_keys, (COSIGNATURE,))):
         for k in keys:
@@ -1000,10 +1024,10 @@ def _secs(t):
 
 class Replay:
     """One receiver's replay state, in memory. A message passes once: within `window_s` of the receiver's clock, not
-    sent before it started, newer than the sender's floor and with a new nonce. A sender is the pair (sig.key,
-    from.agent). Past `per_sender` nonces the oldest is forgotten and raises the floor. `window_s=None` skips the
-    clocks (an auditor of a saved conversation). `started` and a check's `now` are unix seconds or TS strings; None
-    is the current time."""
+    sent before it started, newer than the sender's floor and with a new nonce. A sender is the pair (public key,
+    from.agent): one agent name under two logs is two senders. Past `per_sender` nonces the oldest is forgotten and
+    raises the floor. `window_s=None` skips the clocks (an auditor of a saved conversation). `started` and a check's
+    `now` are unix seconds or TS strings; None is the current time."""
 
     def __init__(self, window_s=300, per_sender=4096, started=None):
         self.window_s, self.per_sender = window_s, per_sender
@@ -1012,9 +1036,14 @@ class Replay:
         self.started = int(_secs(started) * 1e6) / 1e6
         self.seen, self.floor = {}, {}
 
-    def check(self, msg, now=None, record=True):
-        """(ok, detail) for a message whose signature passed; a passing one is remembered when `record`."""
-        now, sender = _secs(now), (msg["sig"]["key"], msg["from"]["agent"])   # SPEC 9
+    def check(self, msg, now=None, record=True, *, key):
+        """(ok, detail) for a message whose signature passed under the public key `key` (its raw bytes); a passing one
+        is remembered when `record`."""
+        if not isinstance(key, bytes):
+            raise TypeError(f"key is a {type(key).__name__}: pass the public key that verified the message")
+        if len(key) != 32:
+            raise ValueError(f"key is {len(key)} bytes: pass the raw 32-byte Ed25519 public key")
+        now, sender = _secs(now), (key, msg["from"]["agent"])   # SPEC 9
         try:
             t = epoch(msg["ts"])
         except ValueError:
@@ -1073,10 +1102,18 @@ def verify(message, trust, schemas, me=None, strict=False, now=None, replay=None
     logs = [parse_vkey(vk) for vk in trust["logs"]]   # SPEC 10.1: a bad vkey raises NoteError wherever it sits
     for w in trust.get("witnesses", []):
         parse_vkey(w["vkey"])
-    for name, n in collections.Counter(k[0] for k in logs if k[2] == ED25519).items():
-        if n > 1:   # SPEC 10.1: one key per log name, so the key that signed a message names one log
+    # SPEC 10.1: one key per log name and one log name per key, so the key that signed a message names one log
+    ed = [(name, public) for name, _, type_, public in logs if type_ == ED25519]
+    for name, n in collections.Counter(x for x, _ in ed).items():
+        if n > 1:
             raise ValueError(f"trust pins {n} Ed25519 keys for log {name}; PCM verifies with one: pass a trust file "
                              "with only the current key")
+    for public, n in collections.Counter(p for _, p in ed).items():
+        if n > 1:   # by the raw key
+            raise ValueError(f"trust pins one Ed25519 key under {n} log names "
+                             f"({', '.join(x for x, p in ed if p == public)}); PCM reads one log from a key: keep "
+                             "it under the name its log's checkpoints carry; two logs can't share a key")
+    check_witnesses([w["vkey"] for w in trust.get("witnesses", [])])   # SPEC 10.1: each witness counts once
     out = {"signature": None, "replay": None, "schema": None, "grants": None, "claims": None, "verdict": "reject",
            "reasons": [], "skipped": ["replay"] * (replay is None) + ["recipient"] * (me is None)}
     errs = errors(MESSAGE, message)
@@ -1099,7 +1136,8 @@ def verify(message, trust, schemas, me=None, strict=False, now=None, replay=None
     if me is not None and message["to"]["agent"] != me:   # SPEC 8 step 4: another receiver's: no nonce spent
         ok, detail = False, f"addressed to {message['to']['agent']}, not {me}"
     else:   # nor one that fails its schema
-        ok, detail = replay.check(message, now, record=not errs) if replay is not None else (None, "not checked")
+        ok, detail = (replay.check(message, now, record=not errs, key=_pinned(trust, message["sig"]["key"]))
+                      if replay is not None else (None, "not checked"))
     out["replay"] = {"ok": ok, "detail": detail}
     out["schema"] = {"ok": not errs, "ref": ref, "errors": errs}
     if doc is not None:

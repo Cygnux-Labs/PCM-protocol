@@ -695,7 +695,7 @@ def vkey(name, seed):
 
 
 def test_two_keys_of_one_log_are_the_receivers_error():
-    """SPEC 10.1: one Ed25519 key per log name, so a key names one log; a hybrid key or another log's key is fine."""
+    """SPEC 10.1: one Ed25519 key per log name; a hybrid key or another log's key is fine."""
     second = vkey(NAME, b"\x01" * 32)
     for logs in ([VKEY, second], [second, VKEY]):
         with pytest.raises(ValueError, match="2 Ed25519 keys for log .*; PCM verifies with one: pass a trust file "
@@ -704,6 +704,86 @@ def test_two_keys_of_one_log_are_the_receivers_error():
     assert check(message())["verdict"] == "accept"
     assert pcm_verify.verify(message(), dict(TRUST, logs=[VKEY, vkey("example.org/other", b"\x01" * 32)]),
                              [DOC])["verdict"] == "accept"
+
+
+def test_one_key_under_two_log_names_is_the_receivers_error():
+    """SPEC 10.1: each Ed25519 key is pinned under one log name, so the key that signed a message names one log; trust
+    that pins one key under two log names is refused before any check."""
+    second = vkey("example.org/second-log", bytes(32))
+    m = message()
+    msgs = [m, dict(m, sig=dict(m["sig"], key="+".join(second.split("+", 2)[:2])))]
+    a, b = re.escape(NAME), re.escape("example.org/second-log")
+    names = f"({a}, {b}|{b}, {a})"
+    for logs in ([VKEY, second], [second, VKEY], [vkey("example.org/other", b"\x01" * 32), second, VKEY]):
+        for msg in msgs:
+            r = pcm_verify.Replay(window_s=None)
+            with pytest.raises(ValueError, match=rf"pins one Ed25519 key under 2 log names \({names}\); PCM reads one "
+                                                 r"log from a key: keep it under the name its log's checkpoints "
+                                                 r"carry; two logs can't share a key"):
+                pcm_verify.verify(msg, dict(TRUST, logs=logs), [DOC], replay=r)
+            assert (r.seen, r.floor) == ({}, {})
+
+
+def test_a_witness_key_counts_once():
+    """SPEC 10.1: each witness key is pinned under one name and each name pins one key, so the witness keys counted
+    (6.2 step 3) are distinct witnesses; trust that pins one key under two names, or two keys under one name, is
+    refused before any check, and its notes fail. Two witnesses with keys and names of their own count two."""
+    def witness(name, seed):
+        public = Ed25519PrivateKey.from_private_bytes(seed).public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+        kid = pcm_verify._key_id(name, pcm_verify.COSIGNATURE, public)
+        return name, seed, kid, f"{name}+{kid.hex()}+{b64(bytes([pcm_verify.COSIGNATURE]) + public)}"
+
+    def cosigned(*witnesses):   # message() with its evidence cosigned by `witnesses`, and trust requiring two of them
+        m = copy.deepcopy(message())
+        ev = m["claims"][0]["evidence"]
+        text = ev["checkpoint"].partition("\n\n")[0] + "\n"
+        for name, seed, kid, _ in witnesses:
+            sig = Ed25519PrivateKey.from_private_bytes(seed).sign(f"cosignature/v1\ntime 1760000000\n{text}".encode())
+            ev["checkpoint"] += f"— {name} {b64(kid + (1760000000).to_bytes(8, 'big') + sig)}\n"
+        trust = dict(TRUST, witnesses=[{"vkey": w[3]} for w in witnesses], witnesses_required=2)
+        return signed(m, pcm_verify.MESSAGE_TAG), trust
+    a, alias, b = (witness("w.example/a", b"\x07" * 32), witness("w.example/alias", b"\x07" * 32),
+                   witness("w.example/b", b"\x08" * 32))
+    a2 = witness("w.example/a", b"\x09" * 32)   # a second key under a's name
+    aliased = r"^trust pins one witness key under two names \({}, {}\); a key is one witness: keep it under the name " \
+              r"it cosigns with$"
+    two_keys = r"^trust pins two witness keys under one name \(w.example/a\); a name is one witness: keep only its " \
+               r"current key$"
+    for pair, refused in (((a, alias), aliased.format(a[0], alias[0])), ((alias, a), aliased.format(alias[0], a[0])),
+                          ((a, a2), two_keys), ((a2, a), two_keys)):
+        msg, trust = cosigned(*pair)
+        with pytest.raises(ValueError, match=refused):
+            pcm_verify.verify(msg, trust, [DOC])
+        with pytest.raises(pcm_verify.NoteError, match=refused):
+            pcm_verify.open_note(msg["claims"][0]["evidence"]["checkpoint"], [VKEY],
+                                 [w["vkey"] for w in trust["witnesses"]])
+    msg, trust = cosigned(a, b)
+    assert pcm_verify.verify(msg, trust, [DOC])["verdict"] == "accept"
+    msg, _ = cosigned(a)
+    assert pcm_verify.verify(msg, trust, [DOC])["claims"][0]["detail"] == ("checkpoint: 1 pinned cosignature(s), 2 "
+                                                                           "required")
+
+
+def test_the_sender_is_the_key_that_verified():
+    """SPEC 9: a sender is the raw 32-byte Ed25519 public key that verified the message and its from.agent."""
+    r, m = pcm_verify.Replay(window_s=None), message()
+    assert pcm_verify.verify(m, TRUST, [DOC], replay=r)["replay"] == {"ok": True, "detail": "fresh"}
+    assert list(r.seen) == [(PUB, "uid:1")]
+    other = Ed25519PrivateKey.from_private_bytes(b"\x01" * 32).public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    assert r.check(m, key=other) == (True, "fresh")
+    assert r.check(m, key=PUB) == (False, "replayed: this nonce was seen before")
+
+
+def test_the_replay_key_is_the_raw_public_key():
+    """SPEC 9: a sig.key, a vkey or None is the caller's mistake, refused before any state changes."""
+    r, m = pcm_verify.Replay(window_s=None), message()
+    for key in (m["sig"]["key"], VKEY, None, bytearray(PUB)):
+        with pytest.raises(TypeError, match="pass the public key that verified the message"):
+            r.check(m, key=key)
+    for key in (PUB[:31], b"\x01" + PUB):
+        with pytest.raises(ValueError, match="pass the raw 32-byte Ed25519 public key"):
+            r.check(m, key=key)
+    assert (r.seen, r.floor) == ({}, {})
 
 
 def test_a_receiver_that_starts_in_the_tick_a_message_was_signed_in_takes_it(monkeypatch):

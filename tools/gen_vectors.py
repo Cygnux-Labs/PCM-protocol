@@ -399,7 +399,7 @@ def cases(s, s2):
     twin = pcm.sign(OTHER, s2.vkey, "pcm", {**{k: v for k, v in twin.items() if k != "sig"}, "nonce": q["nonce"]})
     vector("accept-replay-same-agent-other-log", "The receiver first took a message from uid:990101 of the other log "
            "with the nonce of this one (re-signed with the other log's test key); trust pins both logs. A sender is "
-           "the pair (log key, agent), so uid:990101 of the test log is another sender and its nonce is new.", q,
+           "the pair (public key, agent), so uid:990101 of the test log is another sender and its nonce is new.", q,
            [QUOTE], trust=dict(trust, logs=[s.vkey, s2.vkey]), replay=fresh(q, [twin]))
     failed("proof-non-canonical-base64", "approved_by whose first record's first proof entry has an unused bit of its "
            "last base64 character set: the same 32 bytes, but only canonical base64 is taken.",

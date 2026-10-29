@@ -298,8 +298,9 @@ The agent never holds a signing key. It sends the message body to the signer, an
 A PCM 0.1 signer MUST sign messages and grants with its log key: the one Ed25519 key that trust.json `logs` pins under
 the log's name (10.1), which also signs the log's checkpoints. The `pcm.*` tags keep the purposes apart (4.2, 14.5).
 A dedicated PCM key, used for nothing else, needs a trust member of its own beside `logs`, so it is left to a later
-draft (Appendix B question 2). Rationale: with one key per log name, the key that signed a message names exactly one
-log, so the replay sender (9) and the evidence origin (6.2 step 2) are unambiguous.
+draft (Appendix B question 2). Rationale: each log name pins one key and each key is pinned under one log name (10.1),
+so the key that signed a message names exactly one log, and the replay sender (9) and the evidence origin (6.2 step 2)
+are unambiguous.
 
 ## 5. Intent schemas
 
@@ -445,8 +446,10 @@ A verifier checks an evidence item in this order. The first failure makes the cl
      pins a hybrid key named after the origin, its line MUST be present and valid (10.1).
 2. **Same log.** The note's origin equals the key name in the message's `sig.key` (the part before the last `+`).
    Evidence from another log fails, even if that log is pinned too (14.1).
-3. **Witnesses.** The note carries at least `witnesses_required` valid cosignatures from pinned witness keys
-   (vectors `accept-witnessed`, `reject-claim-witnesses-required-unmet`).
+3. **Witnesses.** The note carries valid cosignatures from at least `witnesses_required` distinct pinned witness
+   keys: a witness counts once, as trust pins each witness key under one name and one witness key under each name
+   (10.1) and a note has at most one line per (key name, key id) (step 1) (vectors `accept-witnessed`,
+   `reject-claim-witnesses-required-unmet`).
 4. For each record, numbered from 1:
    1. `event` is an object and `H(event) == hash`; else "record i: hash does not match the event".
    2. Every `proof` entry is canonical base64 (4.3), `event.seq` is an integer, and the RFC 9162 section 2.1.3.2
@@ -1365,13 +1368,14 @@ it. **[Implemented]** Parameters: `window_s` (default 300 seconds; `null` for an
 conversation), `per_sender` (default 4096), and `started`, the time the state was created, in whole
 microseconds as a TS is.
 
-**The sender (decided, 0.1).** A sender is the pair (`sig.key`, `from.agent`), never `from.agent` alone. Rationale:
-an identity is a name inside one signer, so `uid:990101` of one log and `uid:990101` of another are two senders, and
-one must not raise the other's floor or spend its nonces. **[Implemented]** (vector
+**The sender (decided, 0.1).** A sender is the pair (public key, `from.agent`), never `from.agent` alone: the raw
+32-byte Ed25519 public key that verified the message (4.3) and its `from.agent`. One agent name under two logs is two
+senders. Rationale: an identity is a name inside one signer, so `uid:990101` of one log and `uid:990101` of another are
+two senders, and one must not raise the other's floor or spend its nonces. **[Implemented]** (vector
 `accept-replay-same-agent-other-log`: a message of the other log with the same agent name and the same nonce was seen
 first, and this one still passes.)
 
-For a message whose signature passed, with `t = ts` and `sender = (sig.key, from.agent)`:
+For a message whose signature passed, with `t = ts` and `sender = (public key, from.agent)`:
 
 1. If `ts` names no real time (3.2): refuse ("which is no real time").
 2. If `window_s` is set: refuse when `|now − t| > window_s` ("more than … s from this receiver's clock"); refuse when
@@ -1428,9 +1432,9 @@ A receiver pins keys in a trust document:
 
 | Member | Required | Value |
 |---|---|---|
-| `logs` | yes | log vkeys (4.3): Ed25519 keys, at most one per log name, and hybrid keys (below). They verify messages, grants and evidence checkpoints. An empty list pins no log, so every message fails its signature check (8 step 2); it is no configuration error. |
-| `witnesses` | no | witness keys, each `{"name", "vkey"}`, the vkey of type 0x04 (C2SP tlog-cosignature). Default none. |
-| `witnesses_required` | no | how many pinned witness cosignatures each evidence checkpoint needs. Default 0. |
+| `logs` | yes | log vkeys (4.3): Ed25519 keys, at most one per log name and each under one log name, and hybrid keys (below). They verify messages, grants and evidence checkpoints. An empty list pins no log, so every message fails its signature check (8 step 2); it is no configuration error. |
+| `witnesses` | no | witness keys, each `{"name", "vkey"}`, the vkey of type 0x04 (C2SP tlog-cosignature), each key under one name and at most one key per name. Default none. |
+| `witnesses_required` | no | how many distinct pinned witness keys must cosign each evidence checkpoint. Default 0. |
 
 A verifier MUST ignore members it does not know, so a trust document written for other uses too works as it is
 (Appendix C gives one). A verifier reads only each witness's `vkey`; the key name inside the vkey is the one that
@@ -1445,16 +1449,43 @@ the order of the list. A well-formed vkey of the wrong kind for its member, a co
 in `witnesses`, is no configuration error: it fails every evidence checkpoint (6.2 step 1; vector
 `reject-claim-witness-key-in-logs`). **[Implemented]**
 
-**One key per log (decided, 0.1).** A trust document MUST pin at most one Ed25519 key under each log name in `logs`.
-A verifier MUST refuse a trust document with two or more entries of Ed25519 keys under one log name, the same key
-listed twice included, as a configuration error, reported like a bad vkey before any message ("trust pins 2 Ed25519
-keys for log …; PCM verifies with one: pass a trust file with only the current key"). A hybrid key (below) under the
-same name does not count.
+**One key per log (decided, 0.1).** A trust document MUST pin at most one Ed25519 key under each log name in `logs`,
+and each Ed25519 key under at most one log name. A verifier MUST refuse a trust document with two or more entries of
+Ed25519 keys under one log name, the same key listed twice included, as a configuration error, reported like a bad
+vkey before any message ("trust pins 2 Ed25519 keys for log …; PCM verifies with one: pass a trust file with only the
+current key"). A verifier MUST refuse a trust document that pins one Ed25519 key (the same raw 32-byte public key)
+under two or more log names in `logs` as a configuration error, reported the same way ("trust pins one Ed25519 key
+under 2 log names (…); PCM reads one log from a key: keep it under the name its log's checkpoints carry; two logs can't
+share a key").
+A hybrid key (below) counts for neither rule.
 Rationale: PCM 0.1 declares no key rotation, so two keys under one name may be two logs; the evidence check compares
 log names (6.2 step 2) while a message names its key, so two logs under one name would let one log's evidence pass for
-the other's (14.1), and the replay sender (9) would split one log in two. With one key per name, the key that signed a
-message names one log. To rotate a log key, replace it in the trust document (14.24). A configuration error is no
-vector (13.2); the standalone verifier's tests cover this rule.
+the other's (14.1), and the replay sender (9) would split one log in two. A message names its log by the key that
+signed it, and its evidence (6.2 step 2) and grants (7.6) must be of that log, so one key under two names would name
+two logs. Each log name pins one key and each key is pinned under one log name, so the key that signed a message names
+exactly one log. To rotate a log key, replace it in the trust document (14.24). A configuration error is no vector
+(13.2); the standalone verifier's tests cover these rules.
+
+**One name per witness key (decided, 0.1).** A trust document MUST pin each witness key (the same raw 32-byte public
+key) under at most one name in `witnesses`. A verifier MUST refuse a trust document that pins one cosignature key
+under two or more names in `witnesses` as a configuration error, reported like a bad vkey before any message ("trust
+pins one witness key under two names (…); a key is one witness: keep it under the name it cosigns with"). Only
+cosignature keys count for this rule: a key of another type in `witnesses` fails every evidence checkpoint (above).
+The same vkey listed twice is one key under one name, and counts once (6.2 step 1). **[Implemented]**
+Rationale: a cosignature signs the note text and its time, not the key name, and a cosigner uses one key
+[C2SP-COSIG], so one key under two names is one witness. With each key under one name, the witness keys counted
+toward `witnesses_required` (6.2 step 3) are distinct. A configuration error is no vector (13.2); the standalone
+verifier's tests cover this rule.
+
+**One key per witness name (decided, 0.1).** A trust document MUST pin at most one witness key under each name in
+`witnesses`. A verifier MUST refuse a trust document that pins two or more different cosignature keys under one name
+in `witnesses` as a configuration error, reported like a bad vkey before any message ("trust pins two witness keys
+under one name (…); a name is one witness: keep only its current key"). Only cosignature keys count for this rule, and
+the same vkey listed twice is one key (above). **[Implemented]**
+Rationale: a witness cosigns with one key [C2SP-COSIG], so a name names one witness; with one key under each name, the
+witnesses counted toward `witnesses_required` (6.2 step 3) are distinct. As for a log (above), PCM 0.1 declares no key
+rotation: to rotate a witness key, replace it in the trust document. A configuration error is no vector (13.2); the
+standalone verifier's tests cover this rule.
 
 A log may also pin a hybrid key: a vkey of type 0xff whose key bytes are the ASCII text `tracekit/slh-dsa-sha2-128s`
 followed by the 32-byte SLH-DSA-SHA2-128s public key [FIPS205], under the log's own name. When trust pins one, every
@@ -1628,9 +1659,9 @@ assumption PCM rests on, with the rule that closes or bounds it.
 1. **Cross-log evidence replay.** An agent on another signer reused a victim's run id and tenant, then replayed the
    victim's evidence in its own messages. Run ids are chosen by clients and are unique only per log. **Rule:** the
    evidence checkpoint's origin MUST equal the log name of the key that signed the message (6.2 step 2), and a trust
-   document pins one key per log name (10.1). Within one log, records must be of the sender's run and tenant (6.2
-   step 4.3). Vectors: `reject-claim-evidence-from-another-log`, where trust pins both logs and a sender on the other
-   log reuses the victim's run id and tenant;
+   document pins one key per log name and each key under one log name (10.1). Within one log, records must be of the
+   sender's run and tenant (6.2 step 4.3). Vectors: `reject-claim-evidence-from-another-log`, where trust pins both
+   logs and a sender on the other log reuses the victim's run id and tenant;
    `reject-claim-evidence-from-another-run`, `reject-claim-evidence-from-another-tenant`. Grants and replay state have
    the same problem: 14.18.
 2. **T1 is not proof.** A tool result the agent's own process reported is its own word. **Rule:** only a T2 result
@@ -1741,7 +1772,7 @@ assumption PCM rests on, with the rule that closes or bounds it.
     eviction (section 9). Messages signed before the receiver started are refused. A message replayed to another
     replica of the same receiver must not pass there: each (sender, nonce) is accepted at most once per receiver
     identity across all its replicas, by state they share or by routing each sender to one replica (section 9). A
-    sender is (log key, agent). Vectors: `reject-replay-duplicate-nonce`, `reject-replay-outside-window`,
+    sender is (public key, agent). Vectors: `reject-replay-duplicate-nonce`, `reject-replay-outside-window`,
     `reject-replay-before-started`, `reject-replay-floor-arrival-order`, `accept-replay-same-agent-other-log`,
     `reject-wrong-recipient`.
 15. **Schema trust.** The content hash pins what a schema says, not who wrote it. `id` patterns are regular
@@ -1761,7 +1792,7 @@ assumption PCM rests on, with the rule that closes or bounds it.
     everywhere, and `uid:990101` on one host is not `uid:990101` on another. When a grant was checked under any pinned
     log key, a grant signed by log X could ride in a message signed by log Y, sent by an agent on Y whose identity
     string is the grant's subject; anyone who saw the grant could hand it on. **Rule:** every grant in a chain MUST be
-    signed by the key that signed the message (7.6), and a sender is the pair (`sig.key`, `from.agent`), never
+    signed by the key that signed the message (7.6), and a sender is the pair (public key, `from.agent`), never
     `from.agent` alone (section 9, decided 0.1). A signer delegates only grants it signed itself (7.5). Vectors:
     `reject-grant-from-another-log` (trust pins both logs), `accept-replay-same-agent-other-log`.
 19. **A word splitter that reads apart from the shell.** A splitter that reads every `#` outside quotes as a comment
@@ -1815,7 +1846,7 @@ assumption PCM rests on, with the rule that closes or bounds it.
     a pinned key leaked SHOULD remove it from its trust document at once, which fails every message and grant the key
     signed, honest ones too (their senders ask for new grants), and SHOULD treat what it accepted under that key
     since the leak as unverified, dating messages by its own record of when they arrived, not by `ts`. PCM 0.1
-    declares no rotation: a trust document pins one key per log name (10.1). To rotate a key that did not leak,
+    declares no rotation: a trust document pins one key per log name, each under one name (10.1). To rotate a key that did not leak,
     switch the signer to the new key and replace the old key with the new one in each receiver's trust document.
     From then on whatever the old key signed fails there: its senders ask for new grants and send again, and the
     signer's next checkpoints, signed with the new key, cover the old records too, so evidence can be made again. A
@@ -2078,7 +2109,7 @@ are questions for a later draft:
    removes) stated step by step. Step 4's generic reading is also what Python's `urlsplit` does, with a bracket rule
    of its own that refuses some URLs a browser reads; a statement closer to the WHATWG host parser is open with it.
 2. **A key for messages and grants only, and key rotation** (4.5, 10.1). PCM 0.1 signs messages and grants with the
-   log key and pins one key per log name. A trust member that pins a key for messages and grants only would let a
+   log key and pins one key per log name, each key under one name. A trust member that pins a key for messages and grants only would let a
    fault in PCM signing leave the log key alone, and a way to declare a rotation (two keys of one log, each with the
    time from which it is valid) would let receivers rotate without a gap and give a key a validity period (14.24).
    Both change the trust document, so they wait for a later draft.
@@ -2204,8 +2235,9 @@ with the normative text, that is a bug in one of them: open an issue.
 | 7.3 narrowing | `tracekit.pcm.narrows` |
 | 7.6 grant chains | `tracekit.pcm.verify_grants` |
 | 8 verification | `tracekit.pcm.verify` (an invalid envelope lists up to 8 reasons) |
-| 9 replay | `tracekit.pcm.Replay`; `Replay.check(record=False)` checks without recording |
-| 10.1 one key per log | `tracekit.pcm.verify`, which raises `ValueError` |
+| 9 replay | `tracekit.pcm.Replay`; `Replay.check(msg, key=PUBLIC_KEY, record=False)` checks without recording; `key` is the raw 32-byte Ed25519 public key that verified the message |
+| 10.1 one key per log, one log per key | `tracekit.pcm.verify`, which raises `ValueError` |
+| 10.1 one name per witness key, one key per witness name | `tracekit.format.checkpoint.check_witnesses`, which `tracekit.pcm.verify` and `open_note` call; it raises `NoteError`, a `ValueError` |
 | 10.1 hybrid keys | `tracekit.format.checkpoint.SLH_DSA`, the prefix of a hybrid key's bytes |
 | 10.2 tool placement | `tracekit.pcm.claims.placed()`, reading `tracekit/pcm/tools.json` |
 

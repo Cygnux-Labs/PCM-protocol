@@ -230,7 +230,7 @@
   {
     "name": "accept-replay-same-agent-other-log",
     "file": "accept-replay-same-agent-other-log.json",
-    "description": "The receiver first took a message from uid:990101 of the other log with the nonce of this one (re-signed with the other log's test key); trust pins both logs. A sender is the pair (log key, agent), so uid:990101 of the test log is another sender and its nonce is new.",
+    "description": "The receiver first took a message from uid:990101 of the other log with the nonce of this one (re-signed with the other log's test key); trust pins both logs. A sender is the pair (public key, agent), so uid:990101 of the test log is another sender and its nonce is new.",
     "verdict": "accept"
   },
   {

@@ -39,10 +39,12 @@ About 600 to 800 lines, mapping one to one onto `tracekit/pcm/__init__.py` and `
 3. **Caveats and grants** (7): `checkCaveats`, `norm`, `implies`, `narrows`, `satisfies`, `verifyGrants`. Small and
    exact; the vectors cover each narrowing rule.
 4. **Replay** (9): the `Replay` class with `window_s`, `started`, `per_sender`, the floor, each sender keyed by
-   (`sig.key`, `from.agent`), a `ts` that is no real date refused, not thrown, and a check that does not record.
+   (the raw 32-byte Ed25519 public key, `from.agent`), a `ts` that is no real date refused, not thrown, and a check
+   that does not record.
 5. **Verdict** (8): the order of checks (the schema before the recipient and replay checks, so a misaddressed or
    schema-rejected message spends no nonce), the `reasons` order and `skipped`; a trust document with two Ed25519
-   keys of one log is a configuration error (10.1).
+   keys of one log, one Ed25519 key under two log names, one witness key under two names, or two witness keys under
+   one name, is a configuration error (10.1).
 6. **Evidence and claims** (6): the note origin rule, inclusion, no record listed twice, the sender's run, each record
    a valid event of `registry/tracekit.event.v2.json`, openings (HMAC-SHA256 with WebCrypto, compared in constant
    time), `Ran` with its "can't tell" answer, and the four checkers with PCM 0.1's frozen tool table,

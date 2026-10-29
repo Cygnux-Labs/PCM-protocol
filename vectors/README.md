@@ -44,8 +44,9 @@ A `bad-input-` vector holds `message_text`, the message as JSON text, in place o
 `{"verdict": "bad-input", "reasons": [...]}`. Your verifier must refuse the text as a parse error before any check
 (SPEC 3.3, 13.2): `bad-input-number-past-double` holds a number past the IEEE double range.
 
-A trust or schema document a verifier must refuse as a configuration error (two Ed25519 keys of one log, a bad vkey,
-a bad schema document) has no result to compare, so it is no vector; the standalone verifier's tests cover those.
+A trust or schema document a verifier must refuse as a configuration error (two Ed25519 keys of one log, one Ed25519
+key under two log names, a bad vkey, a bad schema document) has no result to compare, so it is no vector; the
+standalone verifier's tests cover those.
 
 ## Conformance
 

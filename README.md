@@ -3,7 +3,7 @@
 ![PCM-detected lies](https://img.shields.io/badge/PCM--detected%20lies-702%20of%20712-2a78d6)
 ![benchmark](https://img.shields.io/badge/benchmark-pre--registered-2a78d6)
 ![vectors](https://img.shields.io/badge/test%20vectors-187-2a78d6)
-![verifier](https://img.shields.io/badge/independent%20verifier-556%20tests-1baf7a)
+![verifier](https://img.shields.io/badge/independent%20verifier-559%20tests-1baf7a)
 ![spec](https://img.shields.io/badge/PCM-0.1-52514e)
 ![licence](https://img.shields.io/badge/licence-MIT-52514e)
 
@@ -108,7 +108,7 @@ before any check (3.3, 13.2). A claim that rests on the agent's word alone is `u
      <img alt="A grant chain only narrows: alice approves, a root grant is issued, a narrower child is signed and a wider child is rejected" src="docs/img/grants-light.svg" width="900">
    </picture>
 
-5. **Replay rules that survive a restart in bounded memory.** A sender is the pair (log key, agent). A receiver
+5. **Replay rules that survive a restart in bounded memory.** A sender is the pair (public key, agent). A receiver
    refuses a message outside its clock window, signed before the receiver started (so it restarts with no saved
    state), with a nonce it has seen, or at or below the sender's floor, which eviction raises. A nonce is spent only
    after the recipient and schema checks pass; a receiver identity accepts a message at most once, across replicas (9).
@@ -453,14 +453,14 @@ python -m pcm_verify MESSAGE --trust T --schema S [--me ID] [--strict] [--json]
 ```
 
 `MESSAGE` is the message JSON and `S` the schema document of its intent. `T` is a trust.json (10.1) that holds one
-Ed25519 key per log, `{"logs": ["<vkey>"]}`; for a Tracekit signer, `tracekit signer trust --config <signer.yaml> -o
-pcm-trust.json` writes one. `--me` is the receiver's identity, `--strict` requires a proven claim of every type the
-schema lists, and `--json` prints the whole result. It exits 0 for `accept`, 3 for `accept-unproven`, 1 for `reject`
-and 2 when it can't check: bad input (text that does not parse strictly, 3.3), a configuration error (a schema or
-trust document it refuses, 5.2, 10.1) or a usage error. It keeps no replay state, so it prints `not checked: replay`,
-and its result is for audit (9). It prints a proven `approved_by`'s `approved`, and after a proven `tests_passed` or
-`file_written`, how long before the message the oldest evidence record is, for the receiver's age check (14.13);
-`tracekit pcm verify` prints the age too (C.3).
+Ed25519 key per log, each under its own log's name, `{"logs": ["<vkey>"]}`; for a Tracekit signer, `tracekit signer
+trust --config <signer.yaml> -o pcm-trust.json` writes one. `--me` is the receiver's identity, `--strict` requires a
+proven claim of every type the schema lists, and `--json` prints the whole result. It exits 0 for `accept`, 3 for
+`accept-unproven`, 1 for `reject` and 2 when it can't check: bad input (text that does not parse strictly, 3.3), a
+configuration error (a schema or trust document it refuses, 5.2, 10.1) or a usage error. It keeps no replay state, so
+it prints `not checked: replay`, and its result is for audit (9). It prints a proven `approved_by`'s `approved`, and
+after a proven `tests_passed` or `file_written`, how long before the message the oldest evidence record is, for the
+receiver's age check (14.13); `tracekit pcm verify` prints the age too (C.3).
 
 A verifier conforms on a vector when these fields equal the vector's `expected` (13.2): `verdict`, `signature.ok`,
 `replay.ok`, `schema.ok`, `grants.result`, each `claims[i].result`, each `claims[i].approved` and `skipped`. The
