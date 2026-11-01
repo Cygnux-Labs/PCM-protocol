@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verifier-tests:
+    name: Verifier tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-24.04 # ubuntu-latest moves to 26.04, which has no 3.11.4 build
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11.4", "3.x"] # the floor in verifier/python/pyproject.toml, and the latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install the verifier and pytest
+        run: pip install ./verifier/python pytest
+      - name: Run the verifier tests
+        working-directory: verifier/python
+        run: python -m pytest -q
+
+  repository-checks:
+    name: Registry, vector index and benchmark report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.x"
+
+      - name: registry/tools.json has the SHA-256 quoted in SPEC 10.2
+        run: |
+          expected=$(tr '\n' ' ' < SPEC.md | grep -oE 'SHA-256 of the file is `[0-9a-f]{64}`' | grep -oE '[0-9a-f]{64}')
+          actual=$(sha256sum registry/tools.json | cut -d ' ' -f 1)
+          echo "SPEC.md:             $expected"
+          echo "registry/tools.json: $actual"
+          test -n "$expected" && test "$expected" = "$actual"
+
+      - name: vectors/index.json lists every vector file, and only those
+        run: |
+          python - <<'EOF'
+          import json, pathlib
+          listed = {v["file"] for v in json.loads(pathlib.Path("vectors/index.json").read_text(encoding="utf-8"))}
+          on_disk = {p.name for p in pathlib.Path("vectors").glob("*.json")} - {"index.json"}
+          print("in the index but not in vectors/:", sorted(listed - on_disk))
+          print("in vectors/ but not in the index:", sorted(on_disk - listed))
+          raise SystemExit(listed != on_disk)
+          EOF
+
+      - name: The benchmark report reproduces from the committed results
+        run: |
+          python -m bench.lies report
+          git add -A bench/lies   # a deleted file the report writes back is untracked, which git diff skips
+          git diff --cached --exit-code
