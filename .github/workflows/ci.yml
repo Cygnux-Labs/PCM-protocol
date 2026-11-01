@@ -10,7 +10,7 @@ permissions:
 jobs:
   verifier-tests:
     name: Verifier tests (Python ${{ matrix.python }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ubuntu-latest moves to 26.04, which has no 3.11.4 build
     strategy:
       fail-fast: false
       matrix:
@@ -57,4 +57,5 @@ jobs:
       - name: The benchmark report reproduces from the committed results
         run: |
           python -m bench.lies report
-          git diff --exit-code -- bench/lies
+          git add -A bench/lies   # a deleted file the report writes back is untracked, which git diff skips
+          git diff --cached --exit-code
